@@ -133,7 +133,23 @@ export async function addToWatchlist(data: { stockCode: string; targetPrice?: st
   if (!db) return;
   
   const { watchlist } = await import('../drizzle/schema');
-  await db.insert(watchlist).values(data);
+  
+  // 构建插入数据，只包含非 undefined 的字段
+  const insertData: any = {
+    stockCode: data.stockCode,
+  };
+  
+  if (data.targetPrice !== undefined) {
+    insertData.targetPrice = data.targetPrice;
+  }
+  if (data.note !== undefined) {
+    insertData.note = data.note;
+  }
+  if (data.source !== undefined) {
+    insertData.source = data.source;
+  }
+  
+  await db.insert(watchlist).values(insertData);
 }
 
 export async function removeFromWatchlist(id: number) {

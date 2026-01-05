@@ -82,17 +82,18 @@ export default function Home() {
               <p className="text-sm text-muted-foreground">搜索结果：</p>
               {searchResults.map((stock: any) => (
                 <div
-                  key={stock.ts_code}
+                  key={stock.code}
                   className="flex items-center justify-between p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors"
                 >
                   <div>
                     <span className="font-medium text-foreground">{stock.name}</span>
-                    <span className="ml-2 text-sm text-muted-foreground">{stock.symbol}</span>
+                    <span className="ml-2 text-sm text-muted-foreground">{stock.code}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{stock.market}</span>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleAddToWatchlist(stock.symbol)}
+                    onClick={() => handleAddToWatchlist(stock.code)}
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     添加
