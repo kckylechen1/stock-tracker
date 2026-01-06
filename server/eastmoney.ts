@@ -214,6 +214,69 @@ export async function getKlineData(
 }
 
 /**
+ * 获取分时数据
+ */
+export async function getTimelineData(code: string) {
+  try {
+    const eastmoneyCode = convertToEastmoneyCode(code);
+    const timestamp = Date.now();
+    const callback = `jQuery${Math.random().toString().replace('.', '')}${timestamp}`;
+    
+    const url = `https://push2his.eastmoney.com/api/qt/stock/trends2/get`;
+    const params = {
+      cb: callback,
+      secid: eastmoneyCode,
+      ut: 'fa5fd1943c7b386f172d6893dbfba10b',
+      fields1: 'f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13',
+      fields2: 'f51,f52,f53,f54,f55,f56,f57,f58',
+      iscr: '0',
+      ndays: '1',
+      _: timestamp,
+    };
+    
+    const response = await axios.get(url, {
+      params,
+      headers: HEADERS,
+    });
+    
+    // 处理JSONP响应
+    let jsonpData = response.data;
+    if (typeof jsonpData === 'string') {
+      jsonpData = jsonpData.replace(/^[^(]+\(/, '').replace(/\);?$/, '');
+      jsonpData = JSON.parse(jsonpData);
+    }
+    
+    if (!jsonpData || !jsonpData.data || !jsonpData.data.trends) {
+      throw new Error('分时数据为空');
+    }
+    
+    const preClose = jsonpData.data.preClose; // 昨收价
+    
+    // 解析分时数据
+    const timeline = jsonpData.data.trends.map((line: string) => {
+      const parts = line.split(',');
+      const price = parseFloat(parts[2]);
+      return {
+        time: parts[0], // 时间 (YYYY-MM-DD HH:mm)
+        price: price, // 价格
+        avgPrice: parseFloat(parts[3]), // 均价
+        volume: parseInt(parts[5]), // 成交量
+        amount: parseFloat(parts[6]), // 成交额
+        changePercent: ((price - preClose) / preClose) * 100, // 涨跌幅
+      };
+    });
+    
+    return {
+      preClose,
+      timeline,
+    };
+  } catch (error: any) {
+    console.error(`[Eastmoney] Failed to get timeline data for ${code}:`, error.message);
+    throw error;
+  }
+}
+
+/**
  * 获取股票基本信息
  */
 export async function getStockInfo(code: string) {

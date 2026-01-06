@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, TrendingUp, TrendingDown, Trash2 } from "lucide-react";
-import { createChart, CandlestickSeries, CandlestickData, Time } from "lightweight-charts";
+import { createChart, CandlestickSeries, LineSeries, CandlestickData, LineData, Time } from "lightweight-charts";
 import type { IChartApi } from "lightweight-charts";
 
 export default function Home() {
@@ -218,8 +218,8 @@ function StockListItem({
 function StockDetailPanel({ stockCode }: { stockCode: string }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candlestickSeriesRef = useRef<any>(null);
-  const [period, setPeriod] = useState<'day' | 'week' | 'month'>('day');
+  const seriesRef = useRef<any>(null);
+  const [chartType, setChartType] = useState<'timeline' | 'day' | 'week' | 'month'>('timeline');
   
   // 获取股票详情
   const { data: detail } = trpc.stocks.getDetail.useQuery(
@@ -227,9 +227,16 @@ function StockDetailPanel({ stockCode }: { stockCode: string }) {
     { refetchInterval: 30000 }
   );
   
+  // 获取分时数据
+  const { data: timelineData } = trpc.stocks.getTimeline.useQuery(
+    { code: stockCode },
+    { enabled: chartType === 'timeline' }
+  );
+  
   // 获取K线数据
   const { data: klineData } = trpc.stocks.getKline.useQuery(
-    { code: stockCode, period, limit: 120 }
+    { code: stockCode, period: chartType === 'timeline' ? 'day' : chartType, limit: 60 },
+    { enabled: chartType !== 'timeline' }
   );
   
   // 初始化图表
@@ -240,7 +247,7 @@ function StockDetailPanel({ stockCode }: { stockCode: string }) {
     if (chartRef.current) {
       chartRef.current.remove();
       chartRef.current = null;
-      candlestickSeriesRef.current = null;
+      seriesRef.current = null;
     }
     
     const chart = createChart(chartContainerRef.current, {
@@ -263,19 +270,29 @@ function StockDetailPanel({ stockCode }: { stockCode: string }) {
         timeVisible: true,
       },
       width: chartContainerRef.current.clientWidth,
-      height: 400,
+      height: 350,
     });
     
-    const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderVisible: false,
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
-    });
+    // 根据图表类型添加不同的系列
+    if (chartType === 'timeline') {
+      const lineSeries = chart.addSeries(LineSeries, {
+        color: '#2962FF',
+        lineWidth: 2,
+        priceLineVisible: true,
+      });
+      seriesRef.current = lineSeries;
+    } else {
+      const candlestickSeries = chart.addSeries(CandlestickSeries, {
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderVisible: false,
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350',
+      });
+      seriesRef.current = candlestickSeries;
+    }
     
     chartRef.current = chart;
-    candlestickSeriesRef.current = candlestickSeries;
     
     // 响应式调整
     const handleResize = () => {
@@ -295,11 +312,37 @@ function StockDetailPanel({ stockCode }: { stockCode: string }) {
         chartRef.current = null;
       }
     };
-  }, [stockCode]);
+  }, [stockCode, chartType]);
+  
+  // 更新分时数据
+  useEffect(() => {
+    if (chartType !== 'timeline' || !seriesRef.current || !timelineData?.timeline) return;
+    
+    const formattedData: LineData<Time>[] = timelineData.timeline.map((item: any) => {
+      // 将时间转换为Unix时间戳（秒）
+      const timeParts = item.time.split(' ');
+      const dateStr = timeParts[0];
+      const timeStr = timeParts[1] || '09:30';
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const [hour, minute] = timeStr.split(':').map(Number);
+      const date = new Date(year, month - 1, day, hour, minute);
+      const timestamp = Math.floor(date.getTime() / 1000);
+      
+      return {
+        time: timestamp as Time,
+        value: item.price,
+      };
+    });
+    
+    if (formattedData.length > 0) {
+      seriesRef.current.setData(formattedData);
+      chartRef.current?.timeScale().fitContent();
+    }
+  }, [timelineData, chartType]);
   
   // 更新K线数据
   useEffect(() => {
-    if (!candlestickSeriesRef.current || !klineData || klineData.length === 0) return;
+    if (chartType === 'timeline' || !seriesRef.current || !klineData || klineData.length === 0) return;
     
     const formattedData: CandlestickData<Time>[] = klineData.map((item: any) => ({
       time: item.time as Time,
@@ -309,9 +352,9 @@ function StockDetailPanel({ stockCode }: { stockCode: string }) {
       close: item.close,
     }));
     
-    candlestickSeriesRef.current.setData(formattedData);
+    seriesRef.current.setData(formattedData);
     chartRef.current?.timeScale().fitContent();
-  }, [klineData]);
+  }, [klineData, chartType]);
   
   const quote = detail?.quote;
   const changePercent = quote?.changePercent || 0;
@@ -345,15 +388,16 @@ function StockDetailPanel({ stockCode }: { stockCode: string }) {
       {/* 周期选择 */}
       <div className="px-6 py-3 border-b border-border flex gap-2">
         {[
+          { key: 'timeline', label: '分时' },
           { key: 'day', label: '日K' },
           { key: 'week', label: '周K' },
           { key: 'month', label: '月K' },
         ].map((item) => (
           <button
             key={item.key}
-            onClick={() => setPeriod(item.key as 'day' | 'week' | 'month')}
+            onClick={() => setChartType(item.key as 'timeline' | 'day' | 'week' | 'month')}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              period === item.key
+              chartType === item.key
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted hover:bg-muted/80 text-muted-foreground'
             }`}
@@ -363,37 +407,42 @@ function StockDetailPanel({ stockCode }: { stockCode: string }) {
         ))}
       </div>
       
-      {/* K线图 */}
-      <div className="px-6 py-4">
-        <div ref={chartContainerRef} className="w-full" />
-      </div>
-      
-      {/* 基本信息 */}
-      <div className="px-6 py-4 border-t border-border">
-        <div className="grid grid-cols-4 gap-4">
-          <InfoItem label="开盘" value={quote?.open?.toFixed(2)} />
-          <InfoItem label="最高" value={quote?.high?.toFixed(2)} />
-          <InfoItem label="最低" value={quote?.low?.toFixed(2)} />
-          <InfoItem label="昨收" value={quote?.preClose?.toFixed(2)} />
-          <InfoItem label="成交量" value={formatVolume(quote?.volume)} />
-          <InfoItem label="成交额" value={formatAmount(quote?.amount)} />
-          <InfoItem label="换手率" value={quote?.turnoverRate ? `${quote.turnoverRate.toFixed(2)}%` : "--"} />
-          <InfoItem label="市盈率" value={quote?.pe?.toFixed(2)} />
-          <InfoItem label="市净率" value={quote?.pb?.toFixed(2)} />
-          <InfoItem label="总市值" value={formatMarketCap(quote?.marketCap)} />
-          <InfoItem label="流通市值" value={formatMarketCap(quote?.circulationMarketCap)} />
+      {/* 图表和基本信息并排 */}
+      <div className="flex-1 flex">
+        {/* 图表区域 */}
+        <div className="flex-1 p-4">
+          <div ref={chartContainerRef} className="w-full" />
+        </div>
+        
+        {/* 基本信息 - 右侧 */}
+        <div className="w-64 border-l border-border p-4 bg-muted/20">
+          <div className="space-y-4">
+            <InfoRow label="开盘" value={quote?.open?.toFixed(2)} />
+            <InfoRow label="最高" value={quote?.high?.toFixed(2)} />
+            <InfoRow label="最低" value={quote?.low?.toFixed(2)} />
+            <InfoRow label="昨收" value={quote?.preClose?.toFixed(2)} />
+            <div className="border-t border-border my-2" />
+            <InfoRow label="成交量" value={formatVolume(quote?.volume)} />
+            <InfoRow label="成交额" value={formatAmount(quote?.amount)} />
+            <InfoRow label="换手率" value={quote?.turnoverRate ? `${quote.turnoverRate.toFixed(2)}%` : "--"} />
+            <div className="border-t border-border my-2" />
+            <InfoRow label="市盈率" value={quote?.pe?.toFixed(2)} />
+            <InfoRow label="市净率" value={quote?.pb?.toFixed(2)} />
+            <InfoRow label="总市值" value={formatMarketCap(quote?.marketCap)} />
+            <InfoRow label="流通市值" value={formatMarketCap(quote?.circulationMarketCap)} />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// 信息项组件
-function InfoItem({ label, value }: { label: string; value?: string }) {
+// 信息行组件
+function InfoRow({ label, value }: { label: string; value?: string }) {
   return (
-    <div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-sm font-medium tabular-nums">{value || "--"}</div>
+    <div className="flex justify-between items-center">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium tabular-nums">{value || "--"}</span>
     </div>
   );
 }

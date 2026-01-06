@@ -74,6 +74,24 @@ export const appRouter = router({
         }
       }),
     
+    // 获取分时数据
+    getTimeline: publicProcedure
+      .input((val: unknown) => {
+        if (typeof val === 'object' && val !== null && 'code' in val) {
+          return val as { code: string };
+        }
+        throw new Error('Invalid input');
+      })
+      .query(async ({ input }) => {
+        try {
+          const data = await eastmoney.getTimelineData(input.code);
+          return data;
+        } catch (error) {
+          console.error('Get timeline failed:', error);
+          return { preClose: 0, timeline: [] };
+        }
+      }),
+    
     // 获取K线数据
     getKline: publicProcedure
       .input((val: unknown) => {
@@ -85,7 +103,7 @@ export const appRouter = router({
       .query(async ({ input }) => {
         try {
           const period = (input.period || 'day') as 'day' | 'week' | 'month';
-          const limit = input.limit || 100;
+          const limit = input.limit || 60; // 减少默认K线数量从100到60
           
           // 使用东方财富API获取K线数据
           const klines = await eastmoney.getKlineData(input.code, period);
