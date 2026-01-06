@@ -13,19 +13,21 @@
 
 ## 🔍 发现的问题
 
-### 1. TypeScript 类型错误（高优先级）
+### 1. TypeScript 类型错误（高优先级）✅ 已修复
 
 #### 文件: `client/src/pages/StockDetail.tsx`
 
-| 行号 | 错误描述 | 错误类型 |
-|------|----------|----------|
-| 33 | Property 'pct_chg' does not exist | TS2339 |
-| 95 | Property 'close' does not exist | TS2339 |
-| 130 | Property 'vol' does not exist (2处) | TS2339 |
-| 144 | Property 'turnover_rate' does not exist | TS2551 |
-| 206 | Property 'turnover_rate' does not exist | TS2551 |
-| 224 | 'aiAnalysis.technicalScore' is possibly 'null' (2处) | TS18047 |
-| 254 | Type 'string \| (TextContent \| ImageContent \| FileContent)[] \| null' is not assignable to type 'ReactNode' | TS2322 |
+| 行号 | 错误描述 | 错误类型 | 状态 |
+|------|----------|----------|------|
+| 33 | Property 'pct_chg' does not exist | TS2339 | ✅ 已修复 → changePercent |
+| 95 | Property 'close' does not exist | TS2339 | ✅ 已修复 → price |
+| 130 | Property 'vol' does not exist (2处) | TS2339 | ✅ 已修复 → volume |
+| 144 | Property 'turnover_rate' does not exist | TS2551 | ✅ 已修复 → turnoverRate |
+| 206 | Property 'turnover_rate' does not exist | TS2551 | ✅ 已修复 → turnoverRate |
+| 224 | 'aiAnalysis.technicalScore' is possibly 'null' (2处) | TS18047 | ✅ 已修复 → 添加空值合并 |
+| 254 | Type 'string \| ...' is not assignable to type 'ReactNode' | TS2322 | ✅ 已修复 → 类型检查 |
+
+#### 修复日期: 2026-01-06 23:27
 
 #### 根本原因
 

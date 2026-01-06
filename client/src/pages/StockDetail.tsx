@@ -11,26 +11,26 @@ export default function StockDetail() {
   const [, params] = useRoute("/stocks/:code");
   const [, setLocation] = useLocation();
   const code = params?.code || "";
-  
+
   const { data: stockDetail, isLoading } = trpc.stocks.getDetail.useQuery(
     { code },
     { enabled: !!code }
   );
-  
+
   const { data: klineData } = trpc.stocks.getKline.useQuery(
     { code, period: 'day', limit: 100 },
     { enabled: !!code }
   );
-  
+
   const { data: aiAnalysis, isLoading: aiLoading } = trpc.analysis.getAnalysis.useQuery(
     { code },
     { enabled: !!code }
   );
-  
+
   const quote = stockDetail?.quote;
   const basic = stockDetail?.basic;
   const stock = stockDetail?.stock;
-  const pctChange = quote?.pct_chg || 0;
+  const pctChange = quote?.changePercent || 0;
   const isUp = pctChange > 0;
   const isDown = pctChange < 0;
 
@@ -92,7 +92,7 @@ export default function StockDetail() {
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">当前价</p>
                   <p className="text-3xl font-bold text-foreground">
-                    {quote?.close?.toFixed(2) || '--'}
+                    {quote?.price?.toFixed(2) || '--'}
                   </p>
                   <p
                     className="text-sm font-medium mt-1 flex items-center gap-1"
@@ -102,49 +102,49 @@ export default function StockDetail() {
                     {pctChange > 0 ? '+' : ''}{pctChange?.toFixed(2)}%
                   </p>
                 </div>
-                
+
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">开盘价</p>
                   <p className="text-2xl font-semibold text-foreground">
                     {quote?.open?.toFixed(2) || '--'}
                   </p>
                 </div>
-                
+
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">最高价</p>
                   <p className="text-2xl font-semibold text-foreground">
                     {quote?.high?.toFixed(2) || '--'}
                   </p>
                 </div>
-                
+
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">最低价</p>
                   <p className="text-2xl font-semibold text-foreground">
                     {quote?.low?.toFixed(2) || '--'}
                   </p>
                 </div>
-                
+
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">成交量</p>
                   <p className="text-lg font-semibold text-foreground">
-                    {quote?.vol ? (quote.vol / 10000).toFixed(2) + '万手' : '--'}
+                    {quote?.volume ? (quote.volume / 10000).toFixed(2) + '万手' : '--'}
                   </p>
                 </div>
-                
+
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">成交额</p>
                   <p className="text-lg font-semibold text-foreground">
                     {quote?.amount ? (quote.amount / 10000).toFixed(2) + '万元' : '--'}
                   </p>
                 </div>
-                
+
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">换手率</p>
                   <p className="text-lg font-semibold text-foreground">
-                    {basic?.turnover_rate?.toFixed(2) || '--'}%
+                    {basic?.turnoverRate?.toFixed(2) || '--'}%
                   </p>
                 </div>
-                
+
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">市盈率</p>
                   <p className="text-lg font-semibold text-foreground">
@@ -169,13 +169,13 @@ export default function StockDetail() {
                   <p className="text-lg font-semibold text-foreground">待计算</p>
                   <p className="text-xs text-muted-foreground mt-1">技术分析指标</p>
                 </div>
-                
+
                 <div className="p-4 rounded-lg bg-accent">
                   <p className="text-sm text-muted-foreground mb-2">RSI</p>
                   <p className="text-lg font-semibold text-foreground">待计算</p>
                   <p className="text-xs text-muted-foreground mt-1">相对强弱指标</p>
                 </div>
-                
+
                 <div className="p-4 rounded-lg bg-accent">
                   <p className="text-sm text-muted-foreground mb-2">均线系统</p>
                   <p className="text-lg font-semibold text-foreground">待计算</p>
@@ -193,17 +193,17 @@ export default function StockDetail() {
                   <p className="text-lg font-semibold text-foreground">待获取</p>
                   <p className="text-xs text-muted-foreground mt-1">净流入数据</p>
                 </div>
-                
+
                 <div className="p-4 rounded-lg bg-accent">
                   <p className="text-sm text-muted-foreground mb-2">北向资金</p>
                   <p className="text-lg font-semibold text-foreground">待获取</p>
                   <p className="text-xs text-muted-foreground mt-1">外资动向</p>
                 </div>
-                
+
                 <div className="p-4 rounded-lg bg-accent">
                   <p className="text-sm text-muted-foreground mb-2">换手率</p>
                   <p className="text-lg font-semibold text-foreground">
-                    {basic?.turnover_rate?.toFixed(2) || '--'}%
+                    {basic?.turnoverRate?.toFixed(2) || '--'}%
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">交易活跃度</p>
                 </div>
@@ -221,9 +221,9 @@ export default function StockDetail() {
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm font-medium text-foreground">技术面分析</p>
                       <span className="text-sm font-semibold" style={{
-                        color: aiAnalysis.technicalScore >= 60 ? 'var(--stock-up)' : aiAnalysis.technicalScore <= 40 ? 'var(--stock-down)' : 'var(--stock-neutral)'
+                        color: (aiAnalysis.technicalScore ?? 0) >= 60 ? 'var(--stock-up)' : (aiAnalysis.technicalScore ?? 0) <= 40 ? 'var(--stock-down)' : 'var(--stock-neutral)'
                       }}>
-                        评分: {aiAnalysis.technicalScore}/100
+                        评分: {aiAnalysis.technicalScore ?? 0}/100
                       </span>
                     </div>
                     <div className="space-y-1">
@@ -232,7 +232,7 @@ export default function StockDetail() {
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="p-4 rounded-lg bg-accent">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm font-medium text-foreground">情绪面分析</p>
@@ -240,7 +240,7 @@ export default function StockDetail() {
                     </div>
                     <p className="text-sm text-muted-foreground">功能开发中...</p>
                   </div>
-                  
+
                   <div className="p-4 rounded-lg bg-accent">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm font-medium text-foreground">资金面分析</p>
@@ -248,10 +248,10 @@ export default function StockDetail() {
                     </div>
                     <p className="text-sm text-muted-foreground">功能开发中...</p>
                   </div>
-                  
+
                   <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                     <p className="text-sm font-medium text-foreground mb-2">⚡ 综合建议</p>
-                    <p className="text-sm text-foreground">{aiAnalysis.summary}</p>
+                    <p className="text-sm text-foreground">{typeof aiAnalysis.summary === 'string' ? aiAnalysis.summary : '暂无建议'}</p>
                   </div>
                 </div>
               ) : (
