@@ -12,6 +12,8 @@ import { Streamdown } from "streamdown";
 export type Message = {
   role: "system" | "user" | "assistant";
   content: string;
+  /** 思考耗时（秒），仅 assistant 消息可能有此字段 */
+  thinkingTime?: number;
 };
 
 export type AIChatBoxProps = {
@@ -272,77 +274,86 @@ export function AIChatBox({
                       </div>
                     )}
 
-                    <div
-                      className={cn(
-                        "max-w-[80%] rounded-lg px-4 py-2.5",
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground"
+                    <div className="flex flex-col max-w-[80%]">
+                      {/* 思考时间提示 - 仅在 assistant 消息且有 thinkingTime 时显示 */}
+                      {message.role === "assistant" && message.thinkingTime && message.thinkingTime > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5 ml-1">
+                          <span>💭</span>
+                          <span>思考了 {message.thinkingTime}s</span>
+                        </div>
                       )}
-                    >
-                      {message.role === "assistant" ? (
-                        <div>
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <Streamdown>{message.content}</Streamdown>
-                          </div>
-                          {/* AI 回复操作按钮 - 只在有内容且不在加载时显示 */}
-                          {message.content && !isLoading && (
-                            <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border/50">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(message.content);
-                                  setCopiedIndex(index);
-                                  setTimeout(() => setCopiedIndex(null), 2000);
-                                }}
-                                className={`p-1.5 rounded hover:bg-accent transition-colors ${copiedIndex === index
-                                    ? 'text-green-500'
-                                    : 'text-muted-foreground hover:text-foreground'
-                                  }`}
-                                title={copiedIndex === index ? "已复制!" : "复制"}
-                              >
-                                <Copy className="size-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setFeedbackIndex({ index, type: 'up' })}
-                                className={`p-1.5 rounded hover:bg-accent transition-colors ${feedbackIndex?.index === index && feedbackIndex?.type === 'up'
-                                    ? 'text-green-500'
-                                    : 'text-muted-foreground hover:text-foreground'
-                                  }`}
-                                title="有帮助"
-                              >
-                                <ThumbsUp className="size-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setFeedbackIndex({ index, type: 'down' })}
-                                className={`p-1.5 rounded hover:bg-accent transition-colors ${feedbackIndex?.index === index && feedbackIndex?.type === 'down'
-                                    ? 'text-red-500'
-                                    : 'text-muted-foreground hover:text-foreground'
-                                  }`}
-                                title="没帮助"
-                              >
-                                <ThumbsDown className="size-3.5" />
-                              </button>
-                              {isLastMessage && onRegenerate && (
+                      <div
+                        className={cn(
+                          "rounded-lg px-4 py-2.5",
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-foreground"
+                        )}
+                      >
+                        {message.role === "assistant" ? (
+                          <div>
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                              <Streamdown>{message.content}</Streamdown>
+                            </div>
+                            {/* AI 回复操作按钮 - 只在有内容且不在加载时显示 */}
+                            {message.content && !isLoading && (
+                              <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border/50">
                                 <button
                                   type="button"
-                                  onClick={onRegenerate}
-                                  className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                                  title="重新生成"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(message.content);
+                                    setCopiedIndex(index);
+                                    setTimeout(() => setCopiedIndex(null), 2000);
+                                  }}
+                                  className={`p-1.5 rounded hover:bg-accent transition-colors ${copiedIndex === index
+                                    ? 'text-green-500'
+                                    : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                  title={copiedIndex === index ? "已复制!" : "复制"}
                                 >
-                                  <RotateCcw className="size-3.5" />
+                                  <Copy className="size-3.5" />
                                 </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="whitespace-pre-wrap text-sm">
-                          {message.content}
-                        </p>
-                      )}
+                                <button
+                                  type="button"
+                                  onClick={() => setFeedbackIndex({ index, type: 'up' })}
+                                  className={`p-1.5 rounded hover:bg-accent transition-colors ${feedbackIndex?.index === index && feedbackIndex?.type === 'up'
+                                    ? 'text-green-500'
+                                    : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                  title="有帮助"
+                                >
+                                  <ThumbsUp className="size-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setFeedbackIndex({ index, type: 'down' })}
+                                  className={`p-1.5 rounded hover:bg-accent transition-colors ${feedbackIndex?.index === index && feedbackIndex?.type === 'down'
+                                    ? 'text-red-500'
+                                    : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                  title="没帮助"
+                                >
+                                  <ThumbsDown className="size-3.5" />
+                                </button>
+                                {isLastMessage && onRegenerate && (
+                                  <button
+                                    type="button"
+                                    onClick={onRegenerate}
+                                    className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                    title="重新生成"
+                                  >
+                                    <RotateCcw className="size-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap text-sm">
+                            {message.content}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     {message.role === "user" && (

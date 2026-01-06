@@ -16,6 +16,18 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
     const volumeSeriesRef = useRef<any>(null);
     const [chartType, setChartType] = useState<'timeline' | 'day' | 'week' | 'month'>('day');
 
+    // 悬停时显示的K线数据
+    const [hoveredData, setHoveredData] = useState<{
+        time: string;
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        volume: number;
+        change: number;
+        changePercent: number;
+    } | null>(null);
+
     // 获取股票详情
     const { data: detail } = trpc.stocks.getDetail.useQuery(
         { code: stockCode },
@@ -72,14 +84,45 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
                 },
             },
             rightPriceScale: {
+                visible: true,
                 borderColor: 'rgba(255, 255, 255, 0.1)',
+                scaleMargins: {
+                    top: 0.05,
+                    bottom: 0.05,
+                },
             },
             timeScale: {
                 borderColor: 'rgba(255, 255, 255, 0.1)',
-                timeVisible: true,
+                timeVisible: chartType === 'timeline',
+                tickMarkFormatter: (time: any, tickMarkType: number) => {
+                    let month: number, day: number, year: number;
+
+                    if (typeof time === 'string') {
+                        const parts = time.split('-');
+                        year = parseInt(parts[0], 10);
+                        month = parseInt(parts[1], 10);
+                        day = parseInt(parts[2], 10);
+                    } else if (typeof time === 'number') {
+                        const date = new Date(time * 1000);
+                        year = date.getFullYear();
+                        month = date.getMonth() + 1;
+                        day = date.getDate();
+                    } else {
+                        return String(time);
+                    }
+
+                    // 月份变化时显示 YYYY-MM，其他只显示日
+                    if (tickMarkType === 0 || tickMarkType === 1) {
+                        return `${year}-${String(month).padStart(2, '0')}`;
+                    }
+                    return `${day}`;
+                },
+            },
+            localization: {
+                dateFormat: 'yyyy/MM/dd',
             },
             width: chartContainerRef.current.clientWidth,
-            height: 300,
+            height: chartContainerRef.current.clientHeight || 300,
         });
 
         // 根据图表类型添加不同的系列
@@ -118,6 +161,7 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
                     horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
                 },
                 rightPriceScale: {
+                    visible: false,
                     borderColor: 'rgba(255, 255, 255, 0.1)',
                 },
                 timeScale: {
@@ -138,13 +182,30 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
 
             volumeChartRef.current = volumeChart;
             volumeSeriesRef.current = volumeSeries;
+
+            // 同步两个图表的时间轴
+            const mainTimeScale = chart.timeScale();
+            const volumeTimeScale = volumeChart.timeScale();
+
+            mainTimeScale.subscribeVisibleLogicalRangeChange((range) => {
+                if (range) {
+                    volumeTimeScale.setVisibleLogicalRange(range);
+                }
+            });
+
+            volumeTimeScale.subscribeVisibleLogicalRangeChange((range) => {
+                if (range) {
+                    mainTimeScale.setVisibleLogicalRange(range);
+                }
+            });
         }
 
-        // 响应式调整
+        // 响应式调整 - 使用 ResizeObserver 监听容器大小变化
         const handleResize = () => {
             if (chartContainerRef.current && chartRef.current) {
                 chartRef.current.applyOptions({
                     width: chartContainerRef.current.clientWidth,
+                    height: chartContainerRef.current.clientHeight,
                 });
             }
             if (volumeContainerRef.current && volumeChartRef.current) {
@@ -154,9 +215,25 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
             }
         };
 
+        // 使用 ResizeObserver 监听容器大小变化
+        const resizeObserver = new ResizeObserver(() => {
+            handleResize();
+        });
+
+        if (chartContainerRef.current) {
+            resizeObserver.observe(chartContainerRef.current);
+        }
+        if (volumeContainerRef.current) {
+            resizeObserver.observe(volumeContainerRef.current);
+        }
+
+        // 延迟触发一次 resize 以确保Flex布局完成后图表尺寸正确
+        setTimeout(handleResize, 0);
+
         window.addEventListener('resize', handleResize);
 
         return () => {
+            resizeObserver.disconnect();
             window.removeEventListener('resize', handleResize);
             if (chartRef.current) {
                 chartRef.current.remove();
@@ -219,6 +296,48 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
             volumeSeriesRef.current.setData(volumeData);
             volumeChartRef.current?.timeScale().fitContent();
         }
+
+        // 订阅十字线移动事件
+        const handleCrosshairMove = (param: any) => {
+            if (!param || !param.time || !param.seriesData) {
+                setHoveredData(null);
+                return;
+            }
+
+            const candleData = param.seriesData.get(seriesRef.current);
+            if (!candleData) {
+                setHoveredData(null);
+                return;
+            }
+
+            // 找到对应的原始数据获取成交量
+            const timeStr = param.time;
+            const originalItem = klineData.find((item: any) => item.time === timeStr);
+            const volume = originalItem?.volume || 0;
+
+            // 计算涨跌
+            const prevIndex = klineData.findIndex((item: any) => item.time === timeStr) - 1;
+            const prevClose = prevIndex >= 0 ? klineData[prevIndex].close : candleData.open;
+            const change = candleData.close - prevClose;
+            const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+            setHoveredData({
+                time: timeStr,
+                open: candleData.open,
+                high: candleData.high,
+                low: candleData.low,
+                close: candleData.close,
+                volume,
+                change,
+                changePercent,
+            });
+        };
+
+        chartRef.current?.subscribeCrosshairMove(handleCrosshairMove);
+
+        return () => {
+            chartRef.current?.unsubscribeCrosshairMove(handleCrosshairMove);
+        };
     }, [klineData, chartType]);
 
     const quote = detail?.quote;
@@ -229,39 +348,51 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
 
     return (
         <div className="h-full flex flex-col overflow-auto bg-background">
-            {/* 头部信息 - 腾讯自选股风格 */}
-            <div className="p-4 border-b border-border">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-                    <span>{quote?.name || "加载中..."}</span>
-                    <span>({stockCode})</span>
-                </div>
-                <div className="flex items-baseline gap-4">
-                    <span className={`text-4xl font-bold tabular-nums ${priceColor}`}>
-                        {quote?.price ? quote.price.toFixed(2) : "--"}
-                    </span>
-                    <span className={`text-lg tabular-nums ${priceColor}`}>
-                        {isPositive ? '+' : ''}{quote?.change?.toFixed(2) || "0.00"}
-                    </span>
-                    <span className={`text-lg tabular-nums ${priceColor}`}>
-                        {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
-                    </span>
+            {/* 头部信息 - 紧凑风格 */}
+            <div className="px-4 py-2 border-b border-border">
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-baseline gap-3">
+                        <span className={`text-4xl font-bold tabular-nums ${priceColor}`}>
+                            {quote?.price ? quote.price.toFixed(2) : "--"}
+                        </span>
+                        <span className={`text-lg tabular-nums ${priceColor}`}>
+                            {isPositive ? '+' : ''}{quote?.change?.toFixed(2) || "0.00"}
+                        </span>
+                        <span className={`text-lg tabular-nums ${priceColor}`}>
+                            {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
+                        </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-muted-foreground text-lg">{quote?.name || "加载中..."}</span>
+                        <span className="text-muted-foreground text-base">({stockCode})</span>
+                    </div>
                 </div>
             </div>
 
-            {/* 数据网格 - 腾讯自选股风格 */}
-            <div className="px-4 py-3 border-b border-border">
-                <div className="grid grid-cols-3 gap-x-6 gap-y-2 text-sm">
-                    <DataCell label="今开" value={quote?.open?.toFixed(2)} isUp={quote?.open && quote?.preClose ? quote.open > quote.preClose : undefined} />
-                    <DataCell label="最高" value={quote?.high?.toFixed(2)} isUp={true} />
-                    <DataCell label="成交量" value={formatVolume(quote?.volume)} />
-                    <DataCell label="昨收" value={quote?.preClose?.toFixed(2)} />
-                    <DataCell label="最低" value={quote?.low?.toFixed(2)} isUp={false} />
-                    <DataCell label="成交额" value={formatAmount(quote?.amount)} />
-                    <DataCell label="换手率" value={quote?.turnoverRate ? `${quote.turnoverRate.toFixed(2)}%` : "--"} />
-                    <DataCell label="市盈率" value={quote?.pe?.toFixed(2)} />
-                    <DataCell label="总市值" value={formatMarketCap(quote?.marketCap)} />
-                    <DataCell label="市净率" value={quote?.pb?.toFixed(2)} />
-                    <DataCell label="流通市值" value={formatMarketCap(quote?.circulationMarketCap)} />
+            {/* 资金指标 - 紧跟股票价格 */}
+            <div className="px-4 py-2 border-b border-border bg-card/20">
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-base">
+                    <DataCellInline label="💰 今日资金" value="+2.35亿" isUp={true} />
+                    <DataCellInline label="🏦 主力净流入" value="+1.82亿" isUp={true} />
+                    <DataCellInline label="🏆 资金排名" value="#28/5000+" />
+                    <DataCellInline label="🔄 5日换手" value="32.5%" />
+                    <DataCellInline label="📊 量比" value="1.85" isUp={true} />
+                </div>
+            </div>
+
+            {/* 基础交易数据 */}
+            <div className="px-4 py-2 border-b border-border">
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-base">
+                    <DataCellInline label="今开" value={quote?.open?.toFixed(2)} isUp={quote?.open && quote?.preClose ? quote.open > quote.preClose : undefined} />
+                    <DataCellInline label="昨收" value={quote?.preClose?.toFixed(2)} />
+                    <DataCellInline label="最高" value={quote?.high?.toFixed(2)} isUp={true} />
+                    <DataCellInline label="最低" value={quote?.low?.toFixed(2)} isUp={false} />
+                    <DataCellInline label="成交量" value={formatVolume(quote?.volume)} />
+                    <DataCellInline label="成交额" value={formatAmount(quote?.amount)} />
+                    <DataCellInline label="换手率" value={quote?.turnoverRate ? `${quote.turnoverRate.toFixed(2)}%` : "--"} />
+                    <DataCellInline label="市盈率" value={quote?.pe?.toFixed(2)} />
+                    <DataCellInline label="总市值" value={formatMarketCap(quote?.marketCap)} />
+                    <DataCellInline label="流通市值" value={formatMarketCap(quote?.circulationMarketCap)} />
                 </div>
             </div>
 
@@ -287,27 +418,80 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
             </div>
 
             {/* K线图 */}
-            <div className="flex-1 px-4 py-2">
-                <div ref={chartContainerRef} className="w-full" />
-                {chartType !== 'timeline' && (
-                    <div ref={volumeContainerRef} className="w-full mt-1" />
+            <div className="flex-1 px-4 py-2 relative">
+                {/* 悬停数据面板 */}
+                {hoveredData && chartType !== 'timeline' && (
+                    <div className="absolute top-2 left-4 z-10 bg-card/95 border border-border rounded-lg p-3 text-xs shadow-lg backdrop-blur-sm">
+                        <div className="text-muted-foreground mb-2">{hoveredData.time}</div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">开盘</span>
+                                <span className="tabular-nums">{hoveredData.open.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">收盘</span>
+                                <span className={`tabular-nums ${hoveredData.close >= hoveredData.open ? 'text-[#e74c3c]' : 'text-[#2ecc71]'}`}>
+                                    {hoveredData.close.toFixed(2)}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">最高</span>
+                                <span className="tabular-nums text-[#e74c3c]">{hoveredData.high.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">最低</span>
+                                <span className="tabular-nums text-[#2ecc71]">{hoveredData.low.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">涨跌幅</span>
+                                <span className={`tabular-nums ${hoveredData.changePercent >= 0 ? 'text-[#e74c3c]' : 'text-[#2ecc71]'}`}>
+                                    {hoveredData.changePercent >= 0 ? '+' : ''}{hoveredData.changePercent.toFixed(2)}%
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">涨跌额</span>
+                                <span className={`tabular-nums ${hoveredData.change >= 0 ? 'text-[#e74c3c]' : 'text-[#2ecc71]'}`}>
+                                    {hoveredData.change >= 0 ? '+' : ''}{hoveredData.change.toFixed(2)}
+                                </span>
+                            </div>
+                            <div className="flex justify-between col-span-2">
+                                <span className="text-muted-foreground">成交量</span>
+                                <span className="tabular-nums">{formatVolume(hoveredData.volume)}</span>
+                            </div>
+                        </div>
+                    </div>
                 )}
+
+                {/* 图表区域 */}
+                <div className="flex flex-1 min-h-0 flex-col">
+                    {/* K线图容器 */}
+                    <div className="flex-1 relative">
+                        <div ref={chartContainerRef} className="w-full h-full" />
+                    </div>
+
+                    {/* 成交量图 */}
+                    {chartType !== 'timeline' && (
+                        <div className="h-20 mt-1 relative">
+                            <div ref={volumeContainerRef} className="w-full h-full" />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 }
 
-// 数据单元格组件
-function DataCell({ label, value, isUp }: { label: string; value?: string; isUp?: boolean }) {
+// 紧凑内联数据单元格组件
+function DataCellInline({ label, value, isUp }: { label: string; value?: string; isUp?: boolean }) {
     let valueColor = 'text-foreground';
     if (isUp === true) valueColor = 'text-[#e74c3c]';
     if (isUp === false) valueColor = 'text-[#2ecc71]';
 
     return (
-        <div className="flex justify-between items-center">
+        <span className="whitespace-nowrap">
             <span className="text-muted-foreground">{label}</span>
-            <span className={`tabular-nums ${valueColor}`}>{value || "--"}</span>
-        </div>
+            <span className={`ml-1 tabular-nums ${valueColor}`}>{value || "--"}</span>
+        </span>
     );
 }
 

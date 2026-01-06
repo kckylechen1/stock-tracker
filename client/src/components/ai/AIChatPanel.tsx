@@ -57,6 +57,11 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
         }
         abortControllerRef.current = new AbortController();
 
+        // 记录开始时间（用于计算思考时间）
+        const startTime = Date.now();
+        let thinkingTime = 0;
+        let hasReceivedFirstContent = false;
+
         // 添加空的助手消息到UI
         setMessages([...historyMessages, { role: "assistant", content: "" }]);
         setIsLoading(true);
@@ -107,6 +112,12 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
                         try {
                             const json = JSON.parse(data);
                             if (json.content) {
+                                // 首次收到内容时，计算思考时间
+                                if (!hasReceivedFirstContent && thinkingMode) {
+                                    thinkingTime = Math.round((Date.now() - startTime) / 1000);
+                                    hasReceivedFirstContent = true;
+                                }
+
                                 fullContent += json.content;
                                 // 更新最后一条消息
                                 setMessages(prev => {
@@ -114,6 +125,7 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
                                     updated[updated.length - 1] = {
                                         role: "assistant",
                                         content: fullContent,
+                                        thinkingTime: thinkingMode ? thinkingTime : undefined,
                                     };
                                     return updated;
                                 });
