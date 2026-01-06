@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, TrendingUp, TrendingDown } from "lucide-react";
-import { useLocation } from "wouter";
+import { Search, Plus, TrendingUp, TrendingDown, Trash2 } from "lucide-react";
+import { createChart, CandlestickSeries, CandlestickData, Time } from "lightweight-charts";
+import type { IChartApi } from "lightweight-charts";
 
 export default function Home() {
-  const [, setLocation] = useLocation();
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
   
@@ -23,6 +22,19 @@ export default function Home() {
       refetch();
       setSearchResults([]);
       setSearchKeyword("");
+    },
+  });
+  
+  // 删除观察池
+  const deleteMutation = trpc.watchlist.remove.useMutation({
+    onSuccess: () => {
+      refetch();
+      if (selectedStock) {
+        const stillExists = watchlist?.some(item => item.stockCode === selectedStock);
+        if (!stillExists) {
+          setSelectedStock(null);
+        }
+      }
     },
   });
   
@@ -45,34 +57,35 @@ export default function Home() {
     });
   };
   
-  const handleStockClick = (code: string) => {
-    setLocation(`/stocks/${code}`);
+  const handleDeleteFromWatchlist = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteMutation.mutate({ id });
   };
 
   return (
     <div className="flex h-screen bg-background">
       {/* 左侧边栏 - 股票列表 */}
-      <div className="w-80 border-r border-border flex flex-col">
+      <div className="w-80 border-r border-border flex flex-col bg-muted/30">
         {/* 搜索栏 */}
         <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 shadow-sm">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Stocks"
+              placeholder="搜索股票..."
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
             />
           </div>
           
           {/* 搜索结果 */}
           {searchResults.length > 0 && (
-            <div className="mt-2 space-y-1">
+            <div className="mt-2 bg-background rounded-lg shadow-sm border border-border overflow-hidden">
               {searchResults.map((stock: any) => (
                 <div
                   key={stock.code}
-                  className="flex items-center justify-between p-2 rounded-md hover:bg-accent cursor-pointer"
+                  className="flex items-center justify-between p-3 hover:bg-accent cursor-pointer border-b border-border last:border-b-0"
                   onClick={() => handleAddToWatchlist(stock.code)}
                 >
                   <div>
@@ -98,7 +111,7 @@ export default function Home() {
                   item={item}
                   isSelected={selectedStock === item.stockCode}
                   onClick={() => setSelectedStock(item.stockCode)}
-                  onNavigate={() => handleStockClick(item.stockCode)}
+                  onDelete={(e) => handleDeleteFromWatchlist(item.id, e)}
                 />
               ))}
             </div>
@@ -114,22 +127,19 @@ export default function Home() {
       </div>
       
       {/* 右侧内容区 - 详情页 */}
-      <div className="flex-1 flex items-center justify-center bg-muted/20">
+      <div className="flex-1 overflow-hidden">
         {selectedStock ? (
-          <div className="text-center">
-            <p className="text-muted-foreground mb-4">点击查看详情</p>
-            <Button onClick={() => handleStockClick(selectedStock)}>
-              查看 {selectedStock} 详情
-            </Button>
-          </div>
+          <StockDetailPanel stockCode={selectedStock} />
         ) : (
-          <div className="text-center">
-            <p className="text-lg font-medium text-muted-foreground">
-              选择一只股票查看详情
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              从左侧列表中点击股票
-            </p>
+          <div className="h-full flex items-center justify-center bg-muted/10">
+            <div className="text-center">
+              <p className="text-lg font-medium text-muted-foreground">
+                选择一只股票查看详情
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                从左侧列表中点击股票
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -142,17 +152,17 @@ function StockListItem({
   item, 
   isSelected, 
   onClick,
-  onNavigate 
+  onDelete
 }: { 
   item: any; 
   isSelected: boolean;
   onClick: () => void;
-  onNavigate: () => void;
+  onDelete: (e: React.MouseEvent) => void;
 }) {
   // 获取实时行情
   const { data: quote } = trpc.stocks.getDetail.useQuery(
     { code: item.stockCode },
-    { refetchInterval: 30000 } // 每30秒刷新一次
+    { refetchInterval: 30000 }
   );
   
   const changePercent = quote?.quote?.changePercent || 0;
@@ -163,25 +173,32 @@ function StockListItem({
   return (
     <div
       className={`
-        p-4 border-b border-border cursor-pointer transition-colors
+        group p-4 border-b border-border cursor-pointer transition-all
         ${isSelected ? 'bg-accent' : 'hover:bg-accent/50'}
       `}
       onClick={onClick}
-      onDoubleClick={onNavigate}
     >
       <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="font-medium text-sm">{item.stockCode}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm">{item.stockCode}</span>
+            <button
+              onClick={onDelete}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded"
+            >
+              <Trash2 className="h-3 w-3 text-destructive" />
+            </button>
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5 truncate">
             {name}
           </div>
         </div>
         
-        <div className="text-right">
-          <div className="font-medium text-sm">
+        <div className="text-right ml-4">
+          <div className="font-semibold text-sm tabular-nums">
             {currentPrice > 0 ? currentPrice.toFixed(2) : "--"}
           </div>
-          <div className={`text-xs flex items-center justify-end gap-1 ${
+          <div className={`text-xs flex items-center justify-end gap-1 tabular-nums ${
             isPositive ? 'text-green-600' : 'text-red-600'
           }`}>
             {isPositive ? (
@@ -193,12 +210,223 @@ function StockListItem({
           </div>
         </div>
       </div>
-      
-      {item.note && (
-        <div className="text-xs text-muted-foreground mt-2 truncate">
-          {item.note}
-        </div>
-      )}
     </div>
   );
+}
+
+// 股票详情面板组件
+function StockDetailPanel({ stockCode }: { stockCode: string }) {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const candlestickSeriesRef = useRef<any>(null);
+  const [period, setPeriod] = useState<'day' | 'week' | 'month'>('day');
+  
+  // 获取股票详情
+  const { data: detail } = trpc.stocks.getDetail.useQuery(
+    { code: stockCode },
+    { refetchInterval: 30000 }
+  );
+  
+  // 获取K线数据
+  const { data: klineData } = trpc.stocks.getKline.useQuery(
+    { code: stockCode, period, limit: 120 }
+  );
+  
+  // 初始化图表
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+    
+    // 清理旧图表
+    if (chartRef.current) {
+      chartRef.current.remove();
+      chartRef.current = null;
+      candlestickSeriesRef.current = null;
+    }
+    
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { color: '#ffffff' },
+        textColor: '#333',
+      },
+      grid: {
+        vertLines: { color: '#f0f0f0' },
+        horzLines: { color: '#f0f0f0' },
+      },
+      crosshair: {
+        mode: 1,
+      },
+      rightPriceScale: {
+        borderColor: '#e0e0e0',
+      },
+      timeScale: {
+        borderColor: '#e0e0e0',
+        timeVisible: true,
+      },
+      width: chartContainerRef.current.clientWidth,
+      height: 400,
+    });
+    
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
+      upColor: '#26a69a',
+      downColor: '#ef5350',
+      borderVisible: false,
+      wickUpColor: '#26a69a',
+      wickDownColor: '#ef5350',
+    });
+    
+    chartRef.current = chart;
+    candlestickSeriesRef.current = candlestickSeries;
+    
+    // 响应式调整
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+        });
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+      }
+    };
+  }, [stockCode]);
+  
+  // 更新K线数据
+  useEffect(() => {
+    if (!candlestickSeriesRef.current || !klineData || klineData.length === 0) return;
+    
+    const formattedData: CandlestickData<Time>[] = klineData.map((item: any) => ({
+      time: item.time as Time,
+      open: item.open,
+      high: item.high,
+      low: item.low,
+      close: item.close,
+    }));
+    
+    candlestickSeriesRef.current.setData(formattedData);
+    chartRef.current?.timeScale().fitContent();
+  }, [klineData]);
+  
+  const quote = detail?.quote;
+  const changePercent = quote?.changePercent || 0;
+  const isPositive = changePercent >= 0;
+  
+  return (
+    <div className="h-full flex flex-col overflow-auto">
+      {/* 头部信息 */}
+      <div className="p-6 border-b border-border">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{stockCode}</h1>
+            <p className="text-muted-foreground">{quote?.name || "加载中..."}</p>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-bold tabular-nums">
+              {quote?.price ? quote.price.toFixed(2) : "--"}
+            </div>
+            <div className={`text-lg flex items-center justify-end gap-1 ${
+              isPositive ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {isPositive ? '+' : ''}{quote?.change?.toFixed(2) || "0.00"}
+              <span className="ml-2">
+                ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* 周期选择 */}
+      <div className="px-6 py-3 border-b border-border flex gap-2">
+        {[
+          { key: 'day', label: '日K' },
+          { key: 'week', label: '周K' },
+          { key: 'month', label: '月K' },
+        ].map((item) => (
+          <button
+            key={item.key}
+            onClick={() => setPeriod(item.key as 'day' | 'week' | 'month')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              period === item.key
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      
+      {/* K线图 */}
+      <div className="px-6 py-4">
+        <div ref={chartContainerRef} className="w-full" />
+      </div>
+      
+      {/* 基本信息 */}
+      <div className="px-6 py-4 border-t border-border">
+        <div className="grid grid-cols-4 gap-4">
+          <InfoItem label="开盘" value={quote?.open?.toFixed(2)} />
+          <InfoItem label="最高" value={quote?.high?.toFixed(2)} />
+          <InfoItem label="最低" value={quote?.low?.toFixed(2)} />
+          <InfoItem label="昨收" value={quote?.preClose?.toFixed(2)} />
+          <InfoItem label="成交量" value={formatVolume(quote?.volume)} />
+          <InfoItem label="成交额" value={formatAmount(quote?.amount)} />
+          <InfoItem label="换手率" value={quote?.turnoverRate ? `${quote.turnoverRate.toFixed(2)}%` : "--"} />
+          <InfoItem label="市盈率" value={quote?.pe?.toFixed(2)} />
+          <InfoItem label="市净率" value={quote?.pb?.toFixed(2)} />
+          <InfoItem label="总市值" value={formatMarketCap(quote?.marketCap)} />
+          <InfoItem label="流通市值" value={formatMarketCap(quote?.circulationMarketCap)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 信息项组件
+function InfoItem({ label, value }: { label: string; value?: string }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-sm font-medium tabular-nums">{value || "--"}</div>
+    </div>
+  );
+}
+
+// 格式化成交量
+function formatVolume(volume?: number): string {
+  if (!volume) return "--";
+  if (volume >= 100000000) {
+    return `${(volume / 100000000).toFixed(2)}亿手`;
+  } else if (volume >= 10000) {
+    return `${(volume / 10000).toFixed(2)}万手`;
+  }
+  return `${volume}手`;
+}
+
+// 格式化成交额
+function formatAmount(amount?: number): string {
+  if (!amount) return "--";
+  if (amount >= 100000000) {
+    return `${(amount / 100000000).toFixed(2)}亿`;
+  } else if (amount >= 10000) {
+    return `${(amount / 10000).toFixed(2)}万`;
+  }
+  return `${amount}元`;
+}
+
+// 格式化市值
+function formatMarketCap(cap?: number): string {
+  if (!cap) return "--";
+  if (cap >= 100000000) {
+    return `${(cap / 100000000).toFixed(2)}亿`;
+  } else if (cap >= 10000) {
+    return `${(cap / 10000).toFixed(2)}万`;
+  }
+  return `${cap}元`;
 }
