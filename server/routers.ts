@@ -3,6 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import * as eastmoney from './eastmoney';
+import { z } from 'zod';
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -22,12 +23,7 @@ export const appRouter = router({
   stocks: router({
     // 搜索股票
     search: publicProcedure
-      .input((val: unknown) => {
-        if (typeof val === 'object' && val !== null && 'keyword' in val) {
-          return val as { keyword: string };
-        }
-        throw new Error('Invalid input');
-      })
+      .input(z.object({ keyword: z.string() }))
       .query(async ({ input }) => {
         try {
           // 使用东方财富API搜索股票

@@ -12,9 +12,25 @@ export default function Home() {
   // 获取观察池列表
   const { data: watchlist, isLoading, refetch } = trpc.watchlist.list.useQuery();
   
-  // 搜索股票
-  const searchMutation = trpc.stocks.search.useMutation();
+  // 搜索股票 - 使用query
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
+  
+  // 使用tRPC query进行搜索
+  const { data: searchData, isFetching: isSearching } = trpc.stocks.search.useQuery(
+    { keyword: debouncedKeyword },
+    { 
+      enabled: debouncedKeyword.length > 0,
+      staleTime: 30000,
+    }
+  );
+  
+  // 当搜索数据变化时更新结果
+  useEffect(() => {
+    if (searchData) {
+      setSearchResults(searchData);
+    }
+  }, [searchData]);
   
   // 添加到观察池
   const addMutation = trpc.watchlist.add.useMutation({
@@ -38,16 +54,9 @@ export default function Home() {
     },
   });
   
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!searchKeyword.trim()) return;
-    
-    try {
-      const results = await searchMutation.mutateAsync({ keyword: searchKeyword });
-      setSearchResults(results || []);
-    } catch (error) {
-      console.error("Search failed:", error);
-      setSearchResults([]);
-    }
+    setDebouncedKeyword(searchKeyword.trim());
   };
   
   const handleAddToWatchlist = (code: string) => {
