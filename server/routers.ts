@@ -3,6 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import * as eastmoney from './eastmoney';
+import * as marketSentiment from './market-sentiment';
 import { z } from 'zod';
 
 export const appRouter = router({
@@ -121,6 +122,19 @@ export const appRouter = router({
           return [];
         }
       }),
+  }),
+
+  // 市场情绪路由
+  market: router({
+    // 获取市场情绪综合数据
+    getSentiment: publicProcedure.query(async () => {
+      try {
+        return await marketSentiment.getMarketSentiment();
+      } catch (error) {
+        console.error('Get market sentiment failed:', error);
+        return null;
+      }
+    }),
   }),
 
   // 观察池路由

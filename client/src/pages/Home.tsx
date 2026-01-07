@@ -6,6 +6,7 @@ import { Search, Plus, Settings, X, PanelRightOpen, PanelRightClose } from "luci
 // 导入模块化组件
 import { StockListItem, StockDetailPanel } from "@/components/stock";
 import { AIChatPanel } from "@/components/ai";
+import { MarketSentimentPanel } from "@/components/market";
 
 // 单个股票标签组件 - 动态获取股票名称
 function StockTab({
@@ -341,67 +342,7 @@ export default function Home() {
               <div className="px-3 py-2.5 border-b border-border">
                 <span className="font-semibold text-foreground text-sm">市场情绪</span>
               </div>
-              <div className="flex-1 overflow-auto p-2">
-                <div className="space-y-2 text-xs">
-                  {/* 恐惧贪婪指数 */}
-                  <div className="p-2 rounded bg-card/50 border border-border/30">
-                    <div className="text-muted-foreground mb-1">恐惧贪婪指数</div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[#f39c12] font-bold text-xl">68</span>
-                      <span className="text-[#f39c12] text-xs">贪婪</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-gradient-to-r from-[#2ecc71] via-[#f39c12] to-[#e74c3c] rounded-full mt-1.5">
-                      <div className="w-[68%] h-full relative">
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow"></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 市场温度 */}
-                  <div className="p-2 rounded bg-card/50 border border-border/30">
-                    <div className="text-muted-foreground mb-1">市场温度</div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">🔥</span>
-                      <div>
-                        <div className="text-[#e74c3c] font-semibold">偏热</div>
-                        <div className="text-muted-foreground text-xs">较昨日 +5°</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 涨跌比 */}
-                  <div className="p-2 rounded bg-card/50 border border-border/30">
-                    <div className="text-muted-foreground mb-1">今日涨跌</div>
-                    <div className="flex justify-between items-center">
-                      <div className="text-center">
-                        <div className="text-[#e74c3c] font-semibold">3256</div>
-                        <div className="text-muted-foreground text-xs">上涨</div>
-                      </div>
-                      <div className="text-muted-foreground">:</div>
-                      <div className="text-center">
-                        <div className="text-[#2ecc71] font-semibold">1580</div>
-                        <div className="text-muted-foreground text-xs">下跌</div>
-                      </div>
-                    </div>
-                    <div className="flex h-1.5 mt-1.5 rounded-full overflow-hidden">
-                      <div className="bg-[#e74c3c] flex-[67]"></div>
-                      <div className="bg-[#2ecc71] flex-[33]"></div>
-                    </div>
-                  </div>
-
-                  {/* 北向资金 */}
-                  <div className="p-2 rounded bg-card/50 border border-border/30">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">北向资金</span>
-                      <span className="text-[#e74c3c]">+52.3亿</span>
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-muted-foreground">融资余额</span>
-                      <span className="text-foreground">1.82万亿</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <MarketSentimentPanel />
             </div>
           </div>
 
