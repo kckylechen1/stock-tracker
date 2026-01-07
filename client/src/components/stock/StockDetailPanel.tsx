@@ -94,7 +94,21 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
             timeScale: {
                 borderColor: 'rgba(255, 255, 255, 0.1)',
                 timeVisible: chartType === 'timeline',
+                secondsVisible: false,
                 tickMarkFormatter: (time: any, tickMarkType: number) => {
+                    // 分时图：显示 HH:mm 格式
+                    if (chartType === 'timeline') {
+                        if (typeof time === 'number') {
+                            // 转换为北京时间 (UTC+8)
+                            const date = new Date(time * 1000);
+                            const hours = date.getUTCHours();
+                            const minutes = date.getUTCMinutes();
+                            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                        }
+                        return String(time);
+                    }
+
+                    // K线图：显示日期格式
                     let month: number, day: number, year: number;
 
                     if (typeof time === 'string') {
@@ -128,10 +142,12 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
         // 根据图表类型添加不同的系列
         if (chartType === 'timeline') {
             const lineSeries = chart.addSeries(LineSeries, {
-                color: '#3b82f6',
+                color: '#9ca3af', // 灰色分时线
                 lineWidth: 2,
                 priceLineVisible: false,
                 lastValueVisible: false,
+                crosshairMarkerVisible: true,
+                crosshairMarkerRadius: 4,
             });
             seriesRef.current = lineSeries;
         } else {
@@ -256,8 +272,10 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
             const timeStr = timeParts[1] || '09:30';
             const [year, month, day] = dateStr.split('-').map(Number);
             const [hour, minute] = timeStr.split(':').map(Number);
-            const date = new Date(year, month - 1, day, hour, minute);
-            const timestamp = Math.floor(date.getTime() / 1000);
+
+            // 创建 UTC 时间戳，这样 lightweight-charts 会正确显示时间
+            // 我们的数据是北京时间，所以直接使用 UTC 时间来存储显示值
+            const timestamp = Date.UTC(year, month - 1, day, hour, minute, 0) / 1000;
 
             return {
                 time: timestamp as Time,
@@ -267,6 +285,19 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
 
         if (formattedData.length > 0) {
             seriesRef.current.setData(formattedData);
+
+            // 添加昨收价基准线（黄色）
+            if (timelineData.preClose && chartRef.current) {
+                seriesRef.current.createPriceLine({
+                    price: timelineData.preClose,
+                    color: '#f59e0b', // 黄色基准线
+                    lineWidth: 1,
+                    lineStyle: 0, // 实线
+                    axisLabelVisible: true,
+                    title: '昨收',
+                });
+            }
+
             chartRef.current?.timeScale().fitContent();
         }
     }, [timelineData, chartType]);
