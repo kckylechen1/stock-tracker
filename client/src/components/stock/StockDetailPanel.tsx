@@ -14,6 +14,7 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
     const volumeChartRef = useRef<IChartApi | null>(null);
     const seriesRef = useRef<any>(null);
     const volumeSeriesRef = useRef<any>(null);
+    const priceLineRef = useRef<any>(null); // 昨收价基准线引用
     const [chartType, setChartType] = useState<'timeline' | 'day' | 'week' | 'month'>('day');
 
     // 悬停时显示的K线数据
@@ -34,10 +35,13 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
         { refetchInterval: 30000 }
     );
 
-    // 获取分时数据
+    // 获取分时数据 - 每5秒刷新一次实现实时更新
     const { data: timelineData } = trpc.stocks.getTimeline.useQuery(
         { code: stockCode },
-        { enabled: chartType === 'timeline' }
+        {
+            enabled: chartType === 'timeline',
+            refetchInterval: chartType === 'timeline' ? 5000 : false, // 分时图模式下每5秒刷新
+        }
     );
 
     // 获取K线数据
@@ -286,15 +290,24 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
         if (formattedData.length > 0) {
             seriesRef.current.setData(formattedData);
 
-            // 添加昨收价基准线（黄色）
+            // 添加昨收价基准线（黄色）- 先移除旧的再创建新的
             if (timelineData.preClose && chartRef.current) {
-                seriesRef.current.createPriceLine({
+                // 移除旧的基准线
+                if (priceLineRef.current) {
+                    try {
+                        seriesRef.current.removePriceLine(priceLineRef.current);
+                    } catch (e) {
+                        // 忽略移除失败的情况
+                    }
+                }
+                // 创建新的基准线
+                priceLineRef.current = seriesRef.current.createPriceLine({
                     price: timelineData.preClose,
                     color: '#f59e0b', // 黄色基准线
                     lineWidth: 1,
                     lineStyle: 0, // 实线
                     axisLabelVisible: true,
-                    title: '昨收',
+                    title: '', // 不显示文字标签
                 });
             }
 
