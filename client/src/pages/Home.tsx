@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Settings, X } from "lucide-react";
+import { Search, Plus, Settings, X, PanelRightOpen, PanelRightClose } from "lucide-react";
 
 // 导入模块化组件
 import { StockListItem, StockDetailPanel } from "@/components/stock";
@@ -52,6 +52,9 @@ export default function Home() {
 
   // 已打开的股票标签列表 (只存储 code)
   const [openedTabs, setOpenedTabs] = useState<string[]>([]);
+
+  // 侧边栏面板显示状态（用于窄屏幕手动展开）
+  const [showSidePanels, setShowSidePanels] = useState(false);
 
   // 获取观察池列表
   const { data: watchlist, isLoading, refetch } = trpc.watchlist.list.useQuery();
@@ -276,7 +279,7 @@ export default function Home() {
           {/* 上半部分：K线图 + 筹码分布 + 技术指标 三栏显示 (占 65%) */}
           <div className="flex-[65] min-h-0 flex">
             {/* K线图 - 在普通屏占满宽度，在宽屏(>=1600px)时占60% */}
-            <div className="flex-1 min-w-[400px] 2xl:flex-[60]">
+            <div className={`flex-1 min-w-[400px] 2xl:flex-[60] relative ${showSidePanels ? 'hidden 2xl:block' : ''}`}>
               {selectedStock ? (
                 <StockDetailPanel stockCode={selectedStock} />
               ) : (
@@ -291,12 +294,32 @@ export default function Home() {
                   </div>
                 </div>
               )}
+
+              {/* 窄屏时显示的展开侧边栏按钮 */}
+              <button
+                onClick={() => setShowSidePanels(!showSidePanels)}
+                className="absolute right-2 top-2 z-20 2xl:hidden p-2 rounded-lg bg-card/90 border border-border hover:bg-accent transition-colors"
+                title={showSidePanels ? "收起侧边栏" : "展开筹码/情绪面板"}
+              >
+                {showSidePanels ? (
+                  <PanelRightClose className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <PanelRightOpen className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
             </div>
 
-            {/* 筹码分布 (占 20%) - 仅在宽屏(>=1600px)显示 */}
-            <div className="hidden 2xl:flex flex-[20] min-w-[160px] border-l border-border flex-col bg-card/30">
-              <div className="px-3 py-2.5 border-b border-border">
+            {/* 筹码分布 (占 20%) - 宽屏自动显示 OR 手动展开时显示 */}
+            <div className={`${showSidePanels ? 'flex' : 'hidden'} 2xl:flex flex-[20] min-w-[160px] border-l border-border flex-col bg-card/30`}>
+              <div className="px-3 py-2.5 border-b border-border flex items-center justify-between">
                 <span className="font-semibold text-foreground text-sm">筹码分布</span>
+                {/* 窄屏时显示关闭按钮 */}
+                <button
+                  onClick={() => setShowSidePanels(false)}
+                  className="2xl:hidden p-1 rounded hover:bg-accent"
+                >
+                  <X className="h-3 w-3 text-muted-foreground" />
+                </button>
               </div>
               <div className="flex-1 flex items-center justify-center p-3">
                 {selectedStock ? (
@@ -313,8 +336,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 市场情绪 (占 20%) - 仅在宽屏(>=1600px)显示 */}
-            <div className="hidden 2xl:flex flex-[20] min-w-[160px] border-l border-border flex-col bg-card/30">
+            {/* 市场情绪 (占 20%) - 宽屏自动显示 OR 手动展开时显示 */}
+            <div className={`${showSidePanels ? 'flex' : 'hidden'} 2xl:flex flex-[20] min-w-[160px] border-l border-border flex-col bg-card/30`}>
               <div className="px-3 py-2.5 border-b border-border">
                 <span className="font-semibold text-foreground text-sm">市场情绪</span>
               </div>
