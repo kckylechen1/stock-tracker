@@ -275,8 +275,8 @@ export default function Home() {
 
           {/* 上半部分：K线图 + 筹码分布 + 技术指标 三栏显示 (占 65%) */}
           <div className="flex-[65] min-h-0 flex">
-            {/* K线图 (占 60%) */}
-            <div className="flex-[60] min-w-0">
+            {/* K线图 - 在普通屏占满宽度，在宽屏(>=1600px)时占60% */}
+            <div className="flex-1 min-w-[400px] 2xl:flex-[60]">
               {selectedStock ? (
                 <StockDetailPanel stockCode={selectedStock} />
               ) : (
@@ -293,8 +293,8 @@ export default function Home() {
               )}
             </div>
 
-            {/* 筹码分布 (占 20%) */}
-            <div className="flex-[20] min-w-[160px] border-l border-border flex flex-col bg-card/30">
+            {/* 筹码分布 (占 20%) - 仅在宽屏(>=1600px)显示 */}
+            <div className="hidden 2xl:flex flex-[20] min-w-[160px] border-l border-border flex-col bg-card/30">
               <div className="px-3 py-2.5 border-b border-border">
                 <span className="font-semibold text-foreground text-sm">筹码分布</span>
               </div>
@@ -313,8 +313,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 市场情绪 (占 20%) */}
-            <div className="flex-[20] min-w-[160px] border-l border-border flex flex-col bg-card/30">
+            {/* 市场情绪 (占 20%) - 仅在宽屏(>=1600px)显示 */}
+            <div className="hidden 2xl:flex flex-[20] min-w-[160px] border-l border-border flex-col bg-card/30">
               <div className="px-3 py-2.5 border-b border-border">
                 <span className="font-semibold text-foreground text-sm">市场情绪</span>
               </div>
@@ -439,8 +439,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 右侧AI聊天面板 - 100%高度 */}
-        <div className="w-[620px] shrink-0">
+        {/* 右侧AI聊天面板 - 响应式宽度：普通屏320px，宽屏620px */}
+        <div className="w-[320px] 2xl:w-[620px] shrink-0">
           <AIChatPanel selectedStock={selectedStock} />
         </div>
       </div>

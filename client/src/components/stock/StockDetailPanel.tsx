@@ -464,8 +464,8 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
 
                 {/* 图表区域 */}
                 <div className="flex flex-1 min-h-0 flex-col">
-                    {/* K线图容器 */}
-                    <div className="flex-1 relative">
+                    {/* K线图容器 - 最小高度300px确保图表可见 */}
+                    <div className="flex-1 relative min-h-[300px]">
                         <div ref={chartContainerRef} className="w-full h-full" />
                     </div>
 
