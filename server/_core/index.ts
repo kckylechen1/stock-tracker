@@ -47,11 +47,11 @@ async function startServer() {
     res.setHeader("Connection", "keep-alive");
     res.setHeader("Access-Control-Allow-Origin", "*");
 
-    const { messages, stockCode, useThinking } = req.body;
+    const { messages, stockCode, stockContext, useThinking } = req.body;
     let fullContent = "";
 
     try {
-      for await (const chunk of streamChat({ messages, stockCode, useThinking })) {
+      for await (const chunk of streamChat({ messages, stockCode, stockContext, useThinking })) {
         fullContent += chunk;
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
       }

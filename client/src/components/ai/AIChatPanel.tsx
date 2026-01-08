@@ -67,6 +67,36 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
         setIsLoading(true);
 
         try {
+            // 构建股票上下文数据 - 把前端已加载的数据传给 AI，避免重复查询
+            const stockContext = stockDetail ? {
+                quote: stockDetail.quote ? {
+                    name: stockDetail.quote.name,
+                    code: selectedStock,
+                    price: stockDetail.quote.price,
+                    change: stockDetail.quote.change,
+                    changePercent: stockDetail.quote.changePercent,
+                    open: stockDetail.quote.open,
+                    high: stockDetail.quote.high,
+                    low: stockDetail.quote.low,
+                    preClose: stockDetail.quote.preClose,
+                    volume: stockDetail.quote.volume,
+                    amount: stockDetail.quote.amount,
+                    turnoverRate: stockDetail.quote.turnoverRate,
+                    pe: stockDetail.quote.pe,
+                    pb: stockDetail.quote.pb,
+                    marketCap: stockDetail.quote.marketCap,
+                    circulationMarketCap: stockDetail.quote.circulationMarketCap,
+                    volumeRatio: stockDetail.basic?.volumeRatio,
+                } : null,
+                capitalFlow: stockDetail.capitalFlow ? {
+                    mainNetInflow: stockDetail.capitalFlow.mainNetInflow,
+                    superLargeNetInflow: stockDetail.capitalFlow.superLargeNetInflow,
+                    largeNetInflow: stockDetail.capitalFlow.largeNetInflow,
+                    mediumNetInflow: stockDetail.capitalFlow.mediumNetInflow,
+                    smallNetInflow: stockDetail.capitalFlow.smallNetInflow,
+                } : null,
+            } : null;
+
             const response = await fetch("/api/ai/stream", {
                 method: "POST",
                 headers: {
@@ -78,6 +108,7 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
                         content: m.content,
                     })),
                     stockCode: selectedStock || undefined,
+                    stockContext, // 传递前端已加载的数据
                     useThinking: thinkingMode,
                 }),
                 signal: abortControllerRef.current.signal,

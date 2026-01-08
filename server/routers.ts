@@ -131,6 +131,44 @@ export const appRouter = router({
           return [];
         }
       }),
+
+    // 获取 Gauge 技术评分
+    getGaugeScore: publicProcedure
+      .input((val: unknown) => {
+        if (typeof val === 'object' && val !== null && 'code' in val) {
+          return val as { code: string };
+        }
+        throw new Error('Invalid input');
+      })
+      .query(async ({ input }) => {
+        try {
+          const { calculateGaugeScore } = await import('./gauge/indicators');
+
+          // 获取 K 线数据（需要至少 60 条）
+          const klines = await eastmoney.getKlineData(input.code, 'day');
+          const recentKlines = klines.slice(-80);
+
+          if (recentKlines.length < 30) {
+            return null;
+          }
+
+          // 转换格式
+          const formattedKlines = recentKlines.map((item: any) => ({
+            time: item.date,
+            open: item.open,
+            high: item.high,
+            low: item.low,
+            close: item.close,
+            volume: item.volume,
+          }));
+
+          // 计算 Gauge 评分
+          return calculateGaugeScore(formattedKlines);
+        } catch (error) {
+          console.error('Get gauge score failed:', error);
+          return null;
+        }
+      }),
   }),
 
   // 市场情绪路由

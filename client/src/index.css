@@ -190,3 +190,15 @@
     }
   }
 }
+
+/* AI 助手三个点加载动画 */
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

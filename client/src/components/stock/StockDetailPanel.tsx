@@ -56,6 +56,7 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
         { enabled: !isTimelineType }
     );
 
+
     // 初始化图表
     useEffect(() => {
         if (!chartContainerRef.current) return;

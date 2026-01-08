@@ -365,7 +365,7 @@ export function AIChatBox({
                 );
               })}
 
-              {/* 加载状态 - 使用闪烁的"思考中..." */}
+              {/* 加载状态 - 三个点波浪动画 */}
               {isLoading && displayMessages[displayMessages.length - 1]?.role === "user" && (
                 <div
                   className="flex items-start gap-3"
@@ -378,13 +378,19 @@ export function AIChatBox({
                   <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
                     <Sparkles className="size-4 text-primary" />
                   </div>
-                  <div className="rounded-lg bg-muted px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
-                      <span className="text-sm text-muted-foreground animate-pulse">
-                        {thinkingMode ? "深度思考中..." : "思考中..."}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-1 h-8 mt-1">
+                    <span
+                      className="w-2 h-2 rounded-full bg-muted-foreground/60"
+                      style={{ animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0s' }}
+                    />
+                    <span
+                      className="w-2 h-2 rounded-full bg-muted-foreground/60"
+                      style={{ animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0.16s' }}
+                    />
+                    <span
+                      className="w-2 h-2 rounded-full bg-muted-foreground/60"
+                      style={{ animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0.32s' }}
+                    />
                   </div>
                 </div>
               )}

@@ -340,7 +340,7 @@ export default function Home() {
               <div className="px-3 py-2.5 border-b border-border">
                 <span className="font-semibold text-foreground text-sm">市场情绪</span>
               </div>
-              <MarketSentimentPanel />
+              <MarketSentimentPanel selectedStock={selectedStock ?? undefined} />
             </div>
           </div>
 
