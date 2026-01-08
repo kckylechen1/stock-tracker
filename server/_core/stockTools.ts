@@ -238,27 +238,27 @@ function formatQuoteData(quote: any): string {
     const changePercentSign = quote.changePercent >= 0 ? '+' : '';
 
     return `【${quote.name} (${quote.code}) 实时行情】
-📊 当前价格：${quote.price} 元
-${quote.changePercent >= 0 ? '📈' : '📉'} 涨跌幅：${changePercentSign}${quote.changePercent?.toFixed(2)}%
-💰 涨跌额：${changeSign}${quote.change?.toFixed(2)} 元
+📊 当前价格：${quote.price ?? '--'} 元
+${quote.changePercent >= 0 ? '📈' : '📉'} 涨跌幅：${changePercentSign}${quote.changePercent?.toFixed(2) ?? '--'}%
+💰 涨跌额：${changeSign}${quote.change?.toFixed(2) ?? '--'} 元
 
 📅 今日交易：
-  今开：${quote.open} 元
-  最高：${quote.high} 元
-  最低：${quote.low} 元
-  昨收：${quote.preClose} 元
+  今开：${quote.open ?? '--'} 元
+  最高：${quote.high ?? '--'} 元
+  最低：${quote.low ?? '--'} 元
+  昨收：${quote.preClose ?? '--'} 元
 
 📊 成交情况：
-  成交量：${(quote.volume / 10000).toFixed(2)} 万手
-  成交额：${(quote.amount / 100000000).toFixed(2)} 亿元
-  换手率：${quote.turnoverRate?.toFixed(2)}%
-  量比：${quote.volumeRatio?.toFixed(2)}
+  成交量：${quote.volume != null ? (quote.volume / 10000).toFixed(2) : '--'} 万手
+  成交额：${quote.amount != null ? (quote.amount / 100000000).toFixed(2) : '--'} 亿元
+  换手率：${quote.turnoverRate?.toFixed(2) ?? '--'}%
+  量比：${quote.volumeRatio?.toFixed(2) ?? '--'}
 
 💹 估值指标：
-  市盈率(PE)：${quote.pe?.toFixed(2)}
-  市净率(PB)：${quote.pb?.toFixed(2)}
-  总市值：${(quote.marketCap / 100000000).toFixed(2)} 亿元
-  流通市值：${(quote.circulationMarketCap / 100000000).toFixed(2)} 亿元`;
+  市盈率(PE)：${quote.pe?.toFixed(2) ?? '--'}
+  市净率(PB)：${quote.pb?.toFixed(2) ?? '--'}
+  总市值：${quote.marketCap != null ? (quote.marketCap / 100000000).toFixed(2) : '--'} 亿元
+  流通市值：${quote.circulationMarketCap != null ? (quote.circulationMarketCap / 100000000).toFixed(2) : '--'} 亿元`;
 }
 
 function formatKlineData(code: string, klines: any[], period: string): string {
@@ -301,9 +301,7 @@ function formatFundFlowData(flow: any): string {
         if (val === null || val === undefined) return '--';
         const absVal = Math.abs(val);
         const sign = val >= 0 ? '+' : '-';
-        if (absVal >= 100000000) return `${sign}${(absVal / 100000000).toFixed(2)}亿`;
-        if (absVal >= 10000) return `${sign}${(absVal / 10000).toFixed(0)}万`;
-        return `${sign}${absVal.toFixed(0)}`;
+        return `${sign}${(absVal / 100000000).toFixed(2)}亿`;
     };
 
     const mainStatus = flow.mainNetInflow >= 0 ? '🟢 净流入' : '🔴 净流出';
@@ -327,9 +325,7 @@ function formatFundFlowHistory(code: string, history: any[]): string {
         if (val === null || val === undefined) return '--';
         const absVal = Math.abs(val);
         const sign = val >= 0 ? '+' : '-';
-        if (absVal >= 100000000) return `${sign}${(absVal / 100000000).toFixed(2)}亿`;
-        if (absVal >= 10000) return `${sign}${(absVal / 10000).toFixed(0)}万`;
-        return `${sign}${absVal.toFixed(0)}`;
+        return `${sign}${(absVal / 100000000).toFixed(2)}亿`;
     };
 
     // 计算统计
@@ -366,16 +362,14 @@ function formatFundFlowRank(rank: any[], type: string): string {
         if (val === null || val === undefined) return '--';
         const absVal = Math.abs(val);
         const sign = val >= 0 ? '+' : '-';
-        if (absVal >= 100000000) return `${sign}${(absVal / 100000000).toFixed(2)}亿`;
-        if (absVal >= 10000) return `${sign}${(absVal / 10000).toFixed(0)}万`;
-        return `${sign}${absVal.toFixed(0)}`;
+        return `${sign}${(absVal / 100000000).toFixed(2)}亿`;
     };
 
-    const details = rank.slice(0, 10).map((item, i) =>
-        `  ${i + 1}. ${item.name}(${item.code}) 主力${formatAmount(item.mainNetInflow)} 涨幅${item.changePercent?.toFixed(2)}%`
+    const details = rank.map((item, i) =>
+        `  ${i + 1}. ${item.name}(${item.code}) 主力${formatAmount(item.mainNetInflow)} 涨幅${item.changePercent?.toFixed(2) ?? '--'}%`
     ).join('\n');
 
-    return `【${typeName}资金流入排行榜 TOP10】
+    return `【${typeName}资金流入排行榜 TOP${rank.length}】
 
 ${details}`;
 }
@@ -385,9 +379,7 @@ function formatMarketFundFlow(flow: any): string {
         if (val === null || val === undefined) return '--';
         const absVal = Math.abs(val);
         const sign = val >= 0 ? '+' : '-';
-        if (absVal >= 100000000) return `${sign}${(absVal / 100000000).toFixed(2)}亿`;
-        if (absVal >= 10000) return `${sign}${(absVal / 10000).toFixed(0)}万`;
-        return `${sign}${absVal.toFixed(0)}`;
+        return `${sign}${(absVal / 100000000).toFixed(2)}亿`;
     };
 
     const mainStatus = flow.mainNetInflow >= 0 ? '🟢 主力净流入' : '🔴 主力净流出';

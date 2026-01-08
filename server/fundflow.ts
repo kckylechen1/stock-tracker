@@ -171,10 +171,10 @@ export async function getFundFlowRank(type: 'today' | '3day' | '5day' | '10day' 
         return data.diff.map((item: any) => ({
             code: item.f12,
             name: item.f14,
-            price: item.f2 / 100,
-            changePercent: item.f3 / 100,
+            price: item.f2,  // fltt:2 时已是实际值，不需要 /100
+            changePercent: item.f3,  // fltt:2 时已是实际值，不需要 /100
             mainNetInflow: item.f62,
-            mainNetInflowRate: item.f184 / 100,
+            mainNetInflowRate: item.f184,  // fltt:2 时已是实际值，不需要 /100
             superLargeNetInflow: item.f66,
             largeNetInflow: item.f72,
             mediumNetInflow: item.f78,

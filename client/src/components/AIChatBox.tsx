@@ -195,6 +195,11 @@ export function AIChatBox({
     onSendMessage(trimmedInput);
     setInput("");
 
+    // 重置 textarea 高度
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+
     // Scroll immediately after sending
     scrollToBottom();
 
@@ -291,8 +296,8 @@ export function AIChatBox({
                         )}
                       >
                         {message.role === "assistant" ? (
-                          <div>
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <div className="overflow-x-auto">
+                            <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-all">
                               <Streamdown>{message.content}</Streamdown>
                             </div>
                             {/* AI 回复操作按钮 - 只在有内容且不在加载时显示 */}
@@ -365,7 +370,7 @@ export function AIChatBox({
                 );
               })}
 
-              {/* 加载状态 - 三个点波浪动画 */}
+              {/* 加载状态 - 三个点脉冲动画 */}
               {isLoading && displayMessages[displayMessages.length - 1]?.role === "user" && (
                 <div
                   className="flex items-start gap-3"
@@ -378,19 +383,10 @@ export function AIChatBox({
                   <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
                     <Sparkles className="size-4 text-primary" />
                   </div>
-                  <div className="flex items-center gap-1 h-8 mt-1">
-                    <span
-                      className="w-2 h-2 rounded-full bg-muted-foreground/60"
-                      style={{ animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0s' }}
-                    />
-                    <span
-                      className="w-2 h-2 rounded-full bg-muted-foreground/60"
-                      style={{ animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0.16s' }}
-                    />
-                    <span
-                      className="w-2 h-2 rounded-full bg-muted-foreground/60"
-                      style={{ animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0.32s' }}
-                    />
+                  <div className="flex items-center gap-1.5 h-8 mt-1 px-3 py-2 bg-muted rounded-lg">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse [animation-delay:150ms]" />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse [animation-delay:300ms]" />
                   </div>
                 </div>
               )}

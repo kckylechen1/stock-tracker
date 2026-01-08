@@ -79,7 +79,7 @@
   --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.623 0.214 259.815);
-  
+
   /* 股票颜色 - A股样式：涨红跌绿 */
   --stock-up: oklch(0.62 0.22 25);
   --stock-down: oklch(0.55 0.15 145);
@@ -91,7 +91,7 @@
   --primary-foreground: oklch(0.98 0 0);
   --sidebar-primary: oklch(0.65 0.20 250);
   --sidebar-primary-foreground: oklch(0.98 0 0);
-  
+
   /* 腾讯自选股风格深色背景 */
   --background: oklch(0.13 0.01 260);
   --foreground: oklch(0.92 0.01 90);
@@ -121,7 +121,7 @@
   --sidebar-accent-foreground: oklch(0.95 0.01 90);
   --sidebar-border: oklch(0.25 0.01 260);
   --sidebar-ring: oklch(0.65 0.20 250);
-  
+
   /* 股票颜色 - 深色主题：涨红跌绿（腾讯自选股风格） */
   --stock-up: oklch(0.65 0.22 25);
   --stock-down: oklch(0.60 0.18 145);
@@ -132,9 +132,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   [type="button"]:not(:disabled),
@@ -149,6 +151,7 @@
 }
 
 @layer components {
+
   /**
    * Custom container utility that centers content and adds responsive padding.
    *
@@ -166,7 +169,8 @@
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
+    padding-left: 1rem;
+    /* 16px - mobile padding */
     padding-right: 1rem;
   }
 
@@ -177,28 +181,34 @@
 
   @media (min-width: 640px) {
     .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
+      padding-left: 1.5rem;
+      /* 24px - tablet padding */
       padding-right: 1.5rem;
     }
   }
 
   @media (min-width: 1024px) {
     .container {
-      padding-left: 2rem; /* 32px - desktop padding */
+      padding-left: 2rem;
+      /* 32px - desktop padding */
       padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
+      max-width: 1280px;
+      /* Standard content width */
     }
   }
 }
 
 /* AI 助手三个点加载动画 */
-@keyframes bounce {
-  0%, 80%, 100% {
-    transform: scale(0);
-    opacity: 0.5;
+@keyframes typing-dot {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
   }
-  40% {
-    transform: scale(1);
+
+  50% {
     opacity: 1;
+    transform: scale(1);
   }
 }

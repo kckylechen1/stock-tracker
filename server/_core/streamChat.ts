@@ -86,14 +86,12 @@ const resolveApiUrl = () =>
         ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
         : "https://api.siliconflow.cn/v1/chat/completions";
 
-// 格式化资金金额
+// 格式化资金金额（统一显示亿元）
 function formatFundAmount(val?: number): string {
     if (val === null || val === undefined) return '--';
     const absVal = Math.abs(val);
     const sign = val >= 0 ? '+' : '-';
-    if (absVal >= 100000000) return `${sign}${(absVal / 100000000).toFixed(2)}亿`;
-    if (absVal >= 10000) return `${sign}${(absVal / 10000).toFixed(0)}万`;
-    return `${sign}${absVal.toFixed(0)}`;
+    return `${sign}${(absVal / 100000000).toFixed(2)}亿`;
 }
 
 // 从前端上下文数据构建内存字符串
@@ -363,9 +361,10 @@ export async function* streamChat(params: StreamChatParams): AsyncGenerator<stri
                 yield "\n\n🔍 *正在查询数据...*\n\n";
 
                 // 添加助手消息（包含工具调用）
+                // 注意：tool_calls 时 content 应为空字符串
                 conversationMessages.push({
                     role: 'assistant',
-                    content: fullContent || '',
+                    content: '',
                     tool_calls: validToolCalls
                 });
 
