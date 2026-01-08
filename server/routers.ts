@@ -3,6 +3,8 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import * as eastmoney from './eastmoney';
+import * as ifind from './ifind';
+import * as fundflow from './fundflow';
 import * as marketSentiment from './market-sentiment';
 import { z } from 'zod';
 
@@ -46,9 +48,12 @@ export const appRouter = router({
       })
       .query(async ({ input }) => {
         try {
-          // 使用东方财富API获取股票详情
-          const quote = await eastmoney.getStockQuote(input.code);
-          const stockInfo = await eastmoney.getStockInfo(input.code);
+          // 使用东方财富 API
+          const [quote, stockInfo, capitalFlowData] = await Promise.all([
+            eastmoney.getStockQuote(input.code),
+            eastmoney.getStockInfo(input.code),
+            fundflow.getStockFundFlow(input.code),
+          ]);
 
           return {
             stock: stockInfo,
@@ -59,7 +64,9 @@ export const appRouter = router({
               turnoverRate: quote.turnoverRate,
               marketCap: quote.marketCap,
               circulationMarketCap: quote.circulationMarketCap,
+              volumeRatio: quote.volumeRatio,
             },
+            capitalFlow: capitalFlowData,
           };
         } catch (error) {
           console.error('Get detail failed:', error);
@@ -67,6 +74,7 @@ export const appRouter = router({
             stock: null,
             quote: null,
             basic: null,
+            capitalFlow: null,
           };
         }
       }),
@@ -75,13 +83,14 @@ export const appRouter = router({
     getTimeline: publicProcedure
       .input((val: unknown) => {
         if (typeof val === 'object' && val !== null && 'code' in val) {
-          return val as { code: string };
+          return val as { code: string; days?: number };
         }
         throw new Error('Invalid input');
       })
       .query(async ({ input }) => {
         try {
-          const data = await eastmoney.getTimelineData(input.code);
+          const days = input.days || 1; // 默认1日
+          const data = await eastmoney.getTimelineData(input.code, days);
           return data;
         } catch (error) {
           console.error('Get timeline failed:', error);

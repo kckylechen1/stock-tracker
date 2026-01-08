@@ -19,14 +19,14 @@ const HEADERS = {
 export function convertToEastmoneyCode(code: string): string {
   // 移除可能的前缀
   const cleanCode = code.replace(/^(SH|SZ|sh|sz)/, '');
-  
+
   // 判断市场：6开头是上海，0/3开头是深圳
   if (cleanCode.startsWith('6')) {
     return `1.${cleanCode}`;
   } else if (cleanCode.startsWith('0') || cleanCode.startsWith('3')) {
     return `0.${cleanCode}`;
   }
-  
+
   // 默认返回深圳市场
   return `0.${cleanCode}`;
 }
@@ -46,25 +46,26 @@ export function convertFromEastmoneyCode(eastmoneyCode: string): string {
 export async function getStockQuote(code: string) {
   try {
     const eastmoneyCode = convertToEastmoneyCode(code);
-    // 添加fields参数获取完整数据（市盈率、市净率、换手率等）
-    const fields = 'f43,f44,f45,f46,f47,f48,f58,f60,f116,f117,f162,f167,f168,f169,f170';
+    // 添加fields参数获取完整数据（市盈率、市净率、换手率、量比等）
+    // f10=量比, f168=换手率, f169=涨速, f170=振幅
+    const fields = 'f10,f43,f44,f45,f46,f47,f48,f58,f60,f116,f117,f162,f167,f168,f169,f170';
     const url = `https://push2.eastmoney.com/api/qt/stock/get?secid=${eastmoneyCode}&fields=${fields}`;
-    
+
     const response = await axios.get(url, { headers: HEADERS });
     const data = response.data;
-    
+
     if (!data || !data.data) {
       throw new Error('获取股票行情失败');
     }
-    
+
     const stockData = data.data;
-    
+
     // 计算涨跌幅
     const currentPrice = stockData.f43 / 100; // 现价
     const preClose = stockData.f60 / 100; // 昨收
     const change = currentPrice - preClose;
     const changePercent = (change / preClose) * 100;
-    
+
     return {
       code: convertFromEastmoneyCode(eastmoneyCode),
       name: stockData.f58,
@@ -82,6 +83,7 @@ export async function getStockQuote(code: string) {
       pb: stockData.f167 ? stockData.f167 / 100 : null, // 市净率（需要除以100）
       marketCap: stockData.f116, // 总市值
       circulationMarketCap: stockData.f117, // 流通市值
+      volumeRatio: stockData.f10 ? stockData.f10 / 100 : null, // 量比
     };
   } catch (error: any) {
     console.error(`[Eastmoney] Failed to get quote for ${code}:`, error.message);
@@ -102,18 +104,18 @@ export async function searchStock(keyword: string) {
       token: 'D43BF722C8E33BDC906FB84D85E326E8',
       count: 10,
     };
-    
-    const response = await axios.get(url, { 
+
+    const response = await axios.get(url, {
       params,
-      headers: HEADERS 
+      headers: HEADERS
     });
-    
+
     const data = response.data;
-    
+
     if (!data || !data.QuotationCodeTable || !data.QuotationCodeTable.Data) {
       return [];
     }
-    
+
     return data.QuotationCodeTable.Data.map((item: any) => ({
       code: item.Code,
       name: item.Name,
@@ -141,21 +143,21 @@ export async function getKlineData(
 ) {
   try {
     const eastmoneyCode = convertToEastmoneyCode(code);
-    
+
     // K线周期映射
     const periodMap = {
       day: '101',
       week: '102',
       month: '103',
     };
-    
+
     const klt = periodMap[period];
     const beg = startDate || '20200101'; // 默认从2020年开始
-    
+
     // 生成回调函数名（模拟JSONP）
     const timestamp = Date.now();
     const callback = `jQuery${Math.random().toString().replace('.', '')}${timestamp}`;
-    
+
     const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get`;
     const params = {
       cb: callback,
@@ -170,12 +172,12 @@ export async function getKlineData(
       lmt: '800',
       _: timestamp,
     };
-    
+
     const response = await axios.get(url, {
       params,
       headers: HEADERS,
     });
-    
+
     // 处理JSONP响应
     let jsonpData = response.data;
     if (typeof jsonpData === 'string') {
@@ -183,11 +185,11 @@ export async function getKlineData(
       jsonpData = jsonpData.replace(/^[^(]+\(/, '').replace(/\);?$/, '');
       jsonpData = JSON.parse(jsonpData);
     }
-    
+
     if (!jsonpData || !jsonpData.data || !jsonpData.data.klines) {
       throw new Error('K线数据为空');
     }
-    
+
     // 解析K线数据
     const klines = jsonpData.data.klines.map((line: string) => {
       const parts = line.split(',');
@@ -205,7 +207,7 @@ export async function getKlineData(
         turnoverRate: parseFloat(parts[10]), // 换手率
       };
     });
-    
+
     return klines;
   } catch (error: any) {
     console.error(`[Eastmoney] Failed to get kline data for ${code}:`, error.message);
@@ -215,13 +217,15 @@ export async function getKlineData(
 
 /**
  * 获取分时数据
+ * @param code 股票代码
+ * @param days 天数 (1, 3, 5)
  */
-export async function getTimelineData(code: string) {
+export async function getTimelineData(code: string, days: number = 1) {
   try {
     const eastmoneyCode = convertToEastmoneyCode(code);
     const timestamp = Date.now();
     const callback = `jQuery${Math.random().toString().replace('.', '')}${timestamp}`;
-    
+
     const url = `https://push2his.eastmoney.com/api/qt/stock/trends2/get`;
     const params = {
       cb: callback,
@@ -230,28 +234,28 @@ export async function getTimelineData(code: string) {
       fields1: 'f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13',
       fields2: 'f51,f52,f53,f54,f55,f56,f57,f58',
       iscr: '0',
-      ndays: '1',
+      ndays: String(days), // 支持多日分时
       _: timestamp,
     };
-    
+
     const response = await axios.get(url, {
       params,
       headers: HEADERS,
     });
-    
+
     // 处理JSONP响应
     let jsonpData = response.data;
     if (typeof jsonpData === 'string') {
       jsonpData = jsonpData.replace(/^[^(]+\(/, '').replace(/\);?$/, '');
       jsonpData = JSON.parse(jsonpData);
     }
-    
+
     if (!jsonpData || !jsonpData.data || !jsonpData.data.trends) {
       throw new Error('分时数据为空');
     }
-    
+
     const preClose = jsonpData.data.preClose; // 昨收价
-    
+
     // 解析分时数据
     const timeline = jsonpData.data.trends.map((line: string) => {
       const parts = line.split(',');
@@ -265,7 +269,7 @@ export async function getTimelineData(code: string) {
         changePercent: ((price - preClose) / preClose) * 100, // 涨跌幅
       };
     });
-    
+
     return {
       preClose,
       timeline,
