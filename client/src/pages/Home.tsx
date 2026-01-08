@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Settings, X, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { Search, Plus, Trash2, X, PanelRightOpen, PanelRightClose } from "lucide-react";
 
 // 导入模块化组件
 import { StockListItem, StockDetailPanel } from "@/components/stock";
@@ -49,7 +49,10 @@ function StockTab({
 export default function Home() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
+
+  // 拖拽删除状态
+  const [draggingStock, setDraggingStock] = useState<{ code: string, id: number } | null>(null);
+  const [isOverTrash, setIsOverTrash] = useState(false);
 
   // 已打开的股票标签列表 (只存储 code)
   const [openedTabs, setOpenedTabs] = useState<string[]>([]);
@@ -123,8 +126,7 @@ export default function Home() {
     });
   };
 
-  const handleDeleteFromWatchlist = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDeleteFromWatchlist = (id: number) => {
     deleteMutation.mutate({ id });
   };
 
@@ -167,19 +169,9 @@ export default function Home() {
     <div className="flex h-screen bg-background">
       {/* 左侧边栏 - 股票列表 (固定宽度 320px) */}
       <div className="w-80 shrink-0 border-r border-border flex flex-col">
-        {/* 标题栏 - 带齿轮按钮 */}
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        {/* 标题栏 */}
+        <div className="px-4 py-3 border-b border-border">
           <span className="font-semibold text-foreground">自选股</span>
-          <button
-            onClick={() => setIsEditMode(!isEditMode)}
-            className={`p-1.5 rounded-md transition-colors ${isEditMode
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent text-muted-foreground hover:text-foreground'
-              }`}
-            title={isEditMode ? "完成编辑" : "编辑列表"}
-          >
-            {isEditMode ? <X className="h-4 w-4" /> : <Settings className="h-4 w-4" />}
-          </button>
         </div>
 
         {/* 搜索栏 */}
@@ -219,18 +211,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* 编辑模式提示 */}
-        {isEditMode && (
-          <div className="px-4 py-2 bg-primary/10 text-primary text-sm flex items-center justify-between">
-            <span>点击删除按钮移除股票</span>
-            <button
-              onClick={() => setIsEditMode(false)}
-              className="text-xs underline"
-            >
-              完成
-            </button>
-          </div>
-        )}
+
 
         {/* 观察池列表 */}
         <div className="flex-1 overflow-auto">
@@ -238,14 +219,27 @@ export default function Home() {
             <div className="p-4 text-center text-muted-foreground">加载中...</div>
           ) : watchlist && watchlist.length > 0 ? (
             watchlist.map((item) => (
-              <StockListItem
+              <div
                 key={item.id}
-                item={item}
-                isSelected={selectedStock === item.stockCode}
-                isEditMode={isEditMode}
-                onClick={() => handleSelectStock(item.stockCode)}
-                onDelete={(e) => handleDeleteFromWatchlist(item.id, e)}
-              />
+                draggable
+                onDragStart={() => setDraggingStock({ code: item.stockCode, id: item.id })}
+                onDragEnd={() => {
+                  if (isOverTrash && draggingStock) {
+                    handleDeleteFromWatchlist(draggingStock.id);
+                  }
+                  setDraggingStock(null);
+                  setIsOverTrash(false);
+                }}
+                className={`cursor-grab active:cursor-grabbing ${draggingStock?.code === item.stockCode ? 'opacity-50' : ''}`}
+              >
+                <StockListItem
+                  item={item}
+                  isSelected={selectedStock === item.stockCode}
+                  isEditMode={false}
+                  onClick={() => handleSelectStock(item.stockCode)}
+                  onDelete={() => { }}
+                />
+              </div>
             ))
           ) : (
             <div className="p-4 text-center text-muted-foreground">
@@ -254,6 +248,35 @@ export default function Home() {
                 使用上方搜索框添加股票
               </p>
             </div>
+          )}
+        </div>
+
+        {/* 底部垃圾桶区域 */}
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsOverTrash(true);
+          }}
+          onDragLeave={() => setIsOverTrash(false)}
+          onDrop={() => {
+            if (draggingStock) {
+              handleDeleteFromWatchlist(draggingStock.id);
+            }
+            setDraggingStock(null);
+            setIsOverTrash(false);
+          }}
+          className={`p-4 border-t border-border flex items-center justify-center gap-2 transition-all duration-200 ${draggingStock
+            ? isOverTrash
+              ? 'bg-destructive/30 text-destructive scale-105'
+              : 'bg-destructive/10 text-destructive/70'
+            : 'bg-transparent text-muted-foreground/30'
+            }`}
+        >
+          <Trash2 className={`transition-transform duration-200 ${isOverTrash ? 'h-8 w-8' : 'h-5 w-5'}`} />
+          {draggingStock && (
+            <span className="text-sm font-medium">
+              {isOverTrash ? '松开删除' : '拖到此处删除'}
+            </span>
           )}
         </div>
       </div>
