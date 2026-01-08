@@ -29,9 +29,18 @@ view_file .agent/docs/{相关文档}.md
 - 参考 `product-summary.md` 确认需求
 - 按 `nlp-strategy-dev-plan.md` 的阶段推进
 
-### 3. 开发后
+### 3. 开发后 / 收工流程
 - 提交代码到 dev 分支（本地 commit，积累后 push）
 - 更新相关文档的状态
+- **创建每日工作总结** `.agent/workflows/daily-summary-YYYY-MM-DD.md`
+  - 记录当日完成的功能
+  - 记录明日待办事项
+  - 记录用户偏好或新发现
+
+### 4. 每日开始
+- 跟用户说**早安**
+- 查看前一天的工作总结 `/daily-summary-{前一天日期}`
+- 确认今日待办事项
 
 ## 📝 Git 提交规范
 
