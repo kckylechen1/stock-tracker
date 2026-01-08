@@ -310,32 +310,7 @@ export default function Home() {
               </button>
             </div>
 
-            {/* 筹码分布 (占 20%) - 宽屏自动显示 OR 手动展开时显示 */}
-            <div className={`${showSidePanels ? 'flex' : 'hidden'} 2xl:flex flex-[20] min-w-[160px] border-l border-border flex-col bg-card/30`}>
-              <div className="px-3 py-2.5 border-b border-border flex items-center justify-between">
-                <span className="font-semibold text-foreground text-sm">筹码分布</span>
-                {/* 窄屏时显示关闭按钮 */}
-                <button
-                  onClick={() => setShowSidePanels(false)}
-                  className="2xl:hidden p-1 rounded hover:bg-accent"
-                >
-                  <X className="h-3 w-3 text-muted-foreground" />
-                </button>
-              </div>
-              <div className="flex-1 flex items-center justify-center p-3">
-                {selectedStock ? (
-                  <div className="text-center text-muted-foreground">
-                    <div className="text-3xl mb-3">📊</div>
-                    <p className="text-xs">筹码分布功能</p>
-                    <p className="text-xs mt-1 opacity-70">即将推出...</p>
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground">
-                    <p className="text-xs">请先选择股票</p>
-                  </div>
-                )}
-              </div>
-            </div>
+
 
             {/* 市场情绪 (占 20%) - 宽屏自动显示 OR 手动展开时显示 */}
             <div className={`${showSidePanels ? 'flex' : 'hidden'} 2xl:flex flex-[20] min-w-[160px] border-l border-border flex-col bg-card/30`}>
@@ -403,8 +378,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 右侧AI聊天面板 - 响应式宽度：普通屏320px，宽屏620px */}
-        <div className="w-[320px] 2xl:w-[620px] shrink-0">
+        {/* 右侧AI聊天面板 - 响应式宽度：普通屏290px，宽屏560px */}
+        <div className="w-[290px] 2xl:w-[560px] shrink-0">
           <AIChatPanel selectedStock={selectedStock} />
         </div>
       </div>

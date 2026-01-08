@@ -161,6 +161,56 @@
 - [x] 动态缩放显示范围
 - [x] 移除K线图最新价格标签
 
+## NLP 智能选股模块（2026-01-08 规划）
+
+### Phase 1: 基础框架（2周）
+- [ ] 在中间区域添加"🔍 智能选股" Tab
+- [ ] 策略意图识别 Prompt 开发
+- [ ] 策略 JSON Schema 定义
+- [ ] 简化版因子引擎（价量因子：涨跌幅、换手率、量比）
+- [ ] tRPC strategy.parseAndScan 接口
+- [ ] 选股结果列表组件
+- [ ] 点击结果 → 查看K线联动
+
+### Phase 2: Skill 系统（2周）
+- [ ] Skill 数据模型设计
+- [ ] skill.create / skill.list / skill.delete 接口
+- [ ] Skill 管理面板 UI
+- [ ] skill.run 接口（手动执行）
+- [ ] 定时任务框架（node-cron）
+- [ ] Skill 执行历史记录
+
+### Phase 3: 因子扩展（2周）
+- [ ] 板块分类数据接入
+- [ ] 资金因子集成（主力、北向）
+- [ ] 板块筛选逻辑
+- [ ] 新闻/公告数据源调研（可选）
+- [ ] 新闻热度因子（可选）
+
+### Phase 4: 回测 + 记忆（3周）
+- [ ] 历史K线数据存储策略
+- [ ] 回测逻辑实现
+- [ ] 回测结果展示 UI
+- [ ] 用户策略使用记录
+- [ ] 因子使用频率统计
+- [ ] "推荐 Skill 化"逻辑
+
+### Phase 5: 向量存储与语义搜索（2周，P2 后期）
+- [ ] 抽象 Repository 接口（降低迁移成本）
+- [ ] 评估向量方案（MySQL + Embedding / ChromaDB / pgvector）
+- [ ] 选择 Embedding 模型（OpenAI / 通义 / 本地 BGE）
+- [ ] 数据表预留 embedding 字段
+- [ ] 对话内容向量化
+- [ ] AI 分析结论向量化
+- [ ] 语义搜索接口（相似度检索）
+- [ ] 选股时关联历史分析
+
+### 数据存储方案
+- [ ] MySQL 表结构设计（chat_messages, ai_analyses, skills）
+- [ ] 抽象 ISearchRepository 接口
+- [ ] 本地开发：继续用 JSON 文件
+- [ ] 部署时：迁移到 MySQL + Redis
+
 ## 私有配置系统（长期规划）
 
 ### 架构设计
