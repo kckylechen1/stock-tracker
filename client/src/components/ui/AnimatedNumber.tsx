@@ -113,7 +113,7 @@ export function CountUp({
     duration = 500
 }: ScrollNumberProps) {
     const [displayValue, setDisplayValue] = useState(value);
-    const animationRef = useRef<number>();
+    const animationRef = useRef<number>(0);
     const startTimeRef = useRef<number>(0);
     const startValueRef = useRef(value);
     const targetValueRef = useRef(value);
