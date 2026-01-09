@@ -257,6 +257,11 @@ export function AIChatBox({
                 const isLastMessage = index === displayMessages.length - 1;
                 const shouldApplyMinHeight =
                   isLastMessage && !isLoading && minHeightForLastMessage > 0;
+                const isAssistantThinking =
+                  message.role === "assistant" &&
+                  isLastMessage &&
+                  isLoading &&
+                  !message.content;
 
                 return (
                   <div
@@ -296,63 +301,70 @@ export function AIChatBox({
                         )}
                       >
                         {message.role === "assistant" ? (
-                          <div className="overflow-x-auto">
-                            <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-all">
-                              <Streamdown>{message.content}</Streamdown>
+                          isAssistantThinking ? (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Loader2 className="size-3.5 animate-spin" />
+                              <span>正在思考...</span>
                             </div>
-                            {/* AI 回复操作按钮 - 只在有内容且不在加载时显示 */}
-                            {message.content && !isLoading && (
-                              <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border/50">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(message.content);
-                                    setCopiedIndex(index);
-                                    setTimeout(() => setCopiedIndex(null), 2000);
-                                  }}
-                                  className={`p-1.5 rounded hover:bg-accent transition-colors ${copiedIndex === index
-                                    ? 'text-green-500'
-                                    : 'text-muted-foreground hover:text-foreground'
-                                    }`}
-                                  title={copiedIndex === index ? "已复制!" : "复制"}
-                                >
-                                  <Copy className="size-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setFeedbackIndex({ index, type: 'up' })}
-                                  className={`p-1.5 rounded hover:bg-accent transition-colors ${feedbackIndex?.index === index && feedbackIndex?.type === 'up'
-                                    ? 'text-green-500'
-                                    : 'text-muted-foreground hover:text-foreground'
-                                    }`}
-                                  title="有帮助"
-                                >
-                                  <ThumbsUp className="size-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setFeedbackIndex({ index, type: 'down' })}
-                                  className={`p-1.5 rounded hover:bg-accent transition-colors ${feedbackIndex?.index === index && feedbackIndex?.type === 'down'
-                                    ? 'text-red-500'
-                                    : 'text-muted-foreground hover:text-foreground'
-                                    }`}
-                                  title="没帮助"
-                                >
-                                  <ThumbsDown className="size-3.5" />
-                                </button>
-                                {isLastMessage && onRegenerate && (
+                          ) : (
+                            <div className="overflow-x-hidden">
+                              <div className="prose prose-sm dark:prose-invert max-w-none min-w-0 [&_pre]:w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap [&_code]:break-words [&_pre_code]:break-words">
+                                <Streamdown>{message.content}</Streamdown>
+                              </div>
+                              {/* AI 回复操作按钮 - 只在有内容且不在加载时显示 */}
+                              {message.content && !isLoading && (
+                                <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border/50">
                                   <button
                                     type="button"
-                                    onClick={onRegenerate}
-                                    className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                                    title="重新生成"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(message.content);
+                                      setCopiedIndex(index);
+                                      setTimeout(() => setCopiedIndex(null), 2000);
+                                    }}
+                                    className={`p-1.5 rounded hover:bg-accent transition-colors ${copiedIndex === index
+                                      ? 'text-green-500'
+                                      : 'text-muted-foreground hover:text-foreground'
+                                      }`}
+                                    title={copiedIndex === index ? "已复制!" : "复制"}
                                   >
-                                    <RotateCcw className="size-3.5" />
+                                    <Copy className="size-3.5" />
                                   </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setFeedbackIndex({ index, type: 'up' })}
+                                    className={`p-1.5 rounded hover:bg-accent transition-colors ${feedbackIndex?.index === index && feedbackIndex?.type === 'up'
+                                      ? 'text-green-500'
+                                      : 'text-muted-foreground hover:text-foreground'
+                                      }`}
+                                    title="有帮助"
+                                  >
+                                    <ThumbsUp className="size-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setFeedbackIndex({ index, type: 'down' })}
+                                    className={`p-1.5 rounded hover:bg-accent transition-colors ${feedbackIndex?.index === index && feedbackIndex?.type === 'down'
+                                      ? 'text-red-500'
+                                      : 'text-muted-foreground hover:text-foreground'
+                                      }`}
+                                    title="没帮助"
+                                  >
+                                    <ThumbsDown className="size-3.5" />
+                                  </button>
+                                  {isLastMessage && onRegenerate && (
+                                    <button
+                                      type="button"
+                                      onClick={onRegenerate}
+                                      className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                      title="重新生成"
+                                    >
+                                      <RotateCcw className="size-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
                         ) : (
                           <p className="whitespace-pre-wrap text-sm">
                             {message.content}
@@ -383,10 +395,9 @@ export function AIChatBox({
                   <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
                     <Sparkles className="size-4 text-primary" />
                   </div>
-                  <div className="flex items-center gap-1.5 h-8 mt-1 px-3 py-2 bg-muted rounded-lg">
-                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '150ms' }} />
-                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '300ms' }} />
+                  <div className="flex items-center gap-2 h-8 mt-1 px-3 py-2 bg-muted rounded-lg text-xs text-muted-foreground">
+                    <Loader2 className="size-3.5 animate-spin" />
+                    <span>正在思考...</span>
                   </div>
                 </div>
               )}
