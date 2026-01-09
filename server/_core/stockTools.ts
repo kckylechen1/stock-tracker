@@ -7,6 +7,8 @@
 import { Tool } from './llm';
 import * as eastmoney from '../eastmoney';
 import * as fundflow from '../fundflow';
+import * as akshare from '../akshare';
+import { formatMoney, formatPercent, formatDate } from './formatUtils';
 
 // ==================== 工具定义 ====================
 
@@ -143,6 +145,44 @@ export const stockTools: Tool[] = [
                 properties: {}
             }
         }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_current_datetime",
+            description: "获取当前的日期和时间。当用户询问'今天'、'现在'、'当前日期'等时，必须先调用此工具获取准确的日期时间。",
+            parameters: {
+                type: "object",
+                properties: {}
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_longhu_bang",
+            description: "获取龙虎榜数据，包括上榜股票、机构买卖情况、游资动向等。适合分析短线热点和资金动向。",
+            parameters: {
+                type: "object",
+                properties: {
+                    limit: {
+                        type: "number",
+                        description: "返回数量，默认10"
+                    }
+                }
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_market_news",
+            description: "获取最新财经资讯和市场新闻。盘前可用于了解当日重要消息和政策动向。",
+            parameters: {
+                type: "object",
+                properties: {}
+            }
+        }
     }
 ];
 
@@ -220,6 +260,63 @@ export async function executeStockTool(toolName: string, args: Record<string, an
                     return `无法获取大盘资金流向数据`;
                 }
                 return formatMarketFundFlow(marketFlow);
+            }
+
+            case "get_current_datetime": {
+                const now = new Date();
+                const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+                const year = now.getFullYear();
+                const month = now.getMonth() + 1;
+                const day = now.getDate();
+                const weekday = weekdays[now.getDay()];
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+
+                // 判断是否为交易日和交易时间
+                const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+                const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                const morningOpen = 9 * 60 + 30;  // 9:30
+                const morningClose = 11 * 60 + 30; // 11:30
+                const afternoonOpen = 13 * 60;     // 13:00
+                const afternoonClose = 15 * 60;    // 15:00
+
+                let tradingStatus = '';
+                if (isWeekend) {
+                    tradingStatus = '（周末休市）';
+                } else if (currentMinutes < morningOpen) {
+                    tradingStatus = '（盘前，未开盘）';
+                } else if (currentMinutes >= morningOpen && currentMinutes < morningClose) {
+                    tradingStatus = '（早盘交易中）';
+                } else if (currentMinutes >= morningClose && currentMinutes < afternoonOpen) {
+                    tradingStatus = '（午间休市）';
+                } else if (currentMinutes >= afternoonOpen && currentMinutes < afternoonClose) {
+                    tradingStatus = '（午盘交易中）';
+                } else {
+                    tradingStatus = '（收盘）';
+                }
+
+                return `当前时间：${year}年${month}月${day}日 ${weekday} ${hours}:${minutes} ${tradingStatus}`;
+            }
+
+            case "get_longhu_bang": {
+                const limit = args.limit || 10;
+                const data = await akshare.getLongHuBangDetail();
+                if (!data || data.length === 0) {
+                    return `暂无龙虎榜数据`;
+                }
+                return formatLongHuBang(data.slice(0, limit));
+            }
+
+            case "get_market_news": {
+                try {
+                    const data = await akshare.getMarketNews();
+                    if (!data || data.length === 0) {
+                        return `暂无市场资讯`;
+                    }
+                    return formatMarketNews(data.slice(0, 10));
+                } catch (error) {
+                    return `获取市场资讯失败，请稍后重试`;
+                }
             }
 
             default:
@@ -396,4 +493,33 @@ ${mainStatus}
   └─ 小单：${formatAmount(flow.smallNetInflow)}
 
 ⏰ 更新时间：${flow.time}`;
+}
+
+function formatLongHuBang(data: any[]): string {
+    const items = data.map((item, i) => {
+        const netBuy = formatMoney(item['龙虎榜净买额']);
+        const buyAmount = formatMoney(item['龙虎榜买入额']);
+        const sellAmount = formatMoney(item['龙虎榜卖出额']);
+        const changePercent = item['涨跌幅']?.toFixed(2) ?? '--';
+        const date = formatDate(item['上榜日'] || '');
+
+        return `${i + 1}. ${item['名称']}(${item['代码']})
+   📅 上榜日：${date}
+   📈 涨跌幅：${changePercent}%
+   💰 净买额：${netBuy}（买入${buyAmount} / 卖出${sellAmount}）
+   📝 原因：${item['上榜原因'] || '--'}
+   💡 解读：${item['解读'] || '--'}`;
+    });
+
+    return `【龙虎榜数据】\n\n${items.join('\n\n')}`;
+}
+
+function formatMarketNews(data: any[]): string {
+    const items = data.map((item, i) => {
+        const title = item['title'] || item['标题'] || item['content']?.slice(0, 50) || '--';
+        const date = item['date'] || item['日期'] || '';
+        return `${i + 1}. ${title}${date ? ` (${formatDate(date)})` : ''}`;
+    });
+
+    return `【今日财经资讯】\n\n${items.join('\n')}`;
 }

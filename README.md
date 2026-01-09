@@ -44,14 +44,29 @@ A股交易笔记工作台 - 个人交易研究助手
 ## 快速开始
 
 ```bash
-# 安装依赖
-npm install
+# 安装 Node.js 依赖
+pnpm install
 
-# 启动开发服务器
-npm run dev
+# 安装 Python 依赖（AKTools - 财经数据服务）
+python3 -m venv ~/.aktools-venv
+source ~/.aktools-venv/bin/activate
+pip install aktools
+
+# 启动 AKTools 服务（端口 8081）
+source ~/.aktools-venv/bin/activate && python -m aktools --host 0.0.0.0 --port 8081
+
+# 启动开发服务器（新终端）
+pnpm dev
 
 # 访问
 http://localhost:5173
+```
+
+### 环境变量
+
+```bash
+# .env (可选)
+AKTOOLS_URL=http://127.0.0.1:8081  # AKTools 服务地址
 ```
 
 ## 项目结构

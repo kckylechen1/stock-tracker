@@ -279,7 +279,7 @@ export function AIChatBox({
                       </div>
                     )}
 
-                    <div className="flex flex-col max-w-[80%]">
+                    <div className="flex flex-col max-w-[80%] min-w-0 overflow-hidden">
                       {/* 思考时间提示 - 仅在 assistant 消息且有 thinkingTime 时显示 */}
                       {message.role === "assistant" && message.thinkingTime && message.thinkingTime > 0 && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5 ml-1">
@@ -385,8 +385,8 @@ export function AIChatBox({
                   </div>
                   <div className="flex items-center gap-1.5 h-8 mt-1 px-3 py-2 bg-muted rounded-lg">
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse [animation-delay:150ms]" />
-                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse [animation-delay:300ms]" />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               )}

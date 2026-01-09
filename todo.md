@@ -72,8 +72,24 @@
 
 ## 2026-01-09 待办
 ### AI 助手 UI 修复
-- [ ] 代码块溢出聊天窗口问题（需添加水平滚动）
-- [ ] 三个点加载动画显示问题
+- [x] 代码块溢出聊天窗口问题（添加 min-w-0 overflow-hidden）
+- [x] 三个点加载动画显示问题（改用内联 style）
+- [x] Textarea 发送后高度重置
+
+### AI 工具增强
+- [x] 添加 get_current_datetime 工具（日期时间 + 交易状态）
+- [x] 添加 get_longhu_bang 工具（龙虎榜数据）
+- [x] 添加 get_market_news 工具（财经资讯）
+- [x] 集成 AKTools HTTP API（Python 虚拟环境）
+- [x] 创建统一金额格式化模块 formatUtils.ts
+
+### Gauge 评分系统优化（按规格文档修复）
+- [x] K1/K2/K3 改回同维度一致性（MACD vs EMA, RSI vs KDJ, OBV vs VR）
+- [x] VR 改回 26 日上涨量/下跌量版本
+- [x] 添加 VMACD 信号（成交量趋势）
+- [x] 添加 KDJ 金叉/死叉检测
+- [x] 权重调整：OBV 40% + VR 35% + VMACD 25%
+- [x] 创建回测系统框架 backtest.ts
 
 ### AI 记忆系统（新功能）
 - [ ] 实现用户偏好记忆持久化（如"资金票不需要看基本面"）

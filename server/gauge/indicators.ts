@@ -283,16 +283,32 @@ export function scoreMomentum(klines: KlineData[]): number {
         period: 9,
         signalPeriod: 3,
     });
+
+    // 获取最近两天的 K/D 值用于判断金叉/死叉
+    const prevStoch = stochResult[stochResult.length - 2] || { k: undefined, d: undefined };
     const latestStoch = stochResult[stochResult.length - 1] || { k: undefined, d: undefined };
+
+    const prevK = (prevStoch.k as number | undefined) ?? 50;
+    const prevD = (prevStoch.d as number | undefined) ?? 50;
     const k = (latestStoch.k as number | undefined) ?? 50;
     const d = (latestStoch.d as number | undefined) ?? 50;
     const j = 3 * k - 2 * d;
 
     let kdjScore = 0;
-    if (k > d && j > 50) {
-        kdjScore = 50; // 多头
+
+    // 金叉检测：K 从下穿 D 变为上穿 D
+    const isGoldenCross = prevK < prevD && k > d;
+    // 死叉检测：K 从上穿 D 变为下穿 D
+    const isDeadCross = prevK > prevD && k < d;
+
+    if (isGoldenCross) {
+        kdjScore = 30; // 金叉，买入信号
+    } else if (isDeadCross) {
+        kdjScore = -30; // 死叉，卖出信号
+    } else if (k > d && j > 50) {
+        kdjScore = 50; // 强势多头
     } else if (k < d && j < 50) {
-        kdjScore = -50; // 空头
+        kdjScore = -50; // 弱势空头
     }
 
     return 0.5 * rsiScore + 0.5 * kdjScore;
@@ -346,14 +362,15 @@ export function scoreVolatility(klines: KlineData[]): number {
 
 /**
  * 计算 Gauge 评分（量能维度）
- * 基于 OBV 和成交量变化
+ * 基于 OBV、VR（26日上涨量/下跌量）和 VMACD
+ * 权重：OBV 40% + VR 35% + VMACD 25%
  */
 export function scoreVolume(klines: KlineData[]): number {
     const closes = klines.map(k => k.close);
     const volumes = klines.map(k => k.volume);
     const latestClose = closes[closes.length - 1];
 
-    // OBV
+    // ========== 1. OBV 信号 (权重 40%) ==========
     const obvResult = OBV.calculate({
         close: closes,
         volume: volumes,
@@ -371,26 +388,61 @@ export function scoreVolume(klines: KlineData[]): number {
 
     let obvScore = 0;
     if (obvUp && priceUp) {
-        obvScore = 40; // 量价同步
+        obvScore = 40; // 量价同步，强买入
     } else if (obvUp && !priceUp) {
-        obvScore = -20; // 底背离
+        obvScore = -20; // 底背离，机构偷偷吸筹
     } else if (!obvUp && priceUp) {
-        obvScore = -40; // 顶背离（最危险）
+        obvScore = -40; // 顶背离，机构悄悄出货（最危险）
+    }
+    // 双弱 = 0
+
+    // ========== 2. VR 信号 (权重 35%) ==========
+    // VR = 26日上涨日成交量之和 / 26日下跌日成交量之和
+    const period = Math.min(26, closes.length - 1);
+    let upVolume = 0;
+    let downVolume = 0;
+
+    for (let i = closes.length - period; i < closes.length; i++) {
+        if (i > 0) {
+            if (closes[i] > closes[i - 1]) {
+                upVolume += volumes[i];
+            } else if (closes[i] < closes[i - 1]) {
+                downVolume += volumes[i];
+            }
+            // 平盘不计入
+        }
     }
 
-    // 量比（简化版：最近5日平均成交量 vs 前10日）
-    const vol5 = volumes.slice(-5).reduce((a, b) => a + b, 0) / 5;
-    const vol10 = volumes.slice(-15, -5).reduce((a, b) => a + b, 0) / 10;
-    const vr = vol10 > 0 ? vol5 / vol10 : 1;
+    const vr = downVolume > 0 ? upVolume / downVolume : 1;
 
     let vrScore = 0;
     if (vr > 1.3) {
-        vrScore = 30;
+        vrScore = 30; // 上升日成交量远超下降日，买方活跃
     } else if (vr < 0.7) {
-        vrScore = -30;
+        vrScore = -30; // 下降日成交量远超上升日，卖方活跃
+    }
+    // 0.7 ~ 1.3 之间 = 0（成交量均衡）
+
+    // ========== 3. VMACD 信号 (权重 25%) ==========
+    // 对成交量做 MACD，反映成交热度的加速/减速
+    const vEma12 = EMA.calculate({ values: volumes, period: 12 });
+    const vEma26 = EMA.calculate({ values: volumes, period: 26 });
+
+    const latestVEma12 = vEma12[vEma12.length - 1] ?? 0;
+    const latestVEma26 = vEma26[vEma26.length - 1] ?? 0;
+    const vDif = latestVEma12 - latestVEma26;
+
+    // V_DEA 需要对 V_DIF 序列做 EMA，这里简化处理
+    // 直接用 V_DIF 的符号判断
+    let vmacdScore = 0;
+    if (vDif > 0) {
+        vmacdScore = 20; // 成交量在加速上升
+    } else {
+        vmacdScore = -20; // 成交量在加速下降
     }
 
-    return 0.6 * obvScore + 0.4 * vrScore;
+    // 综合：0.4×OBV + 0.35×VR + 0.25×VMACD
+    return 0.4 * obvScore + 0.35 * vrScore + 0.25 * vmacdScore;
 }
 
 /**
@@ -409,17 +461,88 @@ export function calculateGaugeScore(klines: KlineData[]): {
         volume: number;
     };
 } {
+    const closes = klines.map(k => k.close);
+    const highs = klines.map(k => k.high);
+    const lows = klines.map(k => k.low);
+    const volumes = klines.map(k => k.volume);
+
+    // ========== 计算各维度分数 ==========
     const sTrend = scoreTrend(klines);
     const sMomentum = scoreMomentum(klines);
     const sVolatility = scoreVolatility(klines);
     const sVolume = scoreVolume(klines);
 
-    // 相关性调整因子
-    const k1 = Math.sign(sTrend) === Math.sign(sMomentum) ? 1.2 : 0.6;
-    const k2 = Math.sign(sMomentum) === Math.sign(sVolatility) ? 1.15 : 0.7;
-    const k3 = Math.sign(sVolume) === Math.sign(sTrend) ? 1.3 : 0.5;
+    // ========== 提取子指标用于一致性判断 ==========
 
-    // 综合评分
+    // 趋势维度子指标：MACD 和 EMA
+    const macdResult = MACD.calculate({
+        values: closes,
+        fastPeriod: 12,
+        slowPeriod: 26,
+        signalPeriod: 9,
+        SimpleMAOscillator: false,
+        SimpleMASignal: false,
+    });
+    const latestMacd = macdResult[macdResult.length - 1] || {};
+    const dif = latestMacd.MACD ?? 0;
+    const dea = latestMacd.signal ?? 0;
+    const macdSign = dif > dea ? 1 : (dif < dea ? -1 : 0);
+
+    const ema12 = EMA.calculate({ values: closes, period: 12 });
+    const ema26 = EMA.calculate({ values: closes, period: 26 });
+    const latestEma12 = ema12[ema12.length - 1] || 0;
+    const latestEma26 = ema26[ema26.length - 1] || 0;
+    const emaSign = latestEma12 > latestEma26 ? 1 : (latestEma12 < latestEma26 ? -1 : 0);
+
+    // 动量维度子指标：RSI 和 KDJ
+    const rsiResult = RSI.calculate({ values: closes, period: 14 });
+    const rsi = rsiResult[rsiResult.length - 1] ?? 50;
+    const rsiSign = rsi > 50 ? 1 : (rsi < 50 ? -1 : 0);
+
+    const stochResult = Stochastic.calculate({
+        high: highs,
+        low: lows,
+        close: closes,
+        period: 9,
+        signalPeriod: 3,
+    });
+    const latestStoch = stochResult[stochResult.length - 1] || { k: undefined, d: undefined };
+    const k = (latestStoch.k as number | undefined) ?? 50;
+    const d = (latestStoch.d as number | undefined) ?? 50;
+    const kdjSign = k > d ? 1 : (k < d ? -1 : 0);
+
+    // 量能维度子指标：OBV 和 VR
+    const obvResult = OBV.calculate({ close: closes, volume: volumes });
+    const latestObv = obvResult[obvResult.length - 1] ?? 0;
+    const obvMa10 = SMA.calculate({ values: obvResult, period: 10 });
+    const latestObvMa10 = obvMa10[obvMa10.length - 1] ?? 0;
+    const obvSign = latestObv > latestObvMa10 ? 1 : (latestObv < latestObvMa10 ? -1 : 0);
+
+    // VR
+    const period = Math.min(26, closes.length - 1);
+    let upVolume = 0;
+    let downVolume = 0;
+    for (let i = closes.length - period; i < closes.length; i++) {
+        if (i > 0) {
+            if (closes[i] > closes[i - 1]) upVolume += volumes[i];
+            else if (closes[i] < closes[i - 1]) downVolume += volumes[i];
+        }
+    }
+    const vr = downVolume > 0 ? upVolume / downVolume : 1;
+    const vrSign = vr > 1.0 ? 1 : (vr < 1.0 ? -1 : 0);
+
+    // ========== 同维度一致性因子 ==========
+    // K1：趋势一致性 (MACD vs EMA)
+    const k1 = macdSign === emaSign && macdSign !== 0 ? 1.2 : 0.6;
+
+    // K2：动量一致性 (RSI vs KDJ)
+    const k2 = rsiSign === kdjSign && rsiSign !== 0 ? 1.15 : 0.7;
+
+    // K3：量能一致性 (OBV vs VR) - 最重要
+    const k3 = obvSign === vrSign && obvSign !== 0 ? 1.3 : 0.5;
+
+    // ========== 综合评分 ==========
+    // 权重：趋势 25% + 动量 25% + 波动 20% + 量能 30%
     let score =
         0.25 * sTrend * k1 +
         0.25 * sMomentum * k2 +
@@ -443,13 +566,12 @@ export function calculateGaugeScore(klines: KlineData[]): {
         signal = 'Strong Sell';
     }
 
-    // 置信度
-    const consensus =
-        (sTrend > 30 ? 1 : 0) +
-        (sMomentum > 30 ? 1 : 0) +
-        (sVolatility > 30 ? 1 : 0) +
-        (sVolume > 30 ? 1 : 0);
-    const confidence = consensus / 4;
+    // 置信度：基于同维度一致性
+    const consistencyScore =
+        (k1 === 1.2 ? 1 : 0) +
+        (k2 === 1.15 ? 1 : 0) +
+        (k3 === 1.3 ? 1 : 0);
+    const confidence = consistencyScore / 3;
 
     return {
         score: Math.round(score * 10) / 10,
