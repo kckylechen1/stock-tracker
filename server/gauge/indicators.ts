@@ -68,6 +68,25 @@ export interface TechnicalIndicators {
     };
 }
 
+type TrendScoreBreakdown = {
+    score: number;
+    macdScore: number;
+    emaScore: number;
+};
+
+type MomentumScoreBreakdown = {
+    score: number;
+    rsiScore: number;
+    kdjScore: number;
+};
+
+type VolumeScoreBreakdown = {
+    score: number;
+    obvScore: number;
+    vrScore: number;
+    vmacdScore: number;
+};
+
 /**
  * 计算所有技术指标
  * @param klines K线数据数组 (至少需要60条)
@@ -203,11 +222,7 @@ export function calculateIndicators(klines: KlineData[]): TechnicalIndicators {
     };
 }
 
-/**
- * 计算 Gauge 评分（趋势维度）
- * 基于 MACD 和 EMA 交叉
- */
-export function scoreTrend(klines: KlineData[]): number {
+function calculateTrendScores(klines: KlineData[]): TrendScoreBreakdown {
     const closes = klines.map(k => k.close);
 
     // MACD
@@ -248,14 +263,22 @@ export function scoreTrend(klines: KlineData[]): number {
         emaScore = -50;
     }
 
-    return 0.6 * macdScore + 0.4 * emaScore;
+    return {
+        score: 0.6 * macdScore + 0.4 * emaScore,
+        macdScore,
+        emaScore,
+    };
 }
 
 /**
- * 计算 Gauge 评分（动量维度）
- * 基于 RSI 和 KDJ
+ * 计算 Gauge 评分（趋势维度）
+ * 基于 MACD 和 EMA 交叉
  */
-export function scoreMomentum(klines: KlineData[]): number {
+export function scoreTrend(klines: KlineData[]): number {
+    return calculateTrendScores(klines).score;
+}
+
+function calculateMomentumScores(klines: KlineData[]): MomentumScoreBreakdown {
     const closes = klines.map(k => k.close);
     const highs = klines.map(k => k.high);
     const lows = klines.map(k => k.low);
@@ -284,7 +307,6 @@ export function scoreMomentum(klines: KlineData[]): number {
         signalPeriod: 3,
     });
 
-    // 获取最近两天的 K/D 值用于判断金叉/死叉
     const prevStoch = stochResult[stochResult.length - 2] || { k: undefined, d: undefined };
     const latestStoch = stochResult[stochResult.length - 1] || { k: undefined, d: undefined };
 
@@ -295,23 +317,29 @@ export function scoreMomentum(klines: KlineData[]): number {
     const j = 3 * k - 2 * d;
 
     let kdjScore = 0;
-
-    // 金叉检测：K 从下穿 D 变为上穿 D
-    const isGoldenCross = prevK < prevD && k > d;
-    // 死叉检测：K 从上穿 D 变为下穿 D
-    const isDeadCross = prevK > prevD && k < d;
-
-    if (isGoldenCross) {
-        kdjScore = 30; // 金叉，买入信号
-    } else if (isDeadCross) {
-        kdjScore = -30; // 死叉，卖出信号
-    } else if (k > d && j > 50) {
+    if (k > d && j > 50) {
         kdjScore = 50; // 强势多头
     } else if (k < d && j < 50) {
         kdjScore = -50; // 弱势空头
+    } else if (prevK < prevD && k > d) {
+        kdjScore = 30; // 金叉
+    } else if (prevK > prevD && k < d) {
+        kdjScore = -30; // 死叉
     }
 
-    return 0.5 * rsiScore + 0.5 * kdjScore;
+    return {
+        score: 0.5 * rsiScore + 0.5 * kdjScore,
+        rsiScore,
+        kdjScore,
+    };
+}
+
+/**
+ * 计算 Gauge 评分（动量维度）
+ * 基于 RSI 和 KDJ
+ */
+export function scoreMomentum(klines: KlineData[]): number {
+    return calculateMomentumScores(klines).score;
 }
 
 /**
@@ -365,7 +393,7 @@ export function scoreVolatility(klines: KlineData[]): number {
  * 基于 OBV、VR（26日上涨量/下跌量）和 VMACD
  * 权重：OBV 40% + VR 35% + VMACD 25%
  */
-export function scoreVolume(klines: KlineData[]): number {
+function calculateVolumeScores(klines: KlineData[]): VolumeScoreBreakdown {
     const closes = klines.map(k => k.close);
     const volumes = klines.map(k => k.volume);
     const latestClose = closes[closes.length - 1];
@@ -425,24 +453,33 @@ export function scoreVolume(klines: KlineData[]): number {
 
     // ========== 3. VMACD 信号 (权重 25%) ==========
     // 对成交量做 MACD，反映成交热度的加速/减速
-    const vEma12 = EMA.calculate({ values: volumes, period: 12 });
-    const vEma26 = EMA.calculate({ values: volumes, period: 26 });
+    const vmacdResult = MACD.calculate({
+        values: volumes,
+        fastPeriod: 12,
+        slowPeriod: 26,
+        signalPeriod: 9,
+        SimpleMAOscillator: false,
+        SimpleMASignal: false,
+    });
+    const latestVmacd = vmacdResult[vmacdResult.length - 1];
 
-    const latestVEma12 = vEma12[vEma12.length - 1] ?? 0;
-    const latestVEma26 = vEma26[vEma26.length - 1] ?? 0;
-    const vDif = latestVEma12 - latestVEma26;
-
-    // V_DEA 需要对 V_DIF 序列做 EMA，这里简化处理
-    // 直接用 V_DIF 的符号判断
     let vmacdScore = 0;
-    if (vDif > 0) {
-        vmacdScore = 20; // 成交量在加速上升
-    } else {
-        vmacdScore = -20; // 成交量在加速下降
+    if (latestVmacd) {
+        const vDif = latestVmacd.MACD ?? 0;
+        const vDea = latestVmacd.signal ?? 0;
+        vmacdScore = vDif > vDea ? 20 : -20;
     }
 
-    // 综合：0.4×OBV + 0.35×VR + 0.25×VMACD
-    return 0.4 * obvScore + 0.35 * vrScore + 0.25 * vmacdScore;
+    return {
+        score: 0.4 * obvScore + 0.35 * vrScore + 0.25 * vmacdScore,
+        obvScore,
+        vrScore,
+        vmacdScore,
+    };
+}
+
+export function scoreVolume(klines: KlineData[]): number {
+    return calculateVolumeScores(klines).score;
 }
 
 /**

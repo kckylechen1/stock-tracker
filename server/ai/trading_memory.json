@@ -1,0 +1,85 @@
+{
+  "positions": [
+    {
+      "symbol": "300433",
+      "name": "蓝思科技",
+      "cost": 25.5,
+      "shares": 1000,
+      "buy_date": "2026-01-02",
+      "buy_reason": "苹果产业链龙头，消费电子复苏",
+      "stock_type": "hot_money",
+      "target_price": 35.0,
+      "stop_loss": 22.0
+    }
+  ],
+  "trades": [
+    {
+      "symbol": "300433",
+      "name": "蓝思科技",
+      "action": "buy",
+      "price": 25.5,
+      "shares": 1000,
+      "date": "2026-01-02",
+      "reason": "苹果产业链龙头，消费电子复苏预期",
+      "technical_signals": {
+        "rsi": 45,
+        "macd": "bullish",
+        "volume": "normal"
+      },
+      "outcome": "good",
+      "lessons_learned": null
+    },
+    {
+      "symbol": "300433",
+      "name": "蓝思科技",
+      "action": "sell",
+      "price": 24.8,
+      "shares": 1000,
+      "date": "2026-01-08",
+      "reason": "恐慌清仓，怕继续跌",
+      "technical_signals": {
+        "rsi": 25,
+        "macd": "bearish",
+        "volume": "high"
+      },
+      "outcome": "bad",
+      "lessons_learned": "在RSI超卖区清仓，错过反弹10%"
+    }
+  ],
+  "lessons": [
+    {
+      "date": "2026-01-08",
+      "symbol": "300433",
+      "lesson": "在RSI超卖区(RSI<30)恐慌清仓，错过第二天反弹10%",
+      "signal_pattern": "RSI<30 + 放量阴线",
+      "action_to_avoid": "在超卖区恐慌清仓",
+      "recommended_action": "等待RSI回升至40以上，或分批减仓"
+    },
+    {
+      "date": "2026-01-06",
+      "symbol": "*",
+      "lesson": "资金票（短期靠资金炒作的股票）不需要看基本面PE/PB",
+      "signal_pattern": "高换手率 + 主力净流入",
+      "action_to_avoid": "对资金票做基本面分析",
+      "recommended_action": "关注资金流向和市场情绪"
+    }
+  ],
+  "profile": {
+    "risk_tolerance": "medium",
+    "holding_period": "short",
+    "preferred_indicators": [
+      "MACD",
+      "RSI",
+      "资金流向"
+    ],
+    "avoid_patterns": [
+      "RSI<30时清仓",
+      "追高买入"
+    ],
+    "success_patterns": [
+      "分批减仓",
+      "设置trailing stop",
+      "资金票看资金不看PE"
+    ]
+  }
+}

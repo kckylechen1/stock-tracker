@@ -382,7 +382,7 @@ export function AIChatBox({
                 );
               })}
 
-              {/* 加载状态 - 三个点脉冲动画 */}
+              {/* 加载状态 - 思考中提示 */}
               {isLoading && displayMessages[displayMessages.length - 1]?.role === "user" && (
                 <div
                   className="flex items-start gap-3"
