@@ -119,19 +119,19 @@ cp .env.example .env
 # 编辑.env，根据实际环境修改参数
 
 # 5. 启动服务
-uvicorn src.main:app --reload --port 8000
+uvicorn src.main:app --reload --port 6888
 
 # 6. 测试API
-# 在浏览器打开 http://localhost:8000/docs 查看交互式文档
+# 在浏览器打开 http://localhost:6888/docs 查看交互式文档
 # 或用curl测试
-curl "http://localhost:8000/api/gauge/daily?code=600519&date=20260108"
+curl "http://localhost:6888/api/gauge/daily?code=600519&date=20260108"
 ```
 
 ### 步骤5：集成到前端/大模型
 ```python
 # 前端调用示例（JavaScript）
 const response = await fetch(
-  'http://localhost:8000/api/gauge/daily?code=600519&date=20260108'
+  'http://localhost:6888/api/gauge/daily?code=600519&date=20260108'
 );
 const data = await response.json();
 console.log(data.data.signal);  // 'Buy' / 'Strong Buy' / etc
@@ -141,7 +141,7 @@ import requests
 
 def get_gauge_signal(code: str) -> dict:
     response = requests.get(
-        f'http://localhost:8000/api/gauge/daily',
+        f'http://localhost:6888/api/gauge/daily',
         params={'code': code}
     )
     return response.json()['data']
@@ -194,7 +194,7 @@ LLM生成的代码应该满足以下条件。你可以用这个清单验证：
 
 ### 测试覆盖
 - [ ] 可以正常启动服务（`uvicorn src.main:app --reload`）
-- [ ] Swagger UI在 http://localhost:8000/docs 正常显示
+- [ ] Swagger UI在 http://localhost:6888/docs 正常显示
 - [ ] 至少能调用 `/api/gauge/daily` 一次成功
 
 ---
@@ -211,13 +211,13 @@ pip install -r requirements.txt
 cp .env.example .env
 
 # 3. 启动服务
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.main:app --reload --host 0.0.0.0 --port 6888
 
 # 4. 测试API（在另一个终端）
-curl "http://localhost:8000/api/gauge/daily?code=600519&date=20260108"
+curl "http://localhost:6888/api/gauge/daily?code=600519&date=20260108"
 
 # 5. 查看文档
-# 打开浏览器访问 http://localhost:8000/docs
+# 打开浏览器访问 http://localhost:6888/docs
 ```
 
 ---

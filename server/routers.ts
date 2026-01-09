@@ -250,7 +250,6 @@ export const appRouter = router({
         const { getAnalysisCache, saveAnalysisCache } = await import('./db');
         const { invokeLLM } = await import('./_core/llm');
         const { analyzeTechnicalIndicators } = await import('./indicators');
-        const { getKlineData: getTushareKline, codeToTsCode, formatDateForTushare, formatTushareDate } = await import('./tushare');
 
         // 先检查缓存
         const cached = await getAnalysisCache(input.code);
@@ -271,12 +270,8 @@ export const appRouter = router({
           }
         }
 
-        // 获取K线数据用于技术分析
-        const tsCode = codeToTsCode(input.code);
-        const endDate = formatDateForTushare(new Date());
-        const startDate = formatDateForTushare(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)); // 90天数据
-
-        const klineData = await getTushareKline(tsCode, startDate, endDate, 'D');
+        // 获取K线数据用于技术分析 (使用东方财富)
+        const klineData = await eastmoney.getKlineData(input.code, 'day');
 
         if (!klineData || klineData.length === 0) {
           return {
@@ -293,12 +288,12 @@ export const appRouter = router({
 
         // 技术面分析
         const formattedKlineData = klineData.map((item: any) => ({
-          time: formatTushareDate(item.trade_date),
+          time: item.date,
           open: item.open,
           high: item.high,
           low: item.low,
           close: item.close,
-          volume: item.vol,
+          volume: item.volume,
         }));
 
         const technicalAnalysis = analyzeTechnicalIndicators(formattedKlineData);

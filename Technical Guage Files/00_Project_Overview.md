@@ -117,9 +117,9 @@ ashare-gauge-http/
 
 1. **安装依赖** → `pip install -r requirements.txt`
 2. **配置环境** → 复制 `.env.example` → `.env`
-3. **启动服务** → `uvicorn src.main:app --host 0.0.0.0 --port 8000`
-4. **调用API** → `curl http://localhost:8000/api/gauge/daily?code=600519&date=20260108`
-5. **查看文档** → 访问 `http://localhost:8000/docs`（Swagger自动生成）
+3. **启动服务** → `uvicorn src.main:app --host 0.0.0.0 --port 6888`
+4. **调用API** → `curl http://localhost:6888/api/gauge/daily?code=600519&date=20260108`
+5. **查看文档** → 访问 `http://localhost:6888/docs`（Swagger自动生成）
 
 ## 核心设计原则
 

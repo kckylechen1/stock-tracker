@@ -18,6 +18,7 @@ const getDefaultMessages = (): Message[] => [
 export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
     const [messages, setMessages] = useState<Message[]>(getDefaultMessages());
     const [thinkingMode, setThinkingMode] = useState(false);
+    const [grokMode, setGrokMode] = useState(true);  // 默认使用 Grok
     const [isLoading, setIsLoading] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -110,6 +111,7 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
                     stockCode: selectedStock || undefined,
                     stockContext, // 传递前端已加载的数据
                     useThinking: thinkingMode,
+                    useGrok: grokMode,  // 使用 Grok 模型
                 }),
                 signal: abortControllerRef.current.signal,
             });
@@ -252,6 +254,8 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
                     suggestedPrompts={hasHistory ? [] : suggestedPrompts}
                     thinkingMode={thinkingMode}
                     onThinkingModeChange={setThinkingMode}
+                    grokMode={grokMode}
+                    onGrokModeChange={setGrokMode}
                     onRegenerate={handleRegenerate}
                 />
             </div>

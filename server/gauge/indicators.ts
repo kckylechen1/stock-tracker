@@ -234,9 +234,15 @@ function calculateTrendScores(klines: KlineData[]): TrendScoreBreakdown {
         SimpleMAOscillator: false,
         SimpleMASignal: false,
     });
+    const prevMacd = macdResult[macdResult.length - 2] || {};
     const latest = macdResult[macdResult.length - 1] || {};
     const dif = latest.MACD ?? 0;
     const dea = latest.signal ?? 0;
+    const histogram = latest.histogram ?? 0;
+    const prevHistogram = prevMacd.histogram ?? 0;
+
+    // FIX 3: MACD 柱状图扩张检查
+    const macdHistogramExpanding = histogram > prevHistogram;
 
     // MACD 信号: -100 ~ +100
     let macdScore = 0;
@@ -249,6 +255,10 @@ function calculateTrendScores(klines: KlineData[]): TrendScoreBreakdown {
     } else if (dif < 0 && dif > dea) {
         macdScore = -30; // 转强
     }
+
+    // FIX 3: 柱状图扩张加权
+    if (macdHistogramExpanding && macdScore > 0) macdScore *= 1.2;
+    if (!macdHistogramExpanding && macdScore > 0) macdScore *= 0.8;
 
     // EMA 信号
     const ema12 = EMA.calculate({ values: closes, period: 12 });
@@ -287,11 +297,19 @@ function calculateMomentumScores(klines: KlineData[]): MomentumScoreBreakdown {
     const rsiResult = RSI.calculate({ values: closes, period: 14 });
     const rsi = rsiResult[rsiResult.length - 1] ?? 50;
 
+    // FIX 1: RSI 考虑价格方向
+    const priceRising = closes[closes.length - 1] > closes[closes.length - 2];
+    const priceFalling = closes[closes.length - 1] < closes[closes.length - 2];
+
     let rsiScore = 0;
-    if (rsi > 70) {
-        rsiScore = -80; // 超买，回调风险
+    if (rsi > 70 && priceRising) {
+        rsiScore = 60; // 超买但还在涨 = 延续趋势
+    } else if (rsi > 70) {
+        rsiScore = -80; // 超买开始调整
+    } else if (rsi < 30 && priceFalling) {
+        rsiScore = -60; // 超卖还在跌 = 弱势
     } else if (rsi < 30) {
-        rsiScore = 80; // 超卖，反弹概率
+        rsiScore = 80; // 超卖企稳 = 反弹概率
     } else if (rsi >= 50) {
         rsiScore = 20;
     } else {
@@ -498,85 +516,24 @@ export function calculateGaugeScore(klines: KlineData[]): {
         volume: number;
     };
 } {
-    const closes = klines.map(k => k.close);
-    const highs = klines.map(k => k.high);
-    const lows = klines.map(k => k.low);
-    const volumes = klines.map(k => k.volume);
+    const trendScores = calculateTrendScores(klines);
+    const momentumScores = calculateMomentumScores(klines);
+    const volumeScores = calculateVolumeScores(klines);
 
-    // ========== 计算各维度分数 ==========
-    const sTrend = scoreTrend(klines);
-    const sMomentum = scoreMomentum(klines);
+    const sTrend = trendScores.score;
+    const sMomentum = momentumScores.score;
     const sVolatility = scoreVolatility(klines);
-    const sVolume = scoreVolume(klines);
-
-    // ========== 提取子指标用于一致性判断 ==========
-
-    // 趋势维度子指标：MACD 和 EMA
-    const macdResult = MACD.calculate({
-        values: closes,
-        fastPeriod: 12,
-        slowPeriod: 26,
-        signalPeriod: 9,
-        SimpleMAOscillator: false,
-        SimpleMASignal: false,
-    });
-    const latestMacd = macdResult[macdResult.length - 1] || {};
-    const dif = latestMacd.MACD ?? 0;
-    const dea = latestMacd.signal ?? 0;
-    const macdSign = dif > dea ? 1 : (dif < dea ? -1 : 0);
-
-    const ema12 = EMA.calculate({ values: closes, period: 12 });
-    const ema26 = EMA.calculate({ values: closes, period: 26 });
-    const latestEma12 = ema12[ema12.length - 1] || 0;
-    const latestEma26 = ema26[ema26.length - 1] || 0;
-    const emaSign = latestEma12 > latestEma26 ? 1 : (latestEma12 < latestEma26 ? -1 : 0);
-
-    // 动量维度子指标：RSI 和 KDJ
-    const rsiResult = RSI.calculate({ values: closes, period: 14 });
-    const rsi = rsiResult[rsiResult.length - 1] ?? 50;
-    const rsiSign = rsi > 50 ? 1 : (rsi < 50 ? -1 : 0);
-
-    const stochResult = Stochastic.calculate({
-        high: highs,
-        low: lows,
-        close: closes,
-        period: 9,
-        signalPeriod: 3,
-    });
-    const latestStoch = stochResult[stochResult.length - 1] || { k: undefined, d: undefined };
-    const k = (latestStoch.k as number | undefined) ?? 50;
-    const d = (latestStoch.d as number | undefined) ?? 50;
-    const kdjSign = k > d ? 1 : (k < d ? -1 : 0);
-
-    // 量能维度子指标：OBV 和 VR
-    const obvResult = OBV.calculate({ close: closes, volume: volumes });
-    const latestObv = obvResult[obvResult.length - 1] ?? 0;
-    const obvMa10 = SMA.calculate({ values: obvResult, period: 10 });
-    const latestObvMa10 = obvMa10[obvMa10.length - 1] ?? 0;
-    const obvSign = latestObv > latestObvMa10 ? 1 : (latestObv < latestObvMa10 ? -1 : 0);
-
-    // VR
-    const period = Math.min(26, closes.length - 1);
-    let upVolume = 0;
-    let downVolume = 0;
-    for (let i = closes.length - period; i < closes.length; i++) {
-        if (i > 0) {
-            if (closes[i] > closes[i - 1]) upVolume += volumes[i];
-            else if (closes[i] < closes[i - 1]) downVolume += volumes[i];
-        }
-    }
-    const vr = downVolume > 0 ? upVolume / downVolume : 1;
-    const vrSign = vr > 1.0 ? 1 : (vr < 1.0 ? -1 : 0);
+    const sVolume = volumeScores.score;
 
     // ========== 同维度一致性因子 ==========
     // K1：趋势一致性 (MACD vs EMA)
-    const k1 = macdSign === emaSign && macdSign !== 0 ? 1.2 : 0.6;
+    const k1 = Math.sign(trendScores.macdScore) === Math.sign(trendScores.emaScore) ? 1.2 : 0.6;
 
     // K2：动量一致性 (RSI vs KDJ)
-    const k2 = rsiSign === kdjSign && rsiSign !== 0 ? 1.15 : 0.7;
+    const k2 = Math.sign(momentumScores.rsiScore) === Math.sign(momentumScores.kdjScore) ? 1.15 : 0.7;
 
     // K3：量能一致性 (OBV vs VR) - 最重要
-    const k3 = obvSign === vrSign && obvSign !== 0 ? 1.3 : 0.5;
+    const k3 = Math.sign(volumeScores.obvScore) === Math.sign(volumeScores.vrScore) ? 1.3 : 0.5;
 
     // ========== 综合评分 ==========
     // 权重：趋势 25% + 动量 25% + 波动 20% + 量能 30%
@@ -603,12 +560,13 @@ export function calculateGaugeScore(klines: KlineData[]): {
         signal = 'Strong Sell';
     }
 
-    // 置信度：基于同维度一致性
-    const consistencyScore =
-        (k1 === 1.2 ? 1 : 0) +
-        (k2 === 1.15 ? 1 : 0) +
-        (k3 === 1.3 ? 1 : 0);
-    const confidence = consistencyScore / 3;
+    // FIX 4: 加权置信度（成交量权重最高）
+    const confidence = (
+        Math.max(0, sTrend) * 0.25 +
+        Math.max(0, sMomentum) * 0.25 +
+        Math.max(0, sVolatility) * 0.20 +
+        Math.max(0, sVolume) * 0.30
+    ) / 100;
 
     return {
         score: Math.round(score * 10) / 10,

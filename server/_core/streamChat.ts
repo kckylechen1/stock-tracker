@@ -79,6 +79,7 @@ export interface StreamChatParams {
     stockCode?: string;
     stockContext?: StockContextData | null; // 前端已加载的数据
     useThinking?: boolean;
+    useGrok?: boolean;  // 使用 Grok 作为对话模型
 }
 
 const resolveApiUrl = () =>
@@ -197,7 +198,14 @@ const getSystemPrompt = (stockContext: string, hasPreloadedData: boolean) => {
 3. **结合多个维度**（技术面+资金面+大盘环境）给出综合判断
 4. **给出具体的操作建议**（买/卖/持有，以及理由）
 
-## 规则3：回答必须包含以下结构
+## 规则3：⚠️ 严格禁止以下行为！（DeepSeek 专属）
+1. **禁止原封不动复制数据**：例如"上证3150（+0.25%）"这种格式必须改写
+2. **禁止罗列数据不解读**：每个数据点都要说明它的意义
+3. **数据要核实合理性**：如果数据看起来不对（如日期、价格异常），主动提醒用户核实
+4. **必须用自然语言**：把数字转化为判断，例如"RSI 65" 要说成"RSI已接近超买区，短期有回调风险"
+5. **禁止说"仅供参考"、"建议结合自身情况"等废话**
+
+## 规则4：回答必须包含以下结构
 \`\`\`
 一、基本面分析
 - 行业背景
@@ -247,8 +255,203 @@ ${knowledgeBase}
 
 // 流式聊天函数 - 支持 Function Calling
 export async function* streamChat(params: StreamChatParams): AsyncGenerator<string, void, unknown> {
-    const { messages, stockCode, stockContext: frontendContext, useThinking } = params;
+    const { messages, stockCode, stockContext: frontendContext, useThinking, useGrok } = params;
 
+    // ============ Grok 模式（直接调用工具）============
+    if (useGrok) {
+        if (!ENV.grokApiKey) {
+            yield "错误：Grok API Key 未配置";
+            return;
+        }
+
+        // 构建股票上下文
+        let stockContextStr = '';
+        if (frontendContext && stockCode) {
+            stockContextStr = buildContextFromFrontend(stockCode, frontendContext);
+        }
+
+        // Grok 系统提示
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('zh-CN', {
+            year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
+            hour: '2-digit', minute: '2-digit'
+        });
+
+        const grokSystemPrompt = `你是"小A"，一个A股短线操盘手AI。性格：果断、直接、不废话。
+
+【当前时间】${dateStr}
+
+【重要：必须先查用户历史】
+分析任何股票前，你必须先调用 get_trading_memory 工具查看用户的：
+- 历史持仓和成本
+- 过去的交易教训（如"卖飞了"、"追高被套"）
+- 用户的操作习惯
+这样你的建议才能个性化，避免用户重蹈覆辙！
+
+【你的风格】
+- 直接给结论：买入/卖出/观望
+- 不说"仅供参考"废话
+- 用数据说话，给具体点位
+- 风险大就直接说"别碰"
+- 如果用户有过"卖飞"教训，提醒他这次别急着卖
+
+${stockContextStr ? `【前端预加载数据】\n${stockContextStr}` : ''}
+
+【回答格式】
+1. **结论**（一句话）
+2. **理由**（3点以内，结合用户历史教训）
+3. **操作建议**（具体点位）`;
+
+        // 构建消息
+        let conversationMessages: Message[] = [
+            { role: 'system', content: grokSystemPrompt },
+            ...messages.filter(m => m.role !== 'system')
+        ];
+
+        let iteration = 0;
+        const maxIterations = 5;
+
+        while (iteration < maxIterations) {
+            iteration++;
+
+            const payload: any = {
+                model: ENV.grokModel,
+                messages: conversationMessages.map(m => {
+                    const msg: any = { role: m.role, content: m.content };
+                    if (m.tool_calls) msg.tool_calls = m.tool_calls;
+                    if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
+                    return msg;
+                }),
+                tools: stockTools,
+                tool_choice: "auto",
+                max_tokens: 4000,
+                stream: true,
+            };
+
+            try {
+                const response = await fetch(`${ENV.grokApiUrl}/chat/completions`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${ENV.grokApiKey}`,
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    yield `Grok 错误：${response.status} - ${errorText}`;
+                    return;
+                }
+
+                const reader = response.body?.getReader();
+                if (!reader) {
+                    yield "错误：无法读取响应流";
+                    return;
+                }
+
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let fullContent = '';
+                let toolCalls: ToolCall[] = [];
+                let currentToolCall: any = null;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
+
+                        try {
+                            const parsed = JSON.parse(data);
+                            const delta = parsed.choices?.[0]?.delta;
+
+                            // 处理内容
+                            if (delta?.content) {
+                                fullContent += delta.content;
+                                yield delta.content;
+                            }
+
+                            // 处理工具调用
+                            if (delta?.tool_calls) {
+                                for (const tc of delta.tool_calls) {
+                                    if (tc.index !== undefined) {
+                                        if (!toolCalls[tc.index]) {
+                                            toolCalls[tc.index] = {
+                                                id: tc.id || '',
+                                                type: 'function',
+                                                function: { name: '', arguments: '' },
+                                            };
+                                        }
+                                        if (tc.id) toolCalls[tc.index].id = tc.id;
+                                        if (tc.function?.name) {
+                                            toolCalls[tc.index].function.name = tc.function.name;
+                                        }
+                                        if (tc.function?.arguments) {
+                                            toolCalls[tc.index].function.arguments += tc.function.arguments;
+                                        }
+                                    }
+                                }
+                            }
+                        } catch {
+                            // Ignore parse errors
+                        }
+                    }
+                }
+
+                // 如果有工具调用
+                if (toolCalls.length > 0) {
+                    yield "\n\n⏳ 正在分析中，请稍候...\n\n";
+
+                    conversationMessages.push({
+                        role: 'assistant',
+                        content: fullContent,
+                        tool_calls: toolCalls,
+                    });
+
+                    // 静默执行工具（不输出调试信息）
+                    for (const tc of toolCalls) {
+                        const toolName = tc.function.name;
+                        let toolArgs: any = {};
+                        try {
+                            toolArgs = JSON.parse(tc.function.arguments);
+                        } catch { }
+
+                        // 不再输出工具名称
+                        const result = await executeStockTool(toolName, toolArgs);
+
+                        conversationMessages.push({
+                            role: 'tool',
+                            content: result,
+                            tool_call_id: tc.id,
+                        });
+                    }
+
+                    // 继续循环让 Grok 处理工具结果
+                    continue;
+                }
+
+                // 没有工具调用，结束
+                return;
+
+            } catch (error: any) {
+                yield `Grok 错误：${error.message}`;
+                return;
+            }
+        }
+
+        yield "\n达到最大迭代次数";
+        return;
+    }
+
+    // ============ DeepSeek 模式（原有逻辑）============
     if (!ENV.forgeApiKey) {
         yield "错误：AI API Key 未配置";
         return;

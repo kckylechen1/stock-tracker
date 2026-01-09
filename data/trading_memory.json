@@ -1,0 +1,53 @@
+{
+  "positions": [],
+  "trades": [],
+  "lessons": [
+    {
+      "id": "lesson_1",
+      "date": "2026-01-08",
+      "symbol": "300433",
+      "lesson": "在RSI超卖区(RSI<30)恐慌清仓，错过第二天反弹12%",
+      "signalPattern": "RSI<30 + 放量阴线",
+      "actionToAvoid": "在超卖区恐慌清仓",
+      "recommendedAction": "等待RSI回升至40以上，或分批减仓"
+    },
+    {
+      "id": "lesson_2",
+      "date": "2025-09-01",
+      "symbol": "300274",
+      "lesson": "因为\"别的票涨了\"而FOMO换股，结果换掉的票暴涨36%",
+      "signalPattern": "技术面5/5满分 + 当日微跌<1%",
+      "actionToAvoid": "看到其他票涨就FOMO换股",
+      "recommendedAction": "只要技术面没走弱(得分>=3/5)，就不要因为\"没涨\"而换股"
+    },
+    {
+      "id": "lesson_3",
+      "date": "*",
+      "symbol": "*",
+      "lesson": "资金票（短期靠资金炒作的股票）不需要看基本面PE/PB",
+      "signalPattern": "高换手率 + 主力净流入",
+      "actionToAvoid": "对资金票做基本面分析",
+      "recommendedAction": "关注资金流向和市场情绪"
+    }
+  ],
+  "profile": {
+    "riskTolerance": "medium",
+    "holdingPeriod": "short",
+    "preferredIndicators": [
+      "MACD",
+      "RSI",
+      "资金流向"
+    ],
+    "avoidPatterns": [
+      "RSI<30时清仓",
+      "追高买入",
+      "FOMO换股"
+    ],
+    "successPatterns": [
+      "分批减仓",
+      "设置trailing stop",
+      "资金票看资金不看PE"
+    ]
+  },
+  "lastUpdated": "2026-01-09T16:42:08.893Z"
+}

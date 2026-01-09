@@ -118,6 +118,7 @@ export async function searchStock(keyword: string) {
 
     return data.QuotationCodeTable.Data.map((item: any) => ({
       code: item.Code,
+      symbol: item.Code,
       name: item.Name,
       market: item.MktNum === '1' ? 'SH' : 'SZ',
       type: item.SecurityTypeName,

@@ -59,7 +59,7 @@ source ~/.aktools-venv/bin/activate && python -m aktools --host 0.0.0.0 --port 8
 pnpm dev
 
 # 访问
-http://localhost:5173
+http://localhost:6888
 ```
 
 ### 环境变量

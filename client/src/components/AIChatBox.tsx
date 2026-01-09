@@ -71,6 +71,16 @@ export type AIChatBoxProps = {
   onThinkingModeChange?: (enabled: boolean) => void;
 
   /**
+   * Grok mode state (use xAI Grok instead of DeepSeek)
+   */
+  grokMode?: boolean;
+
+  /**
+   * Callback when grok mode changes
+   */
+  onGrokModeChange?: (enabled: boolean) => void;
+
+  /**
    * Callback to regenerate the last response
    */
   onRegenerate?: () => void;
@@ -138,6 +148,8 @@ export function AIChatBox({
   suggestedPrompts,
   thinkingMode = false,
   onThinkingModeChange,
+  grokMode = false,
+  onGrokModeChange,
   onRegenerate,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
@@ -450,8 +462,23 @@ export function AIChatBox({
                 </button>
               )}
 
+              {/* Grok 模式开关 */}
+              {onGrokModeChange && (
+                <button
+                  type="button"
+                  onClick={() => onGrokModeChange(!grokMode)}
+                  className={`p-2 rounded-lg transition-all ${grokMode
+                    ? 'bg-orange-500/20 text-orange-500'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    }`}
+                  title={grokMode ? "Grok 模式开启 (更直接)" : "切换到 Grok"}
+                >
+                  <Globe className="size-4" />
+                </button>
+              )}
+
               {/* 分隔线 */}
-              {onThinkingModeChange && (
+              {(onThinkingModeChange || onGrokModeChange) && (
                 <div className="w-px h-4 bg-border mx-1" />
               )}
 

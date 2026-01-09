@@ -18,7 +18,7 @@
 ```
 用户请求 (HTTP)
     ↓
-FastAPI Web Server (端口 8000)
+FastAPI Web Server (端口 6888)
     ↓
 Routes 层 (处理HTTP)
     ↓
@@ -47,7 +47,7 @@ JSON Response
 ```python
 # API参数
 AKSHARE_BASE_URL = "http://akshare.akfamily.xyz"
-API_PORT = 8000
+API_PORT = 6888
 API_HOST = "0.0.0.0"
 API_LOG_LEVEL = "INFO"
 
@@ -445,14 +445,14 @@ POST /api/backtest
 pip install -r requirements.txt
 
 # 启动开发服务器
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.main:app --reload --host 0.0.0.0 --port 6888
 
 # 启动生产服务器（使用gunicorn + uvicorn workers）
-gunicorn src.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+gunicorn src.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:6888
 
 # 查看自动生成的文档
-http://localhost:8000/docs  # Swagger UI
-http://localhost:8000/redoc # ReDoc
+http://localhost:6888/docs  # Swagger UI
+http://localhost:6888/redoc # ReDoc
 ```
 
 ---
@@ -481,7 +481,7 @@ redis==4.5.5  # 可选，若使用Redis缓存
 
 ```
 # API服务器
-API_PORT=8000
+API_PORT=6888
 API_HOST=0.0.0.0
 API_LOG_LEVEL=INFO
 ENV=development

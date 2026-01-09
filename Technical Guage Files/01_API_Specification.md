@@ -500,7 +500,7 @@ fetch('/api/backtest', {
 
 服务启动后，访问以下URL查看完整交互文档：
 
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-- **OpenAPI JSON**: `http://localhost:8000/openapi.json`
+- **Swagger UI**: `http://localhost:6888/docs`
+- **ReDoc**: `http://localhost:6888/redoc`
+- **OpenAPI JSON**: `http://localhost:6888/openapi.json`
 
