@@ -39,11 +39,20 @@ async function callGrokAPI(
     messages: ChatMessage[],
     stream: boolean = false
 ): Promise<Response> {
+    const apiKey = ENV.grokApiKey;
+    
+    const hasNonAscii = /[^\x00-\x7F]/.test(apiKey);
+    if (hasNonAscii) {
+        console.error('[Grok] API Key contains non-ASCII characters!');
+        console.error('[Grok] First 20 chars:', apiKey.substring(0, 20));
+        throw new Error('Grok API Key 包含非 ASCII 字符，请检查 .env 文件');
+    }
+
     const response = await fetch(`${ENV.grokApiUrl}/chat/completions`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ENV.grokApiKey}`,
+            'Content-Type': 'application/json; charset=utf-8',
+            'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
             model: ENV.grokModel,
@@ -211,7 +220,7 @@ export async function preprocessWithQwen(
         const response = await fetch(`${ENV.forgeApiUrl}/v1/chat/completions`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json; charset=utf-8',
                 'Authorization': `Bearer ${ENV.forgeApiKey}`,
             },
             body: JSON.stringify({

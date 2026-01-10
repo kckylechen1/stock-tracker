@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
-import { Sparkles } from "lucide-react";
+import { Zap } from "lucide-react";
 import { AIChatBox, Message } from "@/components/AIChatBox";
 
 export interface AIChatPanelProps {
@@ -226,16 +226,20 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
     const hasHistory = messages.length > 1;
 
     return (
-        <div className="h-full border-l border-border flex flex-col bg-background">
-            {/* 标题栏 - 简化 */}
-            <div className="p-4 border-b border-border flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <span className="font-semibold text-foreground">AI 助手</span>
-                {selectedStock && stockDetail?.quote?.name && (
-                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded">
-                        {stockDetail.quote.name}
-                    </span>
-                )}
+        <div className="h-full border-l border-border/50 flex flex-col bg-gradient-to-b from-background via-background to-background/95">
+            {/* 标题栏 - 现代风格 */}
+            <div className="p-4 border-b border-border/30 flex items-center gap-3 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
+                <div className="size-8 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/20">
+                    <Zap className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground tracking-tight">AI 助手</span>
+                    {selectedStock && stockDetail?.quote?.name && (
+                        <span className="text-xs text-primary/80 bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20 font-medium">
+                            {stockDetail.quote.name}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* 聊天区域 */}

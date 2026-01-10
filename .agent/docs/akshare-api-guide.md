@@ -1,0 +1,174 @@
+# AKShare 数据字典 - Grok 知识库
+
+> 本文档为 Grok AI 助手提供 AKShare 接口参考，用于动态调用 `call_akshare` 工具。
+
+## 🔗 调用方式
+
+通过 AKTools HTTP API 调用 AKShare 接口：
+
+```
+GET http://127.0.0.1:8098/api/public/{函数名}?{参数}
+```
+
+## 📊 常用接口速查
+
+### 1. 实时行情
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_zh_a_spot_em` | 沪深A股实时行情（全量5000+只） | 无 |
+| `stock_individual_info_em` | 个股详细信息 | `symbol`: 股票代码 |
+
+### 2. K线数据
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_zh_a_hist` | 历史K线（日/周/月） | `symbol`, `period`(daily/weekly/monthly), `start_date`, `end_date`, `adjust`(qfq/hfq) |
+| `stock_zh_a_hist_min_em` | 分钟K线 | `symbol`, `period`(1/5/15/30/60) |
+
+### 3. 资金流向
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_individual_fund_flow` | 个股资金流向历史 | `stock`: 代码, `market`: sh/sz/bj |
+| `stock_individual_fund_flow_rank` | 资金流排行 | `indicator`: 今日/3日/5日/10日 |
+| `stock_market_fund_flow` | 大盘资金流向 | 无 |
+
+### 4. 涨停板
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_zt_pool_em` | 涨停股池 | `date`: YYYYMMDD |
+| `stock_zt_pool_dtgc_em` | 跌停股池 | `date`: YYYYMMDD |
+| `stock_zt_pool_previous_em` | 昨涨停今表现 | `date`: YYYYMMDD |
+| `stock_zt_pool_strong_em` | 强势股池 | `date`: YYYYMMDD |
+| `stock_zt_pool_zbgc_em` | 炸板股池 | `date`: YYYYMMDD |
+
+### 5. 板块行情
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_board_concept_name_em` | 概念板块列表 | 无 |
+| `stock_board_industry_name_em` | 行业板块列表 | 无 |
+| `stock_board_concept_cons_em` | 概念成份股 | `symbol`: 板块代码 |
+| `stock_board_industry_cons_em` | 行业成份股 | `symbol`: 板块代码 |
+| `stock_board_concept_hist_em` | 概念板块历史行情 | `symbol`, `period`, `start_date`, `end_date` |
+
+### 6. 龙虎榜
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_lhb_detail_em` | 龙虎榜详情 | 无（最新） |
+| `stock_lhb_ggtj_dtl_em` | 龙虎榜每日明细 | `start_date`, `end_date`: YYYYMMDD |
+| `stock_lhb_jgmmtj_em` | 机构买卖统计 | `start_date`, `end_date` |
+
+### 7. 北向资金
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_hsgt_north_net_flow_in_em` | 北向资金净流入 | 无 |
+| `stock_hsgt_south_net_flow_in_em` | 南向资金净流入 | 无 |
+| `stock_hsgt_hold_stock_em` | 北向持股排行 | `market`: 沪股通/深股通, `indicator`: 今日排行 |
+| `stock_hsgt_hist_em` | 沪深港通历史 | `symbol`: 北向资金/南向资金 |
+
+### 8. 股票热度
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_hot_rank_em` | 东财热度排名 | 无 |
+| `stock_hot_rank_latest_em` | 最新人气榜 | 无 |
+| `stock_hot_rank_detail_em` | 个股热度趋势 | `symbol` |
+| `stock_hot_keyword_em` | 热门关键词 | 无 |
+
+### 9. 财经资讯
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_info_global_em` | 全球财经快讯 | 无 |
+| `stock_telegraph_cls` | 财联社电报 | 无 |
+| `stock_news_em` | 个股新闻 | `symbol` |
+| `news_cctv` | 新闻联播 | `date`: YYYYMMDD |
+
+### 10. 财务数据
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_financial_report_sina` | 财务报表-新浪 | `stock`, `symbol`(资产/利润/现金) |
+| `stock_yjbb_em` | 业绩报表 | `date`: 如 20251231 |
+| `stock_yjyg_em` | 业绩预告 | `date` |
+| `stock_fhps_em` | 分红配送 | `date` |
+
+### 11. 融资融券
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_margin_sse` | 融资融券-上交所 | `start_date`, `end_date` |
+| `stock_margin_szse` | 融资融券-深交所 | `start_date`, `end_date` |
+
+### 12. 技术指标
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_rank_cxg_ths` | 创新高-同花顺 | 无 |
+| `stock_rank_cxd_ths` | 创新低-同花顺 | 无 |
+| `stock_rank_lxsz_ths` | 连续上涨 | 无 |
+| `stock_rank_lxxd_ths` | 连续下跌 | 无 |
+| `stock_rank_cxfl_ths` | 持续放量 | 无 |
+| `stock_rank_ljqs_ths` | 量价齐升 | 无 |
+
+### 13. 其他常用
+
+| 接口函数 | 说明 | 参数 |
+|---------|------|------|
+| `stock_zh_a_gdhs_em` | 股东户数 | `symbol` |
+| `stock_zh_a_st_em` | ST股票列表 | 无 |
+| `stock_dzjy_sctj` | 大宗交易统计 | 无 |
+| `stock_dzjy_mrmx` | 大宗交易明细 | `symbol`, `start_date`, `end_date` |
+
+---
+
+## 📝 调用示例
+
+### 获取涨停股池
+```json
+{
+  "function_name": "stock_zt_pool_em",
+  "params": { "date": "20260110" }
+}
+```
+
+### 获取个股K线
+```json
+{
+  "function_name": "stock_zh_a_hist",
+  "params": {
+    "symbol": "300308",
+    "period": "daily",
+    "start_date": "20260101",
+    "end_date": "20260110",
+    "adjust": "qfq"
+  }
+}
+```
+
+### 获取概念板块成份股
+```json
+{
+  "function_name": "stock_board_concept_cons_em",
+  "params": { "symbol": "人工智能" }
+}
+```
+
+---
+
+## ⚠️ 注意事项
+
+1. **日期格式**: 统一使用 `YYYYMMDD`
+2. **股票代码**: 纯数字，如 `300308`、`600519`
+3. **市场参数**: `sh`=上海, `sz`=深圳, `bj`=北京
+4. **复权方式**: `qfq`=前复权, `hfq`=后复权, `空`=不复权
+
+---
+
+*更新时间: 2026-01-10*
+*完整文档: https://akshare.akfamily.xyz/*

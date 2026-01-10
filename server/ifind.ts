@@ -9,7 +9,7 @@ import { ENV } from './_core/env';
 const BASE_URL = 'https://quantapi.51ifind.com';
 
 const getHeaders = () => ({
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json; charset=utf-8',
     'access_token': ENV.ifindAccessToken,
 });
 

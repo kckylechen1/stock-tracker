@@ -1,0 +1,21 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: stock-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: stockpass
+      MYSQL_DATABASE: stock_tracker
+    ports:
+      - "3306:3306"
+    volumes:
+      # 使用命名卷持久化数据，重启不会丢失
+      - stock_mysql_data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  # 命名卷，Docker 会自动管理，数据不会丢失
+  stock_mysql_data:
+    driver: local

@@ -74,7 +74,7 @@ export async function makeRequest<T = unknown>(
   const response = await fetch(url.toString(), {
     method: options.method || "GET",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });

@@ -52,6 +52,7 @@ description: 查询股票数据 API 文档和实现指南
 **实现文件：**
 - `server/_core/stockTools.ts` - 工具定义和执行器
 - `server/_core/streamChat.ts` - 流式聊天（支持工具调用）
+- `server/_core/prompts/grokPrompt.ts` - Grok 系统提示词
 
 **可用工具：**
 | 工具名称 | 功能描述 |
@@ -63,6 +64,13 @@ description: 查询股票数据 API 文档和实现指南
 | `get_fund_flow_history` | 获取历史资金流向 |
 | `get_fund_flow_rank` | 获取资金流入排行榜 |
 | `get_market_fund_flow` | 获取大盘资金流向 |
+| `get_zt_pool` | 获取涨停股池 ⭐新增 |
+| `get_dt_pool` | 获取跌停股池 ⭐新增 |
+| `get_concept_board` | 获取概念板块涨跌 ⭐新增 |
+| `get_industry_board` | 获取行业板块涨跌 ⭐新增 |
+| `get_north_flow` | 获取北向资金 ⭐新增 |
+| `get_telegraph` | 获取财联社电报 ⭐新增 |
+| `call_akshare` | 动态调用任意AKShare接口 ⭐新增 |
 
 **工作原理：**
 1. 用户提问 → LLM 识别需要查询数据
@@ -71,5 +79,6 @@ description: 查询股票数据 API 文档和实现指南
 4. 支持多轮工具调用（最多5轮）
 
 **模型说明：**
-- 普通模式使用 `DeepSeek-V3`（支持工具调用）
-- 思考模式使用 `DeepSeek-R1`（不支持工具调用，但推理更强）
+- Grok 模式使用 `grok-4-1-fast-reasoning`（支持工具调用 + 推理）
+- 通过 `call_akshare` 工具可动态调用任意 AKShare 接口
+- AKShare 知识库文档: `.agent/docs/akshare-api-guide.md`

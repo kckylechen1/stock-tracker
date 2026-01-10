@@ -318,6 +318,104 @@ export const stockTools: Tool[] = [
                 required: ["code"]
             }
         }
+    },
+    // ==================== AKShare 新增工具 ====================
+    {
+        type: "function",
+        function: {
+            name: "get_zt_pool",
+            description: "获取今日涨停股池，包括涨停时间、连板数、封单金额等信息。适合分析市场热点和龙头股。当用户问'今天涨停的有哪些'、'涨停板'、'连板股'时调用。",
+            parameters: {
+                type: "object",
+                properties: {
+                    date: {
+                        type: "string",
+                        description: "可选，日期格式 YYYYMMDD，默认今天"
+                    }
+                }
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_dt_pool",
+            description: "获取今日跌停股池。当用户问'跌停的有哪些'、'哪些股票跌停了'时调用。",
+            parameters: {
+                type: "object",
+                properties: {
+                    date: {
+                        type: "string",
+                        description: "可选，日期格式 YYYYMMDD，默认今天"
+                    }
+                }
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_concept_board",
+            description: "获取概念板块列表和涨跌情况。当用户问'今天哪个概念火'、'热门板块'、'题材'时调用。",
+            parameters: {
+                type: "object",
+                properties: {}
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_industry_board",
+            description: "获取行业板块列表和涨跌情况。当用户问'哪个行业涨得好'、'行业板块'时调用。",
+            parameters: {
+                type: "object",
+                properties: {}
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_north_flow",
+            description: "获取北向资金（沪深港通）净流入数据。北向资金被称为'聪明钱'，是重要的市场风向标。当用户问'北向资金'、'外资'、'沪深港通'时调用。",
+            parameters: {
+                type: "object",
+                properties: {}
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_telegraph",
+            description: "获取财联社电报，最新的财经快讯。当用户问'有什么新闻'、'最新消息'、'财经资讯'时调用。",
+            parameters: {
+                type: "object",
+                properties: {}
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "call_akshare",
+            description: "动态调用任意 AKShare 接口。当需要调用其他未预定义的 AKShare 接口时使用。参考 AKShare 文档：https://akshare.akfamily.xyz/",
+            parameters: {
+                type: "object",
+                properties: {
+                    function_name: {
+                        type: "string",
+                        description: "AKShare 函数名，如 stock_zh_a_spot_em、stock_zt_pool_em"
+                    },
+                    params: {
+                        type: "object",
+                        description: "函数参数，如 { symbol: '300308', period: 'daily' }"
+                    }
+                },
+                required: ["function_name"]
+            }
+        }
     }
 ];
 
@@ -704,6 +802,172 @@ ${techSection}${fundSection}${marketSection}${conclusionSection}`;
                 } catch (error: any) {
                     console.error('[GetGubaHotRank] 失败:', error);
                     return `获取股吧人气排名失败: ${error.message}`;
+                }
+            }
+
+            // ==================== AKShare 新增工具执行 ====================
+
+            case "get_zt_pool": {
+                try {
+                    const data = await akshare.getZTPool(args.date);
+                    if (!data || data.length === 0) {
+                        return `今日暂无涨停股数据`;
+                    }
+
+                    const top10 = data.slice(0, 15);
+                    const result = top10.map((s: any, i: number) => {
+                        const lbCount = s['连板数'] || 1;
+                        const lbEmoji = lbCount >= 3 ? '🔥' : lbCount >= 2 ? '⭐' : '';
+                        return `${i + 1}. ${lbEmoji}${s['名称']}(${s['代码']}) - ${lbCount}连板 | 涨停时间: ${s['首次涨停时间'] || '--'} | 封单: ${((s['封单额'] || 0) / 100000000).toFixed(2)}亿`;
+                    }).join('\n');
+
+                    return `【今日涨停股池】共 ${data.length} 只\n\n${result}\n\n💡 提示：连板数越多，龙头属性越强`;
+                } catch (error: any) {
+                    return `获取涨停池失败: ${error.message}`;
+                }
+            }
+
+            case "get_dt_pool": {
+                try {
+                    const data = await akshare.getDTPool(args.date);
+                    if (!data || data.length === 0) {
+                        return `今日暂无跌停股数据`;
+                    }
+
+                    const top10 = data.slice(0, 10);
+                    const result = top10.map((s: any, i: number) =>
+                        `${i + 1}. ${s['名称']}(${s['代码']}) | 跌停时间: ${s['最后跌停时间'] || '--'}`
+                    ).join('\n');
+
+                    return `【今日跌停股池】共 ${data.length} 只\n\n${result}`;
+                } catch (error: any) {
+                    return `获取跌停池失败: ${error.message}`;
+                }
+            }
+
+            case "get_concept_board": {
+                try {
+                    const data = await akshare.getConceptBoardList();
+                    if (!data || data.length === 0) {
+                        return `暂无概念板块数据`;
+                    }
+
+                    // 按涨跌幅排序
+                    const sorted = [...data].sort((a: any, b: any) => (b['涨跌幅'] || 0) - (a['涨跌幅'] || 0));
+                    const top10 = sorted.slice(0, 10);
+                    const bottom5 = sorted.slice(-5).reverse();
+
+                    const topResult = top10.map((s: any, i: number) => {
+                        const change = s['涨跌幅'] || 0;
+                        const emoji = change > 3 ? '🔥' : change > 1 ? '📈' : '';
+                        return `${i + 1}. ${emoji}${s['板块名称']} +${change.toFixed(2)}%`;
+                    }).join('\n');
+
+                    const bottomResult = bottom5.map((s: any, i: number) =>
+                        `${i + 1}. ${s['板块名称']} ${(s['涨跌幅'] || 0).toFixed(2)}%`
+                    ).join('\n');
+
+                    return `【概念板块涨幅榜】\n${topResult}\n\n【概念板块跌幅榜】\n${bottomResult}`;
+                } catch (error: any) {
+                    return `获取概念板块失败: ${error.message}`;
+                }
+            }
+
+            case "get_industry_board": {
+                try {
+                    const data = await akshare.getIndustryBoardList();
+                    if (!data || data.length === 0) {
+                        return `暂无行业板块数据`;
+                    }
+
+                    const sorted = [...data].sort((a: any, b: any) => (b['涨跌幅'] || 0) - (a['涨跌幅'] || 0));
+                    const top10 = sorted.slice(0, 10);
+
+                    const result = top10.map((s: any, i: number) => {
+                        const change = s['涨跌幅'] || 0;
+                        const emoji = change > 2 ? '🔥' : change > 0 ? '📈' : '📉';
+                        return `${i + 1}. ${emoji}${s['板块名称']} ${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+                    }).join('\n');
+
+                    return `【行业板块涨幅榜】\n${result}`;
+                } catch (error: any) {
+                    return `获取行业板块失败: ${error.message}`;
+                }
+            }
+
+            case "get_north_flow": {
+                try {
+                    const data = await akshare.getNorthFlowIn('north');
+                    if (!data || data.length === 0) {
+                        return `暂无北向资金数据`;
+                    }
+
+                    // 取最近5天
+                    const recent = data.slice(-5);
+                    const result = recent.map((d: any) => {
+                        const flow = d['北向资金'] || d['当日净流入'] || 0;
+                        const sign = flow >= 0 ? '+' : '';
+                        const emoji = flow > 50 ? '🟢' : flow < -50 ? '🔴' : '🟡';
+                        return `${d['日期'] || '--'}: ${emoji} ${sign}${(flow / 100000000).toFixed(2)}亿`;
+                    }).join('\n');
+
+                    // 计算5日累计
+                    const total = recent.reduce((sum: number, d: any) => sum + (d['北向资金'] || d['当日净流入'] || 0), 0);
+                    const totalSign = total >= 0 ? '+' : '';
+
+                    return `【北向资金近5日流向】\n${result}\n\n📊 5日累计: ${totalSign}${(total / 100000000).toFixed(2)}亿`;
+                } catch (error: any) {
+                    return `获取北向资金失败: ${error.message}`;
+                }
+            }
+
+            case "get_telegraph": {
+                try {
+                    const data = await akshare.getTelegraphCLS();
+                    if (!data || data.length === 0) {
+                        return `暂无财经快讯`;
+                    }
+
+                    const recent = data.slice(0, 10);
+                    const result = recent.map((n: any, i: number) =>
+                        `${i + 1}. [${n['发布时间'] || n['时间'] || '--'}] ${n['标题'] || n['内容'] || '--'}`
+                    ).join('\n\n');
+
+                    return `【财联社电报 - 最新快讯】\n\n${result}`;
+                } catch (error: any) {
+                    return `获取财经快讯失败: ${error.message}`;
+                }
+            }
+
+            case "call_akshare": {
+                const funcName = args.function_name;
+                const params = args.params || {};
+
+                if (!funcName) {
+                    return `请提供 AKShare 函数名`;
+                }
+
+                try {
+                    console.log(`[AKShare] 动态调用: ${funcName}`, params);
+                    const data = await akshare.callAKShareDynamic(funcName, params);
+
+                    if (!data) {
+                        return `调用 ${funcName} 返回空数据`;
+                    }
+
+                    // 如果是数组，格式化输出
+                    if (Array.isArray(data)) {
+                        if (data.length === 0) {
+                            return `调用 ${funcName} 返回空列表`;
+                        }
+                        // 只返回前10条
+                        const preview = data.slice(0, 10);
+                        return `【${funcName} 返回数据】共 ${data.length} 条，预览前10条:\n\n${JSON.stringify(preview, null, 2)}`;
+                    }
+
+                    return `【${funcName} 返回数据】\n${JSON.stringify(data, null, 2)}`;
+                } catch (error: any) {
+                    return `调用 ${funcName} 失败: ${error.message}`;
                 }
             }
 

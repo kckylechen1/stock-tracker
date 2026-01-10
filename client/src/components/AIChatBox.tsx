@@ -2,141 +2,154 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles, Plus, ArrowUp, Brain, Globe, Paperclip, Mic, Copy, ThumbsUp, ThumbsDown, RotateCcw } from "lucide-react";
+import { Loader2, Send, User, Sparkles, ArrowUp, Brain, Globe, Paperclip, Mic, Copy, ThumbsUp, ThumbsDown, RotateCcw, Zap } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Streamdown } from "streamdown";
+import { motion, AnimatePresence } from "framer-motion";
 
-/**
- * Message type matching server-side LLM Message interface
- */
 export type Message = {
   role: "system" | "user" | "assistant";
   content: string;
-  /** 思考耗时（秒），仅 assistant 消息可能有此字段 */
   thinkingTime?: number;
 };
 
 export type AIChatBoxProps = {
-  /**
-   * Messages array to display in the chat.
-   * Should match the format used by invokeLLM on the server.
-   */
   messages: Message[];
-
-  /**
-   * Callback when user sends a message.
-   * Typically you'll call a tRPC mutation here to invoke the LLM.
-   */
   onSendMessage: (content: string) => void;
-
-  /**
-   * Whether the AI is currently generating a response
-   */
   isLoading?: boolean;
-
-  /**
-   * Placeholder text for the input field
-   */
   placeholder?: string;
-
-  /**
-   * Custom className for the container
-   */
   className?: string;
-
-  /**
-   * Height of the chat box (default: 600px)
-   */
   height?: string | number;
-
-  /**
-   * Empty state message to display when no messages
-   */
   emptyStateMessage?: string;
-
-  /**
-   * Suggested prompts to display in empty state
-   * Click to send directly
-   */
   suggestedPrompts?: string[];
-
-  /**
-   * Thinking mode state
-   */
   thinkingMode?: boolean;
-
-  /**
-   * Callback when thinking mode changes
-   */
   onThinkingModeChange?: (enabled: boolean) => void;
-
-  /**
-   * Grok mode state (use xAI Grok instead of DeepSeek)
-   */
   grokMode?: boolean;
-
-  /**
-   * Callback when grok mode changes
-   */
   onGrokModeChange?: (enabled: boolean) => void;
-
-  /**
-   * Callback to regenerate the last response
-   */
   onRegenerate?: () => void;
 };
 
-/**
- * A ready-to-use AI chat box component that integrates with the LLM system.
- *
- * Features:
- * - Matches server-side Message interface for seamless integration
- * - Markdown rendering with Streamdown
- * - Auto-scrolls to latest message
- * - Loading states
- * - Uses global theme colors from index.css
- *
- * @example
- * ```tsx
- * const ChatPage = () => {
- *   const [messages, setMessages] = useState<Message[]>([
- *     { role: "system", content: "You are a helpful assistant." }
- *   ]);
- *
- *   const chatMutation = trpc.ai.chat.useMutation({
- *     onSuccess: (response) => {
- *       // Assuming your tRPC endpoint returns the AI response as a string
- *       setMessages(prev => [...prev, {
- *         role: "assistant",
- *         content: response
- *       }]);
- *     },
- *     onError: (error) => {
- *       console.error("Chat error:", error);
- *       // Optionally show error message to user
- *     }
- *   });
- *
- *   const handleSend = (content: string) => {
- *     const newMessages = [...messages, { role: "user", content }];
- *     setMessages(newMessages);
- *     chatMutation.mutate({ messages: newMessages });
- *   };
- *
- *   return (
- *     <AIChatBox
- *       messages={messages}
- *       onSendMessage={handleSend}
- *       isLoading={chatMutation.isPending}
- *       suggestedPrompts={[
- *         "Explain quantum computing",
- *         "Write a hello world in Python"
- *       ]}
- *     />
- *   );
- * };
- * ```
- */
+const TypingIndicator = () => (
+  <div className="flex items-center gap-1.5 px-3 py-2">
+    <motion.div
+      className="w-2 h-2 rounded-full bg-primary/60"
+      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+      transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+    />
+    <motion.div
+      className="w-2 h-2 rounded-full bg-primary/60"
+      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+      transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+    />
+    <motion.div
+      className="w-2 h-2 rounded-full bg-primary/60"
+      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+      transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+    />
+  </div>
+);
+
+const AIAvatar = ({ isThinking = false }: { isThinking?: boolean }) => (
+  <div className="relative">
+    <motion.div
+      className="size-9 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/20 backdrop-blur-sm"
+      animate={isThinking ? { 
+        boxShadow: ["0 0 0 0 rgba(var(--primary), 0)", "0 0 20px 4px rgba(var(--primary), 0.3)", "0 0 0 0 rgba(var(--primary), 0)"]
+      } : {}}
+      transition={{ duration: 2, repeat: isThinking ? Infinity : 0 }}
+    >
+      <Zap className="size-4 text-primary" />
+    </motion.div>
+    {isThinking && (
+      <motion.div
+        className="absolute -inset-1 rounded-xl bg-primary/20 blur-md -z-10"
+        animate={{ opacity: [0.3, 0.6, 0.3] }}
+        transition={{ duration: 1.5, repeat: Infinity }}
+      />
+    )}
+  </div>
+);
+
+const UserAvatar = () => (
+  <div className="size-9 rounded-xl bg-gradient-to-br from-secondary via-secondary/80 to-secondary/60 flex items-center justify-center border border-border/50">
+    <User className="size-4 text-secondary-foreground" />
+  </div>
+);
+
+const EmptyState = ({ message, prompts, onPromptClick }: { 
+  message: string; 
+  prompts?: string[]; 
+  onPromptClick: (prompt: string) => void;
+}) => (
+  <div className="flex h-full flex-col items-center justify-center p-8">
+    <motion.div 
+      className="relative mb-8"
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Animated orbital rings */}
+      <motion.div
+        className="absolute inset-0 w-32 h-32 -m-8 rounded-full border border-primary/10"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+      />
+      <motion.div
+        className="absolute inset-0 w-24 h-24 -m-4 rounded-full border border-primary/20"
+        animate={{ rotate: -360 }}
+        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+      />
+      
+      {/* Central icon */}
+      <motion.div 
+        className="relative size-16 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/30 backdrop-blur-sm"
+        animate={{ 
+          boxShadow: ["0 0 30px 0 rgba(var(--primary), 0.1)", "0 0 50px 10px rgba(var(--primary), 0.2)", "0 0 30px 0 rgba(var(--primary), 0.1)"]
+        }}
+        transition={{ duration: 3, repeat: Infinity }}
+      >
+        <Zap className="size-7 text-primary" />
+      </motion.div>
+    </motion.div>
+    
+    <motion.p 
+      className="text-sm text-muted-foreground mb-6 text-center max-w-xs"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+    >
+      {message}
+    </motion.p>
+
+    {prompts && prompts.length > 0 && (
+      <motion.div 
+        className="flex flex-wrap justify-center gap-2 max-w-md"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        {prompts.map((prompt, index) => (
+          <motion.button
+            key={prompt}
+            onClick={() => onPromptClick(prompt)}
+            className="group px-4 py-2.5 rounded-xl text-sm text-muted-foreground bg-card/50 border border-border/50 hover:border-primary/50 hover:bg-primary/5 hover:text-foreground transition-all duration-300"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 + index * 0.1 }}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="size-3.5 text-primary/60 group-hover:text-primary transition-colors" />
+              {prompt}
+            </span>
+          </motion.button>
+        ))}
+      </motion.div>
+    )}
+  </div>
+);
+
 export function AIChatBox({
   messages,
   onSendMessage,
@@ -160,10 +173,8 @@ export function AIChatBox({
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Filter out system messages
   const displayMessages = messages.filter((msg) => msg.role !== "system");
 
-  // Calculate min-height for last assistant message to push user message to top
   const [minHeightForLastMessage, setMinHeightForLastMessage] = useState(0);
 
   useEffect(() => {
@@ -171,19 +182,12 @@ export function AIChatBox({
       const containerHeight = containerRef.current.offsetHeight;
       const inputHeight = inputAreaRef.current.offsetHeight;
       const scrollAreaHeight = containerHeight - inputHeight;
-
-      // Reserve space for:
-      // - padding (p-4 = 32px top+bottom)
-      // - user message: 40px (item height) + 16px (margin-top from space-y-4) = 56px
-      // Note: margin-bottom is not counted because it naturally pushes the assistant message down
       const userMessageReservedHeight = 56;
       const calculatedHeight = scrollAreaHeight - 32 - userMessageReservedHeight;
-
       setMinHeightForLastMessage(Math.max(0, calculatedHeight));
     }
   }, []);
 
-  // Scroll to bottom helper function with smooth animation
   const scrollToBottom = () => {
     const viewport = scrollAreaRef.current?.querySelector(
       '[data-radix-scroll-area-viewport]'
@@ -207,15 +211,11 @@ export function AIChatBox({
     onSendMessage(trimmedInput);
     setInput("");
 
-    // 重置 textarea 高度
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
 
-    // Scroll immediately after sending
     scrollToBottom();
-
-    // Keep focus on input
     textareaRef.current?.focus();
   };
 
@@ -226,11 +226,15 @@ export function AIChatBox({
     }
   };
 
+  const handlePromptClick = (prompt: string) => {
+    onSendMessage(prompt);
+  };
+
   return (
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col bg-card text-card-foreground rounded-lg border shadow-sm",
+        "flex flex-col bg-gradient-to-b from-card via-card to-card/95 text-card-foreground rounded-2xl border border-border/50 shadow-xl overflow-hidden",
         className
       )}
       style={{ height }}
@@ -238,165 +242,130 @@ export function AIChatBox({
       {/* Messages Area */}
       <div ref={scrollAreaRef} className="flex-1 overflow-hidden">
         {displayMessages.length === 0 ? (
-          <div className="flex h-full flex-col p-4">
-            <div className="flex flex-1 flex-col items-center justify-center gap-6 text-muted-foreground">
-              <div className="flex flex-col items-center gap-3">
-                <Sparkles className="size-12 opacity-20" />
-                <p className="text-sm">{emptyStateMessage}</p>
-              </div>
-
-              {suggestedPrompts && suggestedPrompts.length > 0 && (
-                <div className="flex max-w-2xl flex-wrap justify-center gap-2">
-                  {suggestedPrompts.map((prompt, index) => (
-                    <button
-                      key={index}
-                      onClick={() => onSendMessage(prompt)}
-                      disabled={isLoading}
-                      className="rounded-lg border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <EmptyState 
+            message={emptyStateMessage} 
+            prompts={suggestedPrompts}
+            onPromptClick={handlePromptClick}
+          />
         ) : (
           <ScrollArea className="h-full">
-            <div className="flex flex-col space-y-4 p-4">
-              {displayMessages.map((message, index) => {
-                // Apply min-height to last message only if NOT loading (when loading, the loading indicator gets it)
-                const isLastMessage = index === displayMessages.length - 1;
-                const shouldApplyMinHeight =
-                  isLastMessage && !isLoading && minHeightForLastMessage > 0;
-                const isAssistantThinking =
-                  message.role === "assistant" &&
-                  isLastMessage &&
-                  isLoading &&
-                  !message.content;
+            <div className="space-y-6 p-5">
+              <AnimatePresence>
+                {displayMessages.map((message, index) => {
+                  const isLastMessage = index === displayMessages.length - 1;
+                  const isAssistantThinking = isLoading && isLastMessage && message.role === "assistant" && !message.content;
+                  const shouldApplyMinHeight = index === displayMessages.length - 1;
 
-                return (
-                  <div
-                    key={index}
-                    className={cn(
-                      "flex gap-3",
-                      message.role === "user"
-                        ? "justify-end items-start"
-                        : "justify-start items-start"
-                    )}
-                    style={
-                      shouldApplyMinHeight
-                        ? { minHeight: `${minHeightForLastMessage}px` }
-                        : undefined
-                    }
-                  >
-                    {message.role === "assistant" && (
-                      <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Sparkles className="size-4 text-primary" />
-                      </div>
-                    )}
-
-                    <div className="flex flex-col max-w-[80%] min-w-0 overflow-hidden">
-                      {/* 思考时间提示 - 仅在 assistant 消息且有 thinkingTime 时显示 */}
-                      {message.role === "assistant" && message.thinkingTime && message.thinkingTime > 0 && (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5 ml-1">
-                          <span>💭</span>
-                          <span>思考了 {message.thinkingTime}s</span>
-                        </div>
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className={cn(
+                        "flex gap-3",
+                        message.role === "user"
+                          ? "justify-end items-start"
+                          : "justify-start items-start"
                       )}
-                      <div
-                        className={cn(
-                          "rounded-lg px-4 py-2.5",
-                          message.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground"
+                      style={
+                        shouldApplyMinHeight
+                          ? { minHeight: `${minHeightForLastMessage}px` }
+                          : undefined
+                      }
+                    >
+                      {message.role === "assistant" && (
+                        <AIAvatar isThinking={isAssistantThinking} />
+                      )}
+
+                      <div className="flex flex-col max-w-[80%] min-w-0 overflow-hidden">
+                        {message.role === "assistant" && message.thinkingTime && message.thinkingTime > 0 && (
+                          <motion.div 
+                            className="flex items-center gap-1.5 text-xs text-primary/70 mb-2 ml-1"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                          >
+                            <Brain className="size-3" />
+                            <span>思考了 {message.thinkingTime}s</span>
+                          </motion.div>
                         )}
-                      >
-                        {message.role === "assistant" ? (
-                          isAssistantThinking ? (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Loader2 className="size-3.5 animate-spin" />
-                              <span>正在思考...</span>
-                            </div>
-                          ) : (
-                            <div className="overflow-x-hidden">
-                              <div className="prose prose-sm dark:prose-invert max-w-none min-w-0 [&_pre]:w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap [&_code]:break-words [&_pre_code]:break-words">
-                                <Streamdown>{message.content}</Streamdown>
-                              </div>
-                              {/* AI 回复操作按钮 - 只在有内容且不在加载时显示 */}
-                              {message.content && !isLoading && (
-                                <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border/50">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(message.content);
-                                      setCopiedIndex(index);
-                                      setTimeout(() => setCopiedIndex(null), 2000);
-                                    }}
-                                    className={`p-1.5 rounded hover:bg-accent transition-colors ${copiedIndex === index
-                                      ? 'text-green-500'
-                                      : 'text-muted-foreground hover:text-foreground'
-                                      }`}
-                                    title={copiedIndex === index ? "已复制!" : "复制"}
-                                  >
-                                    <Copy className="size-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setFeedbackIndex({ index, type: 'up' })}
-                                    className={`p-1.5 rounded hover:bg-accent transition-colors ${feedbackIndex?.index === index && feedbackIndex?.type === 'up'
-                                      ? 'text-green-500'
-                                      : 'text-muted-foreground hover:text-foreground'
-                                      }`}
-                                    title="有帮助"
-                                  >
-                                    <ThumbsUp className="size-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setFeedbackIndex({ index, type: 'down' })}
-                                    className={`p-1.5 rounded hover:bg-accent transition-colors ${feedbackIndex?.index === index && feedbackIndex?.type === 'down'
-                                      ? 'text-red-500'
-                                      : 'text-muted-foreground hover:text-foreground'
-                                      }`}
-                                    title="没帮助"
-                                  >
-                                    <ThumbsDown className="size-3.5" />
-                                  </button>
-                                  {isLastMessage && onRegenerate && (
-                                    <button
-                                      type="button"
-                                      onClick={onRegenerate}
-                                      className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                                      title="重新生成"
-                                    >
-                                      <RotateCcw className="size-3.5" />
-                                    </button>
-                                  )}
+                        <div
+                          className={cn(
+                            "rounded-2xl px-4 py-3 transition-all duration-200",
+                            message.role === "user"
+                              ? "bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                              : "bg-muted/50 text-foreground border border-border/30 backdrop-blur-sm"
+                          )}
+                        >
+                          {message.role === "assistant" ? (
+                            isAssistantThinking ? (
+                              <TypingIndicator />
+                            ) : (
+                              <div className="overflow-x-hidden">
+                                <div className="prose prose-sm dark:prose-invert max-w-none min-w-0 [&_pre]:w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap [&_code]:break-words [&_pre_code]:break-words [&_p]:leading-relaxed">
+                                  <Streamdown>{message.content}</Streamdown>
                                 </div>
-                              )}
-                            </div>
-                          )
-                        ) : (
-                          <p className="whitespace-pre-wrap text-sm">
-                            {message.content}
-                          </p>
-                        )}
+                                {message.content && !isLoading && (
+                                  <motion.div 
+                                    className="flex items-center gap-0.5 mt-4 pt-3 border-t border-border/30"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.2 }}
+                                  >
+                                    <ActionButton
+                                      icon={Copy}
+                                      active={copiedIndex === index}
+                                      activeColor="text-emerald-500"
+                                      title={copiedIndex === index ? "已复制!" : "复制"}
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(message.content);
+                                        setCopiedIndex(index);
+                                        setTimeout(() => setCopiedIndex(null), 2000);
+                                      }}
+                                    />
+                                    <ActionButton
+                                      icon={ThumbsUp}
+                                      active={feedbackIndex?.index === index && feedbackIndex?.type === 'up'}
+                                      activeColor="text-emerald-500"
+                                      title="有帮助"
+                                      onClick={() => setFeedbackIndex({ index, type: 'up' })}
+                                    />
+                                    <ActionButton
+                                      icon={ThumbsDown}
+                                      active={feedbackIndex?.index === index && feedbackIndex?.type === 'down'}
+                                      activeColor="text-rose-500"
+                                      title="没帮助"
+                                      onClick={() => setFeedbackIndex({ index, type: 'down' })}
+                                    />
+                                    {isLastMessage && onRegenerate && (
+                                      <ActionButton
+                                        icon={RotateCcw}
+                                        title="重新生成"
+                                        onClick={onRegenerate}
+                                      />
+                                    )}
+                                  </motion.div>
+                                )}
+                              </div>
+                            )
+                          ) : (
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                              {message.content}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    {message.role === "user" && (
-                      <div className="size-8 shrink-0 mt-1 rounded-full bg-secondary flex items-center justify-center">
-                        <User className="size-4 text-secondary-foreground" />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      {message.role === "user" && <UserAvatar />}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
 
-              {/* 加载状态 - 思考中提示 */}
               {isLoading && displayMessages[displayMessages.length - 1]?.role === "user" && (
-                <div
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   className="flex items-start gap-3"
                   style={
                     minHeightForLastMessage > 0
@@ -404,121 +373,94 @@ export function AIChatBox({
                       : undefined
                   }
                 >
-                  <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="size-4 text-primary" />
+                  <AIAvatar isThinking />
+                  <div className="bg-muted/50 border border-border/30 rounded-2xl backdrop-blur-sm">
+                    <TypingIndicator />
                   </div>
-                  <div className="flex items-center gap-2 h-8 mt-1 px-3 py-2 bg-muted rounded-lg text-xs text-muted-foreground">
-                    <Loader2 className="size-3.5 animate-spin" />
-                    <span>正在思考...</span>
-                  </div>
-                </div>
+                </motion.div>
               )}
             </div>
           </ScrollArea>
         )}
       </div>
 
-      {/* Input Area - Manus Style */}
-      <div className="p-4 border-t bg-background/50">
+      {/* Input Area - Modern Glass Style */}
+      <div className="p-4 border-t border-border/30 bg-gradient-to-t from-background/80 to-transparent backdrop-blur-sm">
         <form
           ref={inputAreaRef}
           onSubmit={handleSubmit}
-          className="relative border border-border rounded-2xl bg-card overflow-hidden focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all"
+          className="relative"
         >
-          {/* Textarea */}
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              // Auto-resize
-              if (textareaRef.current) {
-                textareaRef.current.style.height = 'auto';
-                textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
-              }
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className="w-full border-0 bg-transparent px-4 pt-3 pb-12 resize-none min-h-[52px] max-h-[200px] focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
-            rows={1}
-          />
+          <div className="relative border border-border/50 rounded-2xl bg-card/80 backdrop-blur-md overflow-hidden transition-all duration-300 focus-within:border-primary/50 focus-within:shadow-lg focus-within:shadow-primary/10">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                if (textareaRef.current) {
+                  textareaRef.current.style.height = 'auto';
+                  textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
+                }
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              className="w-full border-0 bg-transparent px-4 pt-3.5 pb-14 resize-none min-h-[56px] max-h-[200px] focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/60"
+              rows={1}
+            />
 
-          {/* Bottom Toolbar */}
-          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-card">
-            {/* Left Icons - 功能按钮组 */}
-            <div className="flex items-center gap-0.5">
-              {/* Thinking 模式开关 */}
-              {onThinkingModeChange && (
-                <button
-                  type="button"
-                  onClick={() => onThinkingModeChange(!thinkingMode)}
-                  className={`p-2 rounded-lg transition-all ${thinkingMode
-                    ? 'bg-primary/20 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                    }`}
-                  title={thinkingMode ? "深度思考模式开启" : "开启深度思考"}
-                >
-                  <Brain className="size-4" />
-                </button>
-              )}
-
-              {/* Grok 模式开关 */}
-              {onGrokModeChange && (
-                <button
-                  type="button"
-                  onClick={() => onGrokModeChange(!grokMode)}
-                  className={`p-2 rounded-lg transition-all ${grokMode
-                    ? 'bg-orange-500/20 text-orange-500'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                    }`}
-                  title={grokMode ? "Grok 模式开启 (更直接)" : "切换到 Grok"}
-                >
-                  <Globe className="size-4" />
-                </button>
-              )}
-
-              {/* 分隔线 */}
-              {(onThinkingModeChange || onGrokModeChange) && (
-                <div className="w-px h-4 bg-border mx-1" />
-              )}
-
-              {/* 附件按钮 */}
-              <button
-                type="button"
-                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                title="添加附件"
-              >
-                <Paperclip className="size-4" />
-              </button>
-            </div>
-
-            {/* Right Icons */}
-            <div className="flex items-center gap-1">
-              {/* 语音按钮 */}
-              <button
-                type="button"
-                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                title="语音输入"
-              >
-                <Mic className="size-4" />
-              </button>
-
-              {/* Send Button */}
-              <Button
-                type="submit"
-                size="icon"
-                disabled={!input.trim() || isLoading}
-                className={`shrink-0 h-8 w-8 rounded-lg transition-all ${input.trim() && !isLoading
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
-                  }`}
-              >
-                {isLoading ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <ArrowUp className="size-4" />
+            {/* Bottom Toolbar */}
+            <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2.5">
+              <div className="flex items-center gap-1">
+                {onThinkingModeChange && (
+                  <ToolbarButton
+                    icon={Brain}
+                    active={thinkingMode}
+                    activeColor="bg-primary/20 text-primary"
+                    title={thinkingMode ? "深度思考模式开启" : "开启深度思考"}
+                    onClick={() => onThinkingModeChange(!thinkingMode)}
+                  />
                 )}
-              </Button>
+
+                {onGrokModeChange && (
+                  <ToolbarButton
+                    icon={Globe}
+                    active={grokMode}
+                    activeColor="bg-amber-500/20 text-amber-500"
+                    title={grokMode ? "Grok 模式开启" : "切换到 Grok"}
+                    onClick={() => onGrokModeChange(!grokMode)}
+                  />
+                )}
+
+                {(onThinkingModeChange || onGrokModeChange) && (
+                  <div className="w-px h-5 bg-border/50 mx-1" />
+                )}
+
+                <ToolbarButton icon={Paperclip} title="添加附件" />
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <ToolbarButton icon={Mic} title="语音输入" />
+
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={!input.trim() || isLoading}
+                    className={cn(
+                      "shrink-0 h-9 w-9 rounded-xl transition-all duration-300",
+                      input.trim() && !isLoading
+                        ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <ArrowUp className="size-4" />
+                    )}
+                  </Button>
+                </motion.div>
+              </div>
             </div>
           </div>
         </form>
@@ -526,3 +468,61 @@ export function AIChatBox({
     </div>
   );
 }
+
+const ToolbarButton = ({ 
+  icon: Icon, 
+  active = false, 
+  activeColor = "bg-primary/20 text-primary",
+  title, 
+  onClick 
+}: { 
+  icon: React.ElementType; 
+  active?: boolean; 
+  activeColor?: string;
+  title: string; 
+  onClick?: () => void;
+}) => (
+  <motion.button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      "p-2 rounded-xl transition-all duration-200",
+      active
+        ? activeColor
+        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+    )}
+    title={title}
+    whileHover={{ scale: 1.1 }}
+    whileTap={{ scale: 0.9 }}
+  >
+    <Icon className="size-4" />
+  </motion.button>
+);
+
+const ActionButton = ({ 
+  icon: Icon, 
+  active = false, 
+  activeColor = "text-primary",
+  title, 
+  onClick 
+}: { 
+  icon: React.ElementType; 
+  active?: boolean; 
+  activeColor?: string;
+  title: string; 
+  onClick: () => void;
+}) => (
+  <motion.button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      "p-2 rounded-lg transition-all duration-200",
+      active ? activeColor : "text-muted-foreground/70 hover:text-foreground hover:bg-accent/30"
+    )}
+    title={title}
+    whileHover={{ scale: 1.15 }}
+    whileTap={{ scale: 0.9 }}
+  >
+    <Icon className="size-3.5" />
+  </motion.button>
+);

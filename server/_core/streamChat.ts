@@ -270,37 +270,24 @@ export async function* streamChat(params: StreamChatParams): AsyncGenerator<stri
             stockContextStr = buildContextFromFrontend(stockCode, frontendContext);
         }
 
-        // Grok 系统提示
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('zh-CN', {
-            year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
-            hour: '2-digit', minute: '2-digit'
+        // 使用新的 Grok 结构化 Prompt
+        const { buildGrokSystemPrompt, preprocessUserMessage, GROK_CONFIG } = await import('./prompts/grokPrompt');
+
+        const grokSystemPrompt = buildGrokSystemPrompt({
+            stockCode,
+            stockName: frontendContext?.quote?.name,
+            preloadedData: stockContextStr || undefined,
         });
 
-        const grokSystemPrompt = `你是"小A"，一个A股短线操盘手AI。性格：果断、直接、不废话。
-
-【当前时间】${dateStr}
-
-【重要：必须先查用户历史】
-分析任何股票前，你必须先调用 get_trading_memory 工具查看用户的：
-- 历史持仓和成本
-- 过去的交易教训（如"卖飞了"、"追高被套"）
-- 用户的操作习惯
-这样你的建议才能个性化，避免用户重蹈覆辙！
-
-【你的风格】
-- 直接给结论：买入/卖出/观望
-- 不说"仅供参考"废话
-- 用数据说话，给具体点位
-- 风险大就直接说"别碰"
-- 如果用户有过"卖飞"教训，提醒他这次别急着卖
-
-${stockContextStr ? `【前端预加载数据】\n${stockContextStr}` : ''}
-
-【回答格式】
-1. **结论**（一句话）
-2. **理由**（3点以内，结合用户历史教训）
-3. **操作建议**（具体点位）`;
+        // 预处理用户消息：注入当前时间
+        // Node 18 兼容：避免使用 Array.prototype.findLast
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const message = messages[i];
+            if (message?.role === 'user') {
+                message.content = preprocessUserMessage(message.content);
+                break;
+            }
+        }
 
         // 构建消息
         let conversationMessages: Message[] = [
@@ -310,12 +297,13 @@ ${stockContextStr ? `【前端预加载数据】\n${stockContextStr}` : ''}
 
         let iteration = 0;
         const maxIterations = 5;
+        let hasShownLoadingMessage = false; // 只显示一次加载提示
 
         while (iteration < maxIterations) {
             iteration++;
 
             const payload: any = {
-                model: ENV.grokModel,
+                model: GROK_CONFIG.model,
                 messages: conversationMessages.map(m => {
                     const msg: any = { role: m.role, content: m.content };
                     if (m.tool_calls) msg.tool_calls = m.tool_calls;
@@ -324,15 +312,27 @@ ${stockContextStr ? `【前端预加载数据】\n${stockContextStr}` : ''}
                 }),
                 tools: stockTools,
                 tool_choice: "auto",
-                max_tokens: 4000,
+                max_tokens: GROK_CONFIG.max_tokens,
+                temperature: GROK_CONFIG.temperature,
+                top_p: GROK_CONFIG.top_p,
                 stream: true,
             };
 
             try {
+                // 调试：检查 API Key 是否包含非 ASCII 字符
+                const apiKey = ENV.grokApiKey;
+                const hasNonAscii = /[^\x00-\x7F]/.test(apiKey);
+                if (hasNonAscii) {
+                    console.error('[Grok] API Key contains non-ASCII characters!');
+                    console.error('[Grok] First 20 chars:', apiKey.substring(0, 20));
+                    yield "Grok 错误：API Key 包含非 ASCII 字符，请检查 .env 文件";
+                    return;
+                }
+
                 const response = await fetch(`${ENV.grokApiUrl}/chat/completions`, {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
+                        "Content-Type": "application/json; charset=utf-8",
                         "Authorization": `Bearer ${ENV.grokApiKey}`,
                     },
                     body: JSON.stringify(payload),
@@ -408,7 +408,8 @@ ${stockContextStr ? `【前端预加载数据】\n${stockContextStr}` : ''}
 
                 // 如果有工具调用
                 if (toolCalls.length > 0) {
-                    yield "\n\n⏳ 正在分析中，请稍候...\n\n";
+                    // 前端已有加载动画，不再输出文本提示
+                    hasShownLoadingMessage = true;
 
                     conversationMessages.push({
                         role: 'assistant',
@@ -442,6 +443,8 @@ ${stockContextStr ? `【前端预加载数据】\n${stockContextStr}` : ''}
                 return;
 
             } catch (error: any) {
+                console.error('[Grok Error]', error);
+                console.error('[Grok Error Stack]', error.stack);
                 yield `Grok 错误：${error.message}`;
                 return;
             }
@@ -524,7 +527,7 @@ ${stockContextStr ? `【前端预加载数据】\n${stockContextStr}` : ''}
             const response = await fetch(resolveApiUrl(), {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
+                    "Content-Type": "application/json; charset=utf-8",
                     "Authorization": `Bearer ${ENV.forgeApiKey}`,
                 },
                 body: JSON.stringify(payload),

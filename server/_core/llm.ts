@@ -319,7 +319,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const response = await fetch(resolveApiUrl(), {
     method: "POST",
     headers: {
-      "content-type": "application/json",
+      "content-type": "application/json; charset=utf-8",
       authorization: `Bearer ${ENV.forgeApiKey}`,
     },
     body: JSON.stringify(payload),

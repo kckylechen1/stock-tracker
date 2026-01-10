@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Trash2, X, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // 导入模块化组件
 import { StockListItem, StockDetailPanel } from "@/components/stock";
@@ -170,8 +171,9 @@ export default function Home() {
       {/* 左侧边栏 - 股票列表 (固定宽度 320px) */}
       <div className="w-80 shrink-0 border-r border-border flex flex-col">
         {/* 标题栏 */}
-        <div className="px-4 py-3 border-b border-border">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <span className="font-semibold text-foreground">自选股</span>
+          <ThemeToggle />
         </div>
 
         {/* 搜索栏 */}

@@ -66,7 +66,7 @@ http://localhost:6888
 
 ```bash
 # .env (可选)
-AKTOOLS_URL=http://127.0.0.1:8081  # AKTools 服务地址
+AKTOOLS_URL=http://127.0.0.1:8098  # AKTools 服务地址
 ```
 
 ## 项目结构

@@ -46,12 +46,18 @@ export function convertFromEastmoneyCode(eastmoneyCode: string): string {
 export async function getStockQuote(code: string) {
   try {
     const eastmoneyCode = convertToEastmoneyCode(code);
-    // 添加fields参数获取完整数据（市盈率、市净率、换手率、量比等）
     // f10=量比, f168=换手率, f169=涨速, f170=振幅
-    const fields = 'f10,f43,f44,f45,f46,f47,f48,f58,f60,f116,f117,f162,f167,f168,f169,f170';
+    const fields = 'f43,f44,f45,f46,f47,f48,f58,f60,f116,f117,f162,f167,f168,f169,f170';
     const url = `https://push2.eastmoney.com/api/qt/stock/get?secid=${eastmoneyCode}&fields=${fields}`;
 
-    const response = await axios.get(url, { headers: HEADERS });
+    // 量比需要从ulist.np接口获取（stock/get接口不返回f10）
+    const volumeRatioUrl = `https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&secids=${eastmoneyCode}&fields=f10`;
+
+    const [response, volumeRatioResponse] = await Promise.all([
+      axios.get(url, { headers: HEADERS }),
+      axios.get(volumeRatioUrl, { headers: HEADERS }),
+    ]);
+    
     const data = response.data;
 
     if (!data || !data.data) {
@@ -59,6 +65,10 @@ export async function getStockQuote(code: string) {
     }
 
     const stockData = data.data;
+    
+    // 从ulist.np接口获取量比
+    const volumeRatioData = volumeRatioResponse.data?.data?.diff?.[0];
+    const volumeRatio = volumeRatioData?.f10 ?? null;
 
     // 计算涨跌幅
     const currentPrice = stockData.f43 / 100; // 现价
@@ -83,7 +93,7 @@ export async function getStockQuote(code: string) {
       pb: stockData.f167 ? stockData.f167 / 100 : null, // 市净率（需要除以100）
       marketCap: stockData.f116, // 总市值
       circulationMarketCap: stockData.f117, // 流通市值
-      volumeRatio: stockData.f10 ? stockData.f10 / 100 : null, // 量比
+      volumeRatio: volumeRatio, // 量比（从ulist.np接口获取）
     };
   } catch (error: any) {
     console.error(`[Eastmoney] Failed to get quote for ${code}:`, error.message);
