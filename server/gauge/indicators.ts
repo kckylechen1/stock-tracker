@@ -241,8 +241,9 @@ function calculateTrendScores(klines: KlineData[]): TrendScoreBreakdown {
     const histogram = latest.histogram ?? 0;
     const prevHistogram = prevMacd.histogram ?? 0;
 
-    // FIX 3: MACD 柱状图扩张检查
+    // FIX 3: MACD 柱状图扩张/萎缩检查
     const macdHistogramExpanding = histogram > prevHistogram;
+    const macdHistogramShrinking = histogram < prevHistogram;
 
     // MACD 信号: -100 ~ +100
     let macdScore = 0;
@@ -256,9 +257,12 @@ function calculateTrendScores(klines: KlineData[]): TrendScoreBreakdown {
         macdScore = -30; // 转强
     }
 
-    // FIX 3: 柱状图扩张加权
+    // FIX 3: 柱状图扩张/萎缩加权
     if (macdHistogramExpanding && macdScore > 0) macdScore *= 1.2;
     if (!macdHistogramExpanding && macdScore > 0) macdScore *= 0.8;
+
+    // 补充萎缩逻辑：空头区域萎缩是利好
+    if (macdHistogramShrinking && macdScore < 0) macdScore *= 1.2;
 
     // EMA 信号
     const ema12 = EMA.calculate({ values: closes, period: 12 });

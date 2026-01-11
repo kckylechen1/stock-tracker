@@ -5,6 +5,7 @@
 
 import * as akshare from '../akshare';
 import type { KlineData } from '../akshare';
+import { SMA } from 'technicalindicators';
 
 // ==================== 形态类型 ====================
 
@@ -37,16 +38,14 @@ export interface MinuteAnalysisResult {
 
 // ==================== 均线计算 ====================
 
-function calculateMA(closes: number[], period: number): number[] {
-    const result: number[] = [];
-    for (let i = 0; i < closes.length; i++) {
-        if (i < period - 1) {
-            result.push(closes.slice(0, i + 1).reduce((a, b) => a + b, 0) / (i + 1));
-        } else {
-            result.push(closes.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period);
-        }
-    }
-    return result;
+function calculateSMA(closes: number[], period: number): number[] {
+    const values = SMA.calculate({ values: closes, period });
+    if (values.length === 0) return closes.map(() => closes[closes.length - 1] ?? 0);
+
+    // technicalindicators 会丢弃前 period-1 个值，这里补齐以保持与 K 线长度一致
+    const padLength = Math.max(0, closes.length - values.length);
+    const padValue = values[0];
+    return Array(padLength).fill(padValue).concat(values);
 }
 
 // ==================== 形态识别 ====================
@@ -167,8 +166,8 @@ function detectMASqueezePattern(klines: KlineData[]): PatternResult | null {
     const closes = klines.map(k => k.close);
     const volumes = klines.map(k => k.volume);
 
-    const ma5 = calculateMA(closes, 5);
-    const ma10 = calculateMA(closes, 10);
+    const ma5 = calculateSMA(closes, 5);
+    const ma10 = calculateSMA(closes, 10);
 
     // 检查均线是否粘合
     const recentMA5 = ma5.slice(-15, -5);
@@ -228,8 +227,8 @@ export async function analyzeMinutePatterns(symbol: string): Promise<MinuteAnaly
 
         // 计算均线
         const closes = klines.map(k => k.close);
-        const ma5 = calculateMA(closes, 5);
-        const ma10 = calculateMA(closes, 10);
+        const ma5 = calculateSMA(closes, 5);
+        const ma10 = calculateSMA(closes, 10);
 
         // 生成摘要
         let summary = '';

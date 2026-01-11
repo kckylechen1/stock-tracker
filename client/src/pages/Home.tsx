@@ -1,8 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Trash2, X, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Search, Plus, Trash2, X, PanelRightOpen, PanelRightClose, MessageCircle, ChevronLeft, TrendingUp, Activity, Lightbulb } from "lucide-react";
+import type { ImperativePanelHandle } from "react-resizable-panels";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useIsLargeScreen, useIsMobileScreen } from "@/hooks";
 
 // 导入模块化组件
 import { StockListItem, StockDetailPanel } from "@/components/stock";
@@ -51,6 +56,10 @@ export default function Home() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
 
+  // 响应式屏幕检测
+  const isLargeScreen = useIsLargeScreen();
+  const isMobile = useIsMobileScreen();
+
   // 拖拽删除状态
   const [draggingStock, setDraggingStock] = useState<{ code: string, id: number } | null>(null);
   const [isOverTrash, setIsOverTrash] = useState(false);
@@ -58,8 +67,17 @@ export default function Home() {
   // 已打开的股票标签列表 (只存储 code)
   const [openedTabs, setOpenedTabs] = useState<string[]>([]);
 
-  // 侧边栏面板显示状态（用于窄屏幕手动展开）
-  const [showSidePanels, setShowSidePanels] = useState(false);
+  // 侧边栏面板状态（用于窄屏幕手动展开）- 大屏默认展开
+  const [showSidePanels, setShowSidePanels] = useState(isLargeScreen);
+
+  // AI 聊天面板状态 - 右侧面板折叠状态
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const rightPanelRef = useRef<ImperativePanelHandle>(null);
+
+  // 响应式：屏幕变化时自动调整侧边栏
+  useEffect(() => {
+    setShowSidePanels(isLargeScreen);
+  }, [isLargeScreen]);
 
   // 获取观察池列表
   const { data: watchlist, isLoading, refetch } = trpc.watchlist.list.useQuery();
@@ -283,131 +301,243 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 中间内容区 - 左侧(K线+筹码+新闻) + 右侧(AI助手) */}
-      <div className="flex-1 min-w-0 flex">
-        {/* 左侧区域：K线+筹码分布 + 新闻分析 */}
-        <div className="flex-1 min-w-0 flex flex-col border-r border-border">
-          {/* 标签栏 */}
-          {openedTabs.length > 0 && (
-            <div className="h-9 border-b border-border flex items-center bg-card/50 overflow-x-auto">
-              {openedTabs.map((tabCode) => (
-                <StockTab
-                  key={tabCode}
-                  code={tabCode}
-                  isSelected={selectedStock === tabCode}
-                  onSelect={() => handleSwitchTab(tabCode)}
-                  onClose={(e) => handleCloseTab(tabCode, e)}
-                />
-              ))}
+      {/* 中间内容区 - 使用 ResizablePanelGroup 实现可拖拽布局 */}
+      <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0">
+        {/* 左侧主内容面板 */}
+        <ResizablePanel defaultSize={75} minSize={50}>
+          <div className="h-full flex flex-col">
+            {/* 标签栏 */}
+            {openedTabs.length > 0 && (
+              <div className="h-9 border-b border-border flex items-center bg-card/50 overflow-x-auto">
+                {openedTabs.map((tabCode) => (
+                  <StockTab
+                    key={tabCode}
+                    code={tabCode}
+                    isSelected={selectedStock === tabCode}
+                    onSelect={() => handleSwitchTab(tabCode)}
+                    onClose={(e) => handleCloseTab(tabCode, e)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* 上半部分：K线图 + 筹码分布 + 技术指标 三栏显示 (占 65%) */}
+            <div className="flex-[65] min-h-0 flex">
+              {/* K线图 - 在普通屏占满宽度，在宽屏(>=1600px)时占60% */}
+              <div className={`flex-1 min-w-[400px] 2xl:flex-[60] relative ${showSidePanels ? 'hidden 2xl:block' : ''}`}>
+                {selectedStock ? (
+                  <StockDetailPanel stockCode={selectedStock} />
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-lg font-medium text-muted-foreground">
+                        选择一只股票查看详情
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        从左侧列表中点击股票
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 窄屏时显示的展开侧边栏按钮 */}
+                <button
+                  onClick={() => setShowSidePanels(!showSidePanels)}
+                  className="absolute right-2 top-2 z-20 2xl:hidden p-2 rounded-lg bg-card/90 border border-border hover:bg-accent transition-colors"
+                  title={showSidePanels ? "收起侧边栏" : "展开筹码/情绪面板"}
+                >
+                  {showSidePanels ? (
+                    <PanelRightClose className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <PanelRightOpen className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+
+
+
+              {/* 市场情绪 - Accordion 可折叠面板 */}
+              <div className={`${showSidePanels ? 'flex' : 'hidden'} 2xl:flex flex-[20] min-w-[180px] border-l border-border flex-col bg-card/30`}>
+                <Accordion type="multiple" defaultValue={["sentiment"]} className="flex-1 overflow-auto">
+                  {/* 市场情绪 */}
+                  <AccordionItem value="sentiment" className="border-b border-border/50">
+                    <AccordionTrigger className="px-3 py-2.5 text-sm font-semibold hover:no-underline hover:bg-accent/50">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-primary" />
+                        市场情绪
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <MarketSentimentPanel selectedStock={selectedStock ?? undefined} />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* 资金面 (占位 - 后续填充) */}
+                  <AccordionItem value="capital" className="border-b border-border/50">
+                    <AccordionTrigger className="px-3 py-2.5 text-sm font-semibold hover:no-underline hover:bg-accent/50">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                        资金面
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                        资金面数据已整合到 K线图下方
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* 操作建议 */}
+                  <AccordionItem value="suggestion" className="border-b border-border/50">
+                    <AccordionTrigger className="px-3 py-2.5 text-sm font-semibold hover:no-underline hover:bg-accent/50">
+                      <div className="flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4 text-yellow-500" />
+                        操作建议
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                        点击 AI 助手获取操作建议
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+                {/* 全部收起按钮 */}
+                <div className="p-2 border-t border-border/50">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs opacity-60 hover:opacity-100"
+                    onClick={() => {
+                      // 触发收起所有 accordion
+                      const accordionItems = document.querySelectorAll('[data-state="open"]');
+                      accordionItems.forEach(item => {
+                        (item as HTMLElement).click?.();
+                      });
+                    }}
+                  >
+                    全部收起
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* 下半部分：新闻/趋势/情绪分析 (占 35%) */}
+            <div className="flex-[35] min-h-[180px] border-t border-border flex flex-col bg-card/20">
+              {/* 标签导航 */}
+              <div className="h-10 border-b border-border flex items-center gap-1 px-4 bg-card/50">
+                <button className="px-4 py-1.5 text-sm font-medium rounded-md bg-primary/10 text-primary border-b-2 border-primary">
+                  📰 新闻资讯
+                </button>
+                <button className="px-4 py-1.5 text-sm font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                  📈 趋势分析
+                </button>
+                <button className="px-4 py-1.5 text-sm font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                  💡 情绪指标
+                </button>
+              </div>
+
+              {/* 内容区域 */}
+              <div className="flex-1 overflow-auto p-4">
+                {selectedStock ? (
+                  <div className="space-y-3">
+                    {/* 新闻条目示例 */}
+                    <div className="p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-accent/30 cursor-pointer transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground line-clamp-2">新闻资讯功能即将上线...</p>
+                          <p className="text-xs text-muted-foreground mt-1">实时获取股票相关新闻、公告和研报</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">即将推出</span>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-accent/30 cursor-pointer transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground line-clamp-2">趋势分析功能即将上线...</p>
+                          <p className="text-xs text-muted-foreground mt-1">技术指标、形态识别和趋势预测</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">即将推出</span>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-accent/30 cursor-pointer transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground line-clamp-2">情绪分析功能即将上线...</p>
+                          <p className="text-xs text-muted-foreground mt-1">市场情绪、资金流向和舆情监控</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">即将推出</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-sm text-muted-foreground">请先选择股票查看相关资讯</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </ResizablePanel>
+
+        {/* 可拖拽分隔条 */}
+        <ResizableHandle withHandle />
+
+        {/* 右侧 AI 聊天面板 - 可折叠 */}
+        <ResizablePanel
+          ref={rightPanelRef}
+          defaultSize={25}
+          minSize={15}
+          maxSize={50}
+          collapsible={true}
+          collapsedSize={4}
+          onCollapse={() => setIsRightPanelCollapsed(true)}
+          onExpand={() => setIsRightPanelCollapsed(false)}
+        >
+          {isRightPanelCollapsed ? (
+            // 折叠状态 - 显示展开按钮
+            <div className="h-full flex items-center justify-center bg-gradient-to-br from-card/50 to-card/30 border-l border-border">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => rightPanelRef.current?.expand()}
+                className="h-14 w-14 rounded-full bg-primary/10 hover:bg-primary/20 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
+                title="展开 AI 助手"
+              >
+                <MessageCircle className="h-6 w-6 text-primary" />
+              </Button>
+            </div>
+          ) : (
+            // 展开状态 - 完整的 AI 聊天面板
+            <div className="h-full flex flex-col border-l border-border bg-background">
+              {/* 瘦标题栏：44px 高 */}
+              <div className="h-11 px-4 border-b border-border/50 flex items-center justify-between shrink-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
+                <div className="flex items-center gap-2">
+                  <div className="size-6 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/20">
+                    <MessageCircle className="h-3 w-3 text-primary" />
+                  </div>
+                  <span className="font-semibold text-sm text-foreground">AI 助手</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 hover:bg-accent transition-colors duration-150 cursor-pointer"
+                  onClick={() => rightPanelRef.current?.collapse()}
+                  title="收起面板"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* 聊天内容 - 占满剩余空间 */}
+              <div className="flex-1 overflow-hidden">
+                <AIChatPanel selectedStock={selectedStock} />
+              </div>
             </div>
           )}
-
-          {/* 上半部分：K线图 + 筹码分布 + 技术指标 三栏显示 (占 65%) */}
-          <div className="flex-[65] min-h-0 flex">
-            {/* K线图 - 在普通屏占满宽度，在宽屏(>=1600px)时占60% */}
-            <div className={`flex-1 min-w-[400px] 2xl:flex-[60] relative ${showSidePanels ? 'hidden 2xl:block' : ''}`}>
-              {selectedStock ? (
-                <StockDetailPanel stockCode={selectedStock} />
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <p className="text-lg font-medium text-muted-foreground">
-                      选择一只股票查看详情
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      从左侧列表中点击股票
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* 窄屏时显示的展开侧边栏按钮 */}
-              <button
-                onClick={() => setShowSidePanels(!showSidePanels)}
-                className="absolute right-2 top-2 z-20 2xl:hidden p-2 rounded-lg bg-card/90 border border-border hover:bg-accent transition-colors"
-                title={showSidePanels ? "收起侧边栏" : "展开筹码/情绪面板"}
-              >
-                {showSidePanels ? (
-                  <PanelRightClose className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <PanelRightOpen className="h-4 w-4 text-muted-foreground" />
-                )}
-              </button>
-            </div>
-
-
-
-            {/* 市场情绪 (占 20%) - 宽屏自动显示 OR 手动展开时显示 */}
-            <div className={`${showSidePanels ? 'flex' : 'hidden'} 2xl:flex flex-[20] min-w-[160px] border-l border-border flex-col bg-card/30`}>
-              <div className="px-3 py-2.5 border-b border-border">
-                <span className="font-semibold text-foreground text-sm">市场情绪</span>
-              </div>
-              <MarketSentimentPanel selectedStock={selectedStock ?? undefined} />
-            </div>
-          </div>
-
-          {/* 下半部分：新闻/趋势/情绪分析 (占 35%) */}
-          <div className="flex-[35] min-h-[180px] border-t border-border flex flex-col bg-card/20">
-            {/* 标签导航 */}
-            <div className="h-10 border-b border-border flex items-center gap-1 px-4 bg-card/50">
-              <button className="px-4 py-1.5 text-sm font-medium rounded-md bg-primary/10 text-primary border-b-2 border-primary">
-                📰 新闻资讯
-              </button>
-              <button className="px-4 py-1.5 text-sm font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-                📈 趋势分析
-              </button>
-              <button className="px-4 py-1.5 text-sm font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-                💡 情绪指标
-              </button>
-            </div>
-
-            {/* 内容区域 */}
-            <div className="flex-1 overflow-auto p-4">
-              {selectedStock ? (
-                <div className="space-y-3">
-                  {/* 新闻条目示例 */}
-                  <div className="p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-accent/30 cursor-pointer transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground line-clamp-2">新闻资讯功能即将上线...</p>
-                        <p className="text-xs text-muted-foreground mt-1">实时获取股票相关新闻、公告和研报</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground shrink-0">即将推出</span>
-                    </div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-accent/30 cursor-pointer transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground line-clamp-2">趋势分析功能即将上线...</p>
-                        <p className="text-xs text-muted-foreground mt-1">技术指标、形态识别和趋势预测</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground shrink-0">即将推出</span>
-                    </div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-accent/30 cursor-pointer transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground line-clamp-2">情绪分析功能即将上线...</p>
-                        <p className="text-xs text-muted-foreground mt-1">市场情绪、资金流向和舆情监控</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground shrink-0">即将推出</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">请先选择股票查看相关资讯</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* 右侧AI聊天面板 - 响应式宽度：普通屏290px，宽屏560px */}
-        <div className="w-[290px] 2xl:w-[560px] shrink-0">
-          <AIChatPanel selectedStock={selectedStock} />
-        </div>
-      </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }

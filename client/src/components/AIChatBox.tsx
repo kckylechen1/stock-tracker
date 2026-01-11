@@ -22,29 +22,25 @@ export type AIChatBoxProps = {
   height?: string | number;
   emptyStateMessage?: string;
   suggestedPrompts?: string[];
-  thinkingMode?: boolean;
-  onThinkingModeChange?: (enabled: boolean) => void;
-  grokMode?: boolean;
-  onGrokModeChange?: (enabled: boolean) => void;
   onRegenerate?: () => void;
 };
 
 const TypingIndicator = () => (
-  <div className="flex items-center gap-1.5 px-3 py-2">
+  <div className="flex items-center gap-1 px-3 py-2">
     <motion.div
-      className="w-2 h-2 rounded-full bg-primary/60"
-      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-      transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+      className="w-1.5 h-1.5 rounded-full bg-primary/70"
+      animate={{ opacity: [0.4, 1, 0.4] }}
+      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0 }}
     />
     <motion.div
-      className="w-2 h-2 rounded-full bg-primary/60"
-      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-      transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+      className="w-1.5 h-1.5 rounded-full bg-primary/70"
+      animate={{ opacity: [0.4, 1, 0.4] }}
+      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
     />
     <motion.div
-      className="w-2 h-2 rounded-full bg-primary/60"
-      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-      transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+      className="w-1.5 h-1.5 rounded-full bg-primary/70"
+      animate={{ opacity: [0.4, 1, 0.4] }}
+      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
     />
   </div>
 );
@@ -53,7 +49,7 @@ const AIAvatar = ({ isThinking = false }: { isThinking?: boolean }) => (
   <div className="relative">
     <motion.div
       className="size-9 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/20 backdrop-blur-sm"
-      animate={isThinking ? { 
+      animate={isThinking ? {
         boxShadow: ["0 0 0 0 rgba(var(--primary), 0)", "0 0 20px 4px rgba(var(--primary), 0.3)", "0 0 0 0 rgba(var(--primary), 0)"]
       } : {}}
       transition={{ duration: 2, repeat: isThinking ? Infinity : 0 }}
@@ -76,13 +72,13 @@ const UserAvatar = () => (
   </div>
 );
 
-const EmptyState = ({ message, prompts, onPromptClick }: { 
-  message: string; 
-  prompts?: string[]; 
+const EmptyState = ({ message, prompts, onPromptClick }: {
+  message: string;
+  prompts?: string[];
   onPromptClick: (prompt: string) => void;
 }) => (
   <div className="flex h-full flex-col items-center justify-center p-8">
-    <motion.div 
+    <motion.div
       className="relative mb-8"
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -99,11 +95,11 @@ const EmptyState = ({ message, prompts, onPromptClick }: {
         animate={{ rotate: -360 }}
         transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
       />
-      
+
       {/* Central icon */}
-      <motion.div 
+      <motion.div
         className="relative size-16 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/30 backdrop-blur-sm"
-        animate={{ 
+        animate={{
           boxShadow: ["0 0 30px 0 rgba(var(--primary), 0.1)", "0 0 50px 10px rgba(var(--primary), 0.2)", "0 0 30px 0 rgba(var(--primary), 0.1)"]
         }}
         transition={{ duration: 3, repeat: Infinity }}
@@ -111,8 +107,8 @@ const EmptyState = ({ message, prompts, onPromptClick }: {
         <Zap className="size-7 text-primary" />
       </motion.div>
     </motion.div>
-    
-    <motion.p 
+
+    <motion.p
       className="text-sm text-muted-foreground mb-6 text-center max-w-xs"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -122,7 +118,7 @@ const EmptyState = ({ message, prompts, onPromptClick }: {
     </motion.p>
 
     {prompts && prompts.length > 0 && (
-      <motion.div 
+      <motion.div
         className="flex flex-wrap justify-center gap-2 max-w-md"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -159,10 +155,6 @@ export function AIChatBox({
   height = "600px",
   emptyStateMessage = "Start a conversation with AI",
   suggestedPrompts,
-  thinkingMode = false,
-  onThinkingModeChange,
-  grokMode = false,
-  onGrokModeChange,
   onRegenerate,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
@@ -242,8 +234,8 @@ export function AIChatBox({
       {/* Messages Area */}
       <div ref={scrollAreaRef} className="flex-1 overflow-hidden">
         {displayMessages.length === 0 ? (
-          <EmptyState 
-            message={emptyStateMessage} 
+          <EmptyState
+            message={emptyStateMessage}
             prompts={suggestedPrompts}
             onPromptClick={handlePromptClick}
           />
@@ -280,7 +272,7 @@ export function AIChatBox({
 
                       <div className="flex flex-col max-w-[80%] min-w-0 overflow-hidden">
                         {message.role === "assistant" && message.thinkingTime && message.thinkingTime > 0 && (
-                          <motion.div 
+                          <motion.div
                             className="flex items-center gap-1.5 text-xs text-primary/70 mb-2 ml-1"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -306,7 +298,7 @@ export function AIChatBox({
                                   <Streamdown>{message.content}</Streamdown>
                                 </div>
                                 {message.content && !isLoading && (
-                                  <motion.div 
+                                  <motion.div
                                     className="flex items-center gap-0.5 mt-4 pt-3 border-t border-border/30"
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
@@ -411,29 +403,13 @@ export function AIChatBox({
             {/* Bottom Toolbar */}
             <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2.5">
               <div className="flex items-center gap-1">
-                {onThinkingModeChange && (
-                  <ToolbarButton
-                    icon={Brain}
-                    active={thinkingMode}
-                    activeColor="bg-primary/20 text-primary"
-                    title={thinkingMode ? "深度思考模式开启" : "开启深度思考"}
-                    onClick={() => onThinkingModeChange(!thinkingMode)}
-                  />
-                )}
+                {/* SmartAgent 标识 */}
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-medium">
+                  <Brain className="size-3" />
+                  <span>SmartAgent</span>
+                </div>
 
-                {onGrokModeChange && (
-                  <ToolbarButton
-                    icon={Globe}
-                    active={grokMode}
-                    activeColor="bg-amber-500/20 text-amber-500"
-                    title={grokMode ? "Grok 模式开启" : "切换到 Grok"}
-                    onClick={() => onGrokModeChange(!grokMode)}
-                  />
-                )}
-
-                {(onThinkingModeChange || onGrokModeChange) && (
-                  <div className="w-px h-5 bg-border/50 mx-1" />
-                )}
+                <div className="w-px h-5 bg-border/50 mx-1" />
 
                 <ToolbarButton icon={Paperclip} title="添加附件" />
               </div>
@@ -469,17 +445,17 @@ export function AIChatBox({
   );
 }
 
-const ToolbarButton = ({ 
-  icon: Icon, 
-  active = false, 
+const ToolbarButton = ({
+  icon: Icon,
+  active = false,
   activeColor = "bg-primary/20 text-primary",
-  title, 
-  onClick 
-}: { 
-  icon: React.ElementType; 
-  active?: boolean; 
+  title,
+  onClick
+}: {
+  icon: React.ElementType;
+  active?: boolean;
   activeColor?: string;
-  title: string; 
+  title: string;
   onClick?: () => void;
 }) => (
   <motion.button
@@ -499,17 +475,17 @@ const ToolbarButton = ({
   </motion.button>
 );
 
-const ActionButton = ({ 
-  icon: Icon, 
-  active = false, 
+const ActionButton = ({
+  icon: Icon,
+  active = false,
   activeColor = "text-primary",
-  title, 
-  onClick 
-}: { 
-  icon: React.ElementType; 
-  active?: boolean; 
+  title,
+  onClick
+}: {
+  icon: React.ElementType;
+  active?: boolean;
   activeColor?: string;
-  title: string; 
+  title: string;
   onClick: () => void;
 }) => (
   <motion.button

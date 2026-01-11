@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Zap } from "lucide-react";
 import { AIChatBox, Message } from "@/components/AIChatBox";
+import { PresetPrompts } from "@/components/PresetPrompts";
 
 export interface AIChatPanelProps {
     selectedStock: string | null;
@@ -17,8 +18,6 @@ const getDefaultMessages = (): Message[] => [
 
 export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
     const [messages, setMessages] = useState<Message[]>(getDefaultMessages());
-    const [thinkingMode, setThinkingMode] = useState(false);
-    const [grokMode, setGrokMode] = useState(true);  // 默认使用 Grok
     const [isLoading, setIsLoading] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -110,8 +109,7 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
                     })),
                     stockCode: selectedStock || undefined,
                     stockContext, // 传递前端已加载的数据
-                    useThinking: thinkingMode,
-                    useGrok: grokMode,  // 使用 Grok 模型
+                    useSmartAgent: true, // 使用新架构
                 }),
                 signal: abortControllerRef.current.signal,
             });
@@ -145,8 +143,8 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
                         try {
                             const json = JSON.parse(data);
                             if (json.content) {
-                                // 首次收到内容时，计算思考时间
-                                if (!hasReceivedFirstContent && thinkingMode) {
+                                // 首次收到非思考内容时，计算思考时间
+                                if (!hasReceivedFirstContent && !json.content.startsWith('💭') && !json.content.startsWith('🔧') && !json.content.startsWith('📊') && !json.content.startsWith('🧠')) {
                                     thinkingTime = Math.round((Date.now() - startTime) / 1000);
                                     hasReceivedFirstContent = true;
                                 }
@@ -158,7 +156,7 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
                                     updated[updated.length - 1] = {
                                         role: "assistant",
                                         content: fullContent,
-                                        thinkingTime: thinkingMode ? thinkingTime : undefined,
+                                        thinkingTime: thinkingTime > 0 ? thinkingTime : undefined,
                                     };
                                     return updated;
                                 });
@@ -211,16 +209,7 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
         await streamChatRequest(historyToRegenerate);
     };
 
-    // 根据选中股票生成快捷提示
-    const suggestedPrompts = selectedStock ? [
-        "帮我分析一下这只股票",
-        "技术面怎么看",
-        "现在适合买入吗",
-    ] : [
-        "如何选股",
-        "什么是MACD",
-        "如何控制风险",
-    ];
+
 
     // 判断是否有聊天记录（除了系统消息）
     const hasHistory = messages.length > 1;
@@ -243,25 +232,27 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
             </div>
 
             {/* 聊天区域 */}
-            <div className="flex-1 overflow-hidden">
-                <AIChatBox
-                    messages={messages}
-                    onSendMessage={handleSendMessage}
-                    isLoading={isLoading}
-                    placeholder={selectedStock ? `问问关于 ${stockDetail?.quote?.name || selectedStock} 的问题...` : "输入问题..."}
-                    height="100%"
-                    emptyStateMessage={
-                        selectedStock
-                            ? `AI 已加载 ${stockDetail?.quote?.name || selectedStock} 的实时数据，直接提问即可`
-                            : "选择股票后可以进行针对性分析"
-                    }
-                    suggestedPrompts={hasHistory ? [] : suggestedPrompts}
-                    thinkingMode={thinkingMode}
-                    onThinkingModeChange={setThinkingMode}
-                    grokMode={grokMode}
-                    onGrokModeChange={setGrokMode}
-                    onRegenerate={handleRegenerate}
-                />
+            <div className="flex-1 overflow-hidden flex flex-col">
+                {/* 预设提示按钮 - 只在没有聊天历史时显示 */}
+                {!hasHistory && (
+                    <PresetPrompts onSend={handleSendMessage} />
+                )}
+                <div className="flex-1 overflow-hidden">
+                    <AIChatBox
+                        messages={messages}
+                        onSendMessage={handleSendMessage}
+                        isLoading={isLoading}
+                        placeholder={selectedStock ? `问问关于 ${stockDetail?.quote?.name || selectedStock} 的问题...` : "输入问题..."}
+                        height="100%"
+                        emptyStateMessage={
+                            selectedStock
+                                ? `🧠 SmartAgent 已就绪，直接提问即可`
+                                : "选择股票后可以进行针对性分析"
+                        }
+                        suggestedPrompts={[]} // 不再使用旧的建议提示
+                        onRegenerate={handleRegenerate}
+                    />
+                </div>
             </div>
         </div>
     );

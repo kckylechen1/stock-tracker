@@ -1,5 +1,21 @@
-import { describe, expect, it } from "vitest";
+import axios from "axios";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("axios", () => {
+  return {
+    default: {
+      get: vi.fn(),
+    },
+  };
+});
+
 import * as eastmoney from "./eastmoney";
+
+const mockAxiosGet = vi.mocked(axios.get);
+
+beforeEach(() => {
+  mockAxiosGet.mockReset();
+});
 
 describe("Eastmoney API", () => {
   it("should convert stock code to eastmoney format", () => {
@@ -14,16 +30,69 @@ describe("Eastmoney API", () => {
   });
 
   it("should get stock quote", async () => {
-    // 测试获取贵州茅台(600519)的行情
+    mockAxiosGet.mockImplementation(async (url: string) => {
+      if (url.includes("/api/qt/stock/get")) {
+        return {
+          data: {
+            data: {
+              f43: 10000, // 现价 100.00
+              f44: 10100, // 最高 101.00
+              f45: 9900, // 最低 99.00
+              f46: 9950, // 开盘 99.50
+              f47: 123456, // 成交量
+              f48: 987654321, // 成交额
+              f58: "贵州茅台",
+              f60: 9500, // 昨收 95.00
+              f116: 123000000000, // 总市值
+              f117: 120000000000, // 流通市值
+              f162: 2000, // PE 20.00
+              f167: 500, // PB 5.00
+              f168: 1234, // 换手率 12.34
+              f169: 10,
+              f170: 20,
+            },
+          },
+        } as any;
+      }
+
+      if (url.includes("/api/qt/ulist.np/get")) {
+        return {
+          data: {
+            data: {
+              diff: [{ f10: 1.23 }],
+            },
+          },
+        } as any;
+      }
+
+      throw new Error(`Unexpected axios.get URL: ${url}`);
+    });
+
     const quote = await eastmoney.getStockQuote("600519");
-    
+
     expect(quote).toBeDefined();
     expect(quote.code).toBe("600519");
     expect(quote.name).toBe("贵州茅台");
     expect(quote.price).toBeGreaterThan(0);
-  }, 10000); // 10秒超时
+    expect(quote.volumeRatio).toBe(1.23);
+  });
 
   it("should search stocks", async () => {
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        QuotationCodeTable: {
+          Data: [
+            {
+              Code: "600519",
+              Name: "贵州茅台",
+              MktNum: "1",
+              SecurityTypeName: "沪A",
+            },
+          ],
+        },
+      },
+    } as any);
+
     const results = await eastmoney.searchStock("茅台");
     
     expect(results).toBeDefined();
@@ -33,10 +102,21 @@ describe("Eastmoney API", () => {
     // 应该包含贵州茅台
     const maotai = results.find((stock: any) => stock.code === "600519");
     expect(maotai).toBeDefined();
-  }, 10000);
+  });
 
   it("should get kline data", async () => {
-    // 测试获取贵州茅台的日K线数据
+    const payload = {
+      data: {
+        klines: [
+          "2026-01-02,100.00,101.00,102.00,99.00,12345,1000000,1.00,1.00,1.00,0.50",
+          "2026-01-03,101.00,100.50,103.00,100.00,23456,2000000,2.00,-0.50,-0.50,0.60",
+        ],
+      },
+    };
+    mockAxiosGet.mockResolvedValueOnce({
+      data: `jQuery12345(${JSON.stringify(payload)});`,
+    } as any);
+
     const klines = await eastmoney.getKlineData("600519", "day");
     
     expect(klines).toBeDefined();
@@ -51,5 +131,5 @@ describe("Eastmoney API", () => {
     expect(firstKline).toHaveProperty("high");
     expect(firstKline).toHaveProperty("low");
     expect(firstKline).toHaveProperty("volume");
-  }, 15000); // 15秒超时
+  });
 });

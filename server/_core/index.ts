@@ -36,9 +36,9 @@ async function startServer() {
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
-  // 流式 AI 聊天端点
+  // 流式 AI 聊天端点 - 使用 SmartAgent 新架构
   app.post("/api/ai/stream", async (req, res) => {
-    const { streamChat } = await import("./streamChat");
+    const { hybridStreamChat } = await import("./smartStreamChat");
     const { saveChatHistory } = await import("../local_db");
 
     // 设置 SSE 头
@@ -47,11 +47,18 @@ async function startServer() {
     res.setHeader("Connection", "keep-alive");
     res.setHeader("Access-Control-Allow-Origin", "*");
 
-    const { messages, stockCode, stockContext, useThinking, useGrok } = req.body;
+    const { messages, stockCode, stockContext, useSmartAgent = true, sessionId } = req.body;
     let fullContent = "";
 
     try {
-      for await (const chunk of streamChat({ messages, stockCode, stockContext, useThinking, useGrok })) {
+      // 使用 hybridStreamChat，默认使用新架构
+      for await (const chunk of hybridStreamChat({
+        messages,
+        stockCode,
+        stockContext,
+        useSmartAgent,
+        sessionId
+      })) {
         fullContent += chunk;
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
       }
@@ -64,7 +71,6 @@ async function startServer() {
           { role: 'assistant', content: fullContent }
         ];
         // 异步保存，不阻塞响应结束
-        // Pass stockCode to save persistence for the specific stock
         saveChatHistory(newHistory, stockCode).catch(console.error);
       } catch (saveError) {
         console.error("Failed to auto-save chat history:", saveError);

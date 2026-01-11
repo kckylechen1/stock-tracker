@@ -5,6 +5,13 @@
  */
 
 import * as akshare from '../akshare';
+import {
+    SMA,
+    EMA,
+    RSI,
+    MACD,
+    Stochastic,
+} from 'technicalindicators';
 
 // ==================== 类型定义 ====================
 
@@ -73,110 +80,12 @@ export interface TechnicalAnalysisResult {
     report: string;
 }
 
-// ==================== 技术指标计算 ====================
+// ==================== 技术指标计算 (使用 technicalindicators 库) ====================
 
-function calculateMA(closes: number[], period: number): number[] {
-    if (closes.length < period) {
-        return closes.map(() => closes[closes.length - 1]);
-    }
-
-    const result: number[] = [];
-    for (let i = 0; i < closes.length; i++) {
-        if (i < period - 1) {
-            result.push(closes.slice(0, i + 1).reduce((a, b) => a + b, 0) / (i + 1));
-        } else {
-            result.push(closes.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period);
-        }
-    }
-    return result;
-}
-
-function calculateEMA(data: number[], period: number): number[] {
-    if (!data.length) return [];
-    const result = [data[0]];
-    const multiplier = 2 / (period + 1);
-    for (let i = 1; i < data.length; i++) {
-        result.push((data[i] - result[i - 1]) * multiplier + result[i - 1]);
-    }
-    return result;
-}
-
-function calculateRSI(closes: number[], period: number = 14): number {
-    if (closes.length < period + 1) return 50;
-
-    const gains: number[] = [];
-    const losses: number[] = [];
-
-    for (let i = 1; i < closes.length; i++) {
-        const change = closes[i] - closes[i - 1];
-        if (change > 0) {
-            gains.push(change);
-            losses.push(0);
-        } else {
-            gains.push(0);
-            losses.push(Math.abs(change));
-        }
-    }
-
-    const avgGain = gains.slice(-period).reduce((a, b) => a + b, 0) / period;
-    const avgLoss = losses.slice(-period).reduce((a, b) => a + b, 0) / period;
-
-    if (avgLoss === 0) return 100;
-
-    const rs = avgGain / avgLoss;
-    return Math.round((100 - (100 / (1 + rs))) * 100) / 100;
-}
-
-function calculateMACD(closes: number[], fast = 12, slow = 26, signal = 9): {
-    dif: number[];
-    dea: number[];
-    histogram: number[];
-} {
-    if (closes.length < slow) {
-        return { dif: [0], dea: [0], histogram: [0] };
-    }
-
-    const emaFast = calculateEMA(closes, fast);
-    const emaSlow = calculateEMA(closes, slow);
-
-    const dif = emaFast.map((v, i) => v - emaSlow[i]);
-    const dea = calculateEMA(dif, signal);
-    const histogram = dif.map((v, i) => v - dea[i]);
-
-    return { dif, dea, histogram };
-}
-
-function calculateKDJ(highs: number[], lows: number[], closes: number[], n = 9): {
-    k: number[];
-    d: number[];
-    j: number[];
-} {
-    if (closes.length < n) {
-        return { k: [50], d: [50], j: [50] };
-    }
-
-    const kList: number[] = [];
-    const dList: number[] = [];
-    const jList: number[] = [];
-
-    for (let i = n - 1; i < closes.length; i++) {
-        const lowN = Math.min(...lows.slice(i - n + 1, i + 1));
-        const highN = Math.max(...highs.slice(i - n + 1, i + 1));
-
-        const rsv = highN === lowN ? 50 : ((closes[i] - lowN) / (highN - lowN)) * 100;
-
-        const k = kList.length === 0 ? rsv : (2 / 3) * kList[kList.length - 1] + (1 / 3) * rsv;
-        const d = dList.length === 0 ? k : (2 / 3) * dList[dList.length - 1] + (1 / 3) * k;
-        const j = 3 * k - 2 * d;
-
-        kList.push(k);
-        dList.push(d);
-        jList.push(j);
-    }
-
-    return { k: kList, d: dList, j: jList };
-}
-
+// 库自动处理了：
+// - RSI 的 Wilder's Smoothing 初始值问题
+// - EMA 使用 SMA 作为 seed
+// - KDJ 的标准初始化逻辑
 // ==================== 核心分析函数 ====================
 
 /**
@@ -215,61 +124,92 @@ export async function analyzeStock(symbol: string, targetDate?: string): Promise
         const highs = data.map(k => k.high);
         const lows = data.map(k => k.low);
         const volumes = data.map(k => k.volume);
-
-        // 计算指标
-        const ma5List = calculateMA(closes, 5);
-        const ma10List = calculateMA(closes, 10);
-        const ma20List = calculateMA(closes, 20);
-
-        const ma5 = ma5List[ma5List.length - 1];
-        const ma10 = ma10List[ma10List.length - 1];
-        const ma20 = ma20List[ma20List.length - 1];
-
+        
+        // 计算指标 - 使用 technicalindicators 库
+        // 库自动处理 RSI Wilder's Smoothing、EMA 初始值等标准问题
+        
+        // 均线系统
+        const ma5List = SMA.calculate({ values: closes, period: 5 });
+        const ma10List = SMA.calculate({ values: closes, period: 10 });
+        const ma20List = SMA.calculate({ values: closes, period: 20 });
+        
+        const ma5 = ma5List[ma5List.length - 1] ?? closes[closes.length - 1];
+        const ma10 = ma10List[ma10List.length - 1] ?? closes[closes.length - 1];
+        const ma20 = ma20List[ma20List.length - 1] ?? closes[closes.length - 1];
+        
         const isMaBullish = ma5 > ma10 && ma10 > ma20;
         const priceAboveMa5 = today.close > ma5;
         const priceAboveMa10 = today.close > ma10;
-
-        // MACD
-        const macd = calculateMACD(closes);
-        const macdDif = macd.dif[macd.dif.length - 1];
-        const macdDea = macd.dea[macd.dea.length - 1];
-        const macdHistogram = macd.histogram[macd.histogram.length - 1];
+        
+        // MACD - 库自动处理 EMA 初始化
+        const macdResult = MACD.calculate({
+            values: closes,
+            fastPeriod: 12,
+            slowPeriod: 26,
+            signalPeriod: 9,
+            SimpleMAOscillator: false,
+            SimpleMASignal: false,
+        });
+        const macd = macdResult[macdResult.length - 1] || { MACD: 0, signal: 0, histogram: 0 };
+        const macdDif = macd.MACD ?? 0;
+        const macdDea = macd.signal ?? 0;
+        const macdHistogram = macd.histogram ?? 0;
         const macdIsRed = macdHistogram > 0;
-        const macdExpanding = macd.histogram.length >= 2 &&
-            macd.histogram[macd.histogram.length - 1] > macd.histogram[macd.histogram.length - 2];
-
+        
+        // 补充柱状图扩张/萎缩判断
+        let macdExpanding = false;
+        let macdShrinking = false;
+        if (macdResult.length >= 2) {
+            const prevHistogram = macdResult[macdResult.length - 2]?.histogram ?? 0;
+            macdExpanding = macdHistogram > prevHistogram;
+            macdShrinking = macdHistogram < prevHistogram;
+        }
+        
         let macdCross: 'golden' | 'dead' | 'none' = 'none';
-        if (macd.dif.length >= 2 && macd.dea.length >= 2) {
-            const prevDif = macd.dif[macd.dif.length - 2];
-            const prevDea = macd.dea[macd.dea.length - 2];
+        if (macdResult.length >= 2) {
+            const prevMacd = macdResult[macdResult.length - 2] || { MACD: 0, signal: 0 };
+            const prevDif = prevMacd.MACD ?? 0;
+            const prevDea = prevMacd.signal ?? 0;
             if (prevDif < prevDea && macdDif > macdDea) macdCross = 'golden';
             else if (prevDif > prevDea && macdDif < macdDea) macdCross = 'dead';
         }
-
-        // RSI
-        const rsi = calculateRSI(closes);
+        
+        // RSI - 库自动使用 Wilder's Smoothing
+        const rsiResult = RSI.calculate({
+            values: closes,
+            period: 14,
+        });
+        const rsi = rsiResult[rsiResult.length - 1] ?? 50;
         const rsiZone: 'oversold' | 'normal' | 'overbought' =
             rsi < 30 ? 'oversold' : rsi > 70 ? 'overbought' : 'normal';
-
-        // KDJ
-        const kdj = calculateKDJ(highs, lows, closes);
-        const kdjK = kdj.k[kdj.k.length - 1];
-        const kdjD = kdj.d[kdj.d.length - 1];
-        const kdjJ = kdj.j[kdj.j.length - 1];
-
+        
+        // KDJ - 使用 Stochastic 计算 K 和 D，J 手算
+        const stochResult = Stochastic.calculate({
+            high: highs,
+            low: lows,
+            close: closes,
+            period: 9,
+            signalPeriod: 3,
+        });
+        const stoch = stochResult[stochResult.length - 1] || { k: 50, d: 50 };
+        const kdjK = stoch.k ?? 50;
+        const kdjD = stoch.d ?? 50;
+        const kdjJ = 3 * kdjK - 2 * kdjD;  // J 值计算基于正确的 K/D
+        
         let kdjCross: 'golden' | 'dead' | 'none' = 'none';
-        if (kdj.k.length >= 2 && kdj.d.length >= 2) {
-            const prevK = kdj.k[kdj.k.length - 2];
-            const prevD = kdj.d[kdj.d.length - 2];
+        if (stochResult.length >= 2) {
+            const prevStoch = stochResult[stochResult.length - 2] || { k: 50, d: 50 };
+            const prevK = prevStoch.k ?? 50;
+            const prevD = prevStoch.d ?? 50;
             if (prevK < prevD && kdjK > kdjD) kdjCross = 'golden';
             else if (prevK > prevD && kdjK < kdjD) kdjCross = 'dead';
         }
-
-        // 成交量
+        
+        // 成交量 - 降低放量阈值（从 1.5 改为 1.3）
         const volAvg5 = volumes.slice(-5).reduce((a, b) => a + b, 0) / 5;
         const volRatio = today.volume / volAvg5;
         const volStatus: 'shrink' | 'normal' | 'expand' =
-            volRatio < 0.7 ? 'shrink' : volRatio > 1.5 ? 'expand' : 'normal';
+            volRatio < 0.7 ? 'shrink' : volRatio > 1.3 ? 'expand' : 'normal';
 
         // "没走弱"判定（5项检查）
         const notWeakenedItems: string[] = [];
@@ -290,8 +230,17 @@ export async function analyzeStock(symbol: string, targetDate?: string): Promise
         }
 
         if (macdIsRed) {
-            notWeakenedItems.push(macdExpanding ? '✅ MACD红柱存在且扩大' : '✅ MACD红柱存在（在缩小）');
+            if (macdExpanding) {
+                notWeakenedItems.push('✅ MACD红柱存在且扩大');
+            } else if (macdShrinking) {
+                notWeakenedItems.push('⚠️ MACD红柱存在但在缩小（动能减弱）');
+            } else {
+                notWeakenedItems.push('✅ MACD红柱存在');
+            }
             notWeakenedScore++;
+        } else if (macdShrinking && macdHistogram < 0) {
+            // 绿柱缩小，空头动能减弱
+            notWeakenedItems.push('⚠️ MACD绿柱缩小（空头动能减弱）');
         } else {
             notWeakenedItems.push('❌ MACD已转绿柱');
         }

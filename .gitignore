@@ -105,3 +105,27 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
+
+# ===========================================
+# 项目特定排除
+# ===========================================
+
+# 文档和报告 (太大，不需要版本控制)
+docs/reports/
+docs/logs/
+
+# 测试脚本和临时测试文件
+scripts/tests/
+
+# 数据文件
+data/sessions/
+data/memories.json
+data/trading_memory.json
+
+# AKShare 日志
+aktools*.log
+aktools*.pid
+
+# 临时测试输出
+*_test_output.log
+*_test_results*.md

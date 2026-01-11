@@ -421,13 +421,61 @@ export const stockTools: Tool[] = [
 
 // ==================== 工具执行器 ====================
 
+import { toolCache } from './cache';
+
+// 需要缓存的工具列表（排除写入操作和实时性要求极高的工具）
+const CACHEABLE_TOOLS = new Set([
+    'get_stock_quote',
+    'get_kline_data',
+    'get_fund_flow',
+    'get_fund_flow_history',
+    'get_fund_flow_rank',
+    'get_market_fund_flow',
+    'get_longhu_bang',
+    'analyze_stock_technical',
+    'get_market_status',
+    'get_guba_hot_rank',
+    'get_zt_pool',
+    'get_dt_pool',
+    'get_concept_board',
+    'get_industry_board',
+    'get_north_flow',
+    'comprehensive_analysis',
+]);
+
 /**
- * 执行工具调用
+ * 执行工具调用（带智能缓存）
  * @param toolName 工具名称
  * @param args 工具参数
  * @returns 工具执行结果（字符串格式，供LLM阅读）
  */
 export async function executeStockTool(toolName: string, args: Record<string, any>): Promise<string> {
+    // 生成缓存键
+    const cacheKey = `${toolName}:${JSON.stringify(args)}`;
+
+    // 检查是否可缓存且有缓存
+    if (CACHEABLE_TOOLS.has(toolName)) {
+        const cached = toolCache.get<string>(cacheKey);
+        if (cached) {
+            return cached;
+        }
+    }
+
+    // 执行工具
+    const result = await executeStockToolInternal(toolName, args);
+
+    // 缓存结果（仅缓存成功的结果）
+    if (CACHEABLE_TOOLS.has(toolName) && !result.includes('失败') && !result.includes('无法获取')) {
+        toolCache.set(cacheKey, result, toolName);
+    }
+
+    return result;
+}
+
+/**
+ * 内部工具执行（无缓存）
+ */
+async function executeStockToolInternal(toolName: string, args: Record<string, any>): Promise<string> {
     try {
         switch (toolName) {
             case "search_stock": {
