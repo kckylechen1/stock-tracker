@@ -41,6 +41,7 @@ export interface MarketSentimentData {
         fallCount: number;      // 下跌家数
         flatCount: number;      // 平盘家数
         riseRatio: number;      // 上涨比例 (0-100)
+        totalCount: number;     // 总家数
         limitUpCount?: number;  // 涨停家数
         limitDownCount?: number; // 跌停家数
     };
@@ -79,20 +80,35 @@ export interface MarketSentimentData {
  */
 async function fetchMarketOverview() {
     try {
-        const url = 'https://push2.eastmoney.com/api/qt/ulist.np/get';
-        const params = {
-            fltt: 2,
-            // 上证指数、深证成指、创业板指
-            secids: '1.000001,0.399001,0.399006',
-            // f104=涨家数, f105=跌家数, f106=平盘家数
-            fields: 'f2,f3,f4,f12,f14,f104,f105,f106',
-        };
+        // 并行获取多个数据源以获得更全面的市场统计
+        const [indexData, breadthData] = await Promise.all([
+            // 获取指数数据
+            axios.get('https://push2.eastmoney.com/api/qt/ulist.np/get', {
+                params: {
+                    fltt: 2,
+                    secids: '1.000001,0.399001,0.399006',
+                    fields: 'f2,f3,f4,f12,f14,f104,f105,f106,f107',
+                },
+                headers: HEADERS,
+                timeout: 10000,
+            }),
+            // 尝试获取更全面的市场统计（创业板通常包含全市场数据）
+            axios.get('https://push2.eastmoney.com/api/qt/ulist.np/get', {
+                params: {
+                    fltt: 2,
+                    secids: '0.399006', // 创业板指
+                    fields: 'f2,f3,f4,f12,f14,f104,f105,f106,f107',
+                },
+                headers: HEADERS,
+                timeout: 10000,
+            }).catch(() => ({ data: { data: { diff: [] } } })) // 如果失败，使用空数据
+        ]);
 
-        const response = await axios.get(url, { params, headers: HEADERS, timeout: 10000 });
-        const data = response.data?.data?.diff || [];
+        const indexResponse = indexData.data?.data?.diff || [];
+        const breadthResponse = breadthData.data?.data?.diff || [];
 
         // 解析指数数据
-        const indices = data.map((item: any) => ({
+        const indices = indexResponse.map((item: any) => ({
             name: item.f14,
             code: item.f12,
             price: item.f2,
@@ -100,15 +116,31 @@ async function fetchMarketOverview() {
             changePercent: item.f3,
         }));
 
-        // 汇总涨跌家数（取上证指数的数据，因为它覆盖沪市）
-        // 实际应该合并沪深两市，这里简化处理用上证数据作为参考
-        const shIndex = data.find((item: any) => item.f12 === '000001');
-        const szIndex = data.find((item: any) => item.f12 === '399001');
+        // 获取市场宽度数据
+        // 优先使用创业板数据（通常更全面），然后回退到沪深合并数据
+        let marketBreadthData: any = null;
 
-        // 合并沪深两市的涨跌家数
-        const riseCount = (shIndex?.f104 || 0) + (szIndex?.f104 || 0);
-        const fallCount = (shIndex?.f105 || 0) + (szIndex?.f105 || 0);
-        const flatCount = (shIndex?.f106 || 0) + (szIndex?.f106 || 0);
+        if (breadthResponse.length > 0) {
+            marketBreadthData = breadthResponse[0];
+        } else if (indexResponse.length > 0) {
+            // 合并沪深两市数据
+            const shData = indexResponse.find((item: any) => item.f12 === '000001');
+            const szData = indexResponse.find((item: any) => item.f12 === '399001');
+
+            marketBreadthData = {
+                f104: (shData?.f104 || 0) + (szData?.f104 || 0),
+                f105: (shData?.f105 || 0) + (szData?.f105 || 0),
+                f106: (shData?.f106 || 0) + (szData?.f106 || 0),
+            };
+        }
+
+        if (!marketBreadthData) {
+            throw new Error('No market breadth data available');
+        }
+
+        const riseCount = marketBreadthData.f104 || 0;
+        const fallCount = marketBreadthData.f105 || 0;
+        const flatCount = marketBreadthData.f106 || 0;
         const total = riseCount + fallCount + flatCount;
 
         return {
@@ -118,6 +150,7 @@ async function fetchMarketOverview() {
                 fallCount,
                 flatCount,
                 riseRatio: total > 0 ? Math.round((riseCount / total) * 100) : 50,
+                totalCount: total,
             },
         };
     } catch (error) {
@@ -212,28 +245,57 @@ function calculateMarketTemperature(breadth: { riseRatio: number }) {
 
 /**
  * 计算恐惧贪婪指数
- * 综合多个市场指标计算
+ * 基于多个市场指标的综合计算
  */
 function calculateFearGreedIndex(
-    breadth: { riseRatio: number },
-    northboundFlow: { netFlow: number }
+    breadth: { riseRatio: number; riseCount: number; fallCount: number; totalCount: number },
+    indices: Array<{ changePercent: number }>
 ) {
-    // 简化版计算：直接使用涨跌比例作为恐惧贪婪指数（北向资金已不可用）
-    const value = breadth.riseRatio;
+    // 1. 涨跌比例得分 (40%)
+    const breadthScore = Math.min(100, Math.max(0, breadth.riseRatio));
 
+    // 2. 市场强度得分 (30%)
+    // 计算上涨家数占比的强度
+    const strengthScore = breadth.totalCount > 0
+        ? (breadth.riseCount / breadth.totalCount) * 100
+        : 50;
+
+    // 3. 指数动量得分 (20%)
+    // 计算主要指数的平均涨跌幅
+    const avgIndexChange = indices.length > 0
+        ? indices.reduce((sum, idx) => sum + (idx.changePercent || 0), 0) / indices.length
+        : 0;
+    const momentumScore = Math.min(100, Math.max(0, 50 + avgIndexChange * 10));
+
+    // 4. 市场一致性得分 (10%)
+    // 当上涨家数明显多于下跌家数时，一致性高
+    const advanceDeclineRatio = breadth.fallCount > 0
+        ? breadth.riseCount / breadth.fallCount
+        : breadth.riseCount > 0 ? 10 : 0;
+    const consistencyScore = Math.min(100, advanceDeclineRatio * 10);
+
+    // 综合得分计算
+    const value = Math.round(
+        breadthScore * 0.4 +
+        strengthScore * 0.3 +
+        momentumScore * 0.2 +
+        consistencyScore * 0.1
+    );
+
+    // 确定情绪等级
     let level: 'extreme_fear' | 'fear' | 'neutral' | 'greed' | 'extreme_greed';
     let label: string;
 
-    if (value <= 20) {
+    if (value <= 25) {
         level = 'extreme_fear';
         label = '极度恐惧';
-    } else if (value <= 40) {
+    } else if (value <= 45) {
         level = 'fear';
         label = '恐惧';
-    } else if (value <= 60) {
+    } else if (value <= 55) {
         level = 'neutral';
         label = '中性';
-    } else if (value <= 80) {
+    } else if (value <= 75) {
         level = 'greed';
         label = '贪婪';
     } else {
@@ -267,6 +329,7 @@ export async function getMarketSentiment(): Promise<MarketSentimentData> {
         fallCount: 0,
         flatCount: 0,
         riseRatio: 50,
+        totalCount: 0,
     };
     const northboundFlow = northboundData || {
         netFlow: 0,
@@ -278,7 +341,7 @@ export async function getMarketSentiment(): Promise<MarketSentimentData> {
 
     // 计算衍生指标
     const marketTemperature = calculateMarketTemperature(marketBreadth);
-    const fearGreedIndex = calculateFearGreedIndex(marketBreadth, northboundFlow);
+    const fearGreedIndex = calculateFearGreedIndex(marketBreadth, indices);
 
     const result: MarketSentimentData = {
         indices,
