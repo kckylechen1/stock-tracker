@@ -42,6 +42,11 @@ export function MarketSentimentPanel({ selectedStock }: MarketSentimentPanelProp
         return '#ef4444';
     };
 
+    // Helper function to safely access nested properties
+    const safeValue = (obj: any, path: string, defaultValue: any = 0) => {
+        return obj && obj[path] !== undefined ? obj[path] : defaultValue;
+    };
+
     return (
         <div className="flex-1 flex flex-col overflow-hidden">
             {/* Tab 标签栏 */}
@@ -89,65 +94,65 @@ export function MarketSentimentPanel({ selectedStock }: MarketSentimentPanelProp
                                 <div className="px-3 py-2 rounded-lg bg-card/50 border border-border/30">
                                     <div className="flex items-center justify-between mb-1.5">
                                         <span className="text-muted-foreground">恐惧贪婪</span>
-                                        <div className="flex items-baseline gap-1.5">
-                                            <span
-                                                className="font-bold text-lg tabular-nums"
-                                                style={{ color: getFearGreedColor(fearGreedIndex!.value) }}
-                                            >
-                                                {fearGreedIndex!.value}
-                                            </span>
-                                            <span
-                                                className="text-xs font-medium"
-                                                style={{ color: getFearGreedColor(fearGreedIndex!.value) }}
-                                            >
-                                                {fearGreedIndex!.label}
-                                            </span>
-                                        </div>
+                                         <div className="flex items-baseline gap-1.5">
+                                             <span
+                                                 className="font-bold text-lg tabular-nums"
+                                                 style={{ color: getFearGreedColor(safeValue(fearGreedIndex, 'value', 50)) }}
+                                             >
+                                                 {safeValue(fearGreedIndex, 'value', 50)}
+                                             </span>
+                                             <span
+                                                 className="text-xs font-medium"
+                                                 style={{ color: getFearGreedColor(safeValue(fearGreedIndex, 'value', 50)) }}
+                                             >
+                                                 {safeValue(fearGreedIndex, 'label', '中性')}
+                                             </span>
+                                         </div>
                                     </div>
-                                    <div className="w-full h-1.5 bg-gradient-to-r from-[#22c55e] via-[#f59e0b] to-[#ef4444] rounded-full">
-                                        <div
-                                            className="h-full relative"
-                                            style={{ width: `${fearGreedIndex!.value}%` }}
-                                        >
-                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow-md border border-gray-200" />
-                                        </div>
-                                    </div>
+                                     <div className="w-full h-1.5 bg-gradient-to-r from-[#22c55e] via-[#f59e0b] to-[#ef4444] rounded-full">
+                                         <div
+                                             className="h-full relative"
+                                             style={{ width: `${safeValue(fearGreedIndex, 'value', 50)}%` }}
+                                         >
+                                             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow-md border border-gray-200" />
+                                         </div>
+                                     </div>
                                 </div>
 
                                 {/* 市场温度 */}
                                 <div className="px-3 py-2 rounded-lg bg-card/50 border border-border/30 flex items-center justify-between">
                                     <span className="text-muted-foreground">市场温度</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-lg">{marketTemperature!.emoji}</span>
-                                        <span
-                                            className="font-semibold"
-                                            style={{
-                                                color: marketTemperature!.level === 'hot' || marketTemperature!.level === 'warm'
-                                                    ? '#ef4444'
-                                                    : marketTemperature!.level === 'cold' || marketTemperature!.level === 'cool'
-                                                        ? '#3b82f6'
-                                                        : '#f59e0b'
-                                            }}
-                                        >
-                                            {marketTemperature!.label}
-                                        </span>
-                                    </div>
+                                     <div className="flex items-center gap-2">
+                                         <span className="text-lg">{safeValue(marketTemperature, 'emoji', '😐')}</span>
+                                         <span
+                                             className="font-semibold"
+                                             style={{
+                                                 color: safeValue(marketTemperature, 'level') === 'hot' || safeValue(marketTemperature, 'level') === 'warm'
+                                                     ? '#ef4444'
+                                                     : safeValue(marketTemperature, 'level') === 'cold' || safeValue(marketTemperature, 'level') === 'cool'
+                                                         ? '#3b82f6'
+                                                         : '#f59e0b'
+                                             }}
+                                         >
+                                             {safeValue(marketTemperature, 'label', '未知')}
+                                         </span>
+                                     </div>
                                 </div>
 
                                 {/* 涨跌比 */}
                                 <div className="px-3 py-2 rounded-lg bg-card/50 border border-border/30">
                                     <div className="flex justify-between items-center mb-1.5">
                                         <span className="text-muted-foreground">今日涨跌</span>
-                                        <div className="flex items-center gap-2 font-semibold">
-                                            <span className="text-[#ef4444]">{marketBreadth!.riseCount}</span>
-                                            <span className="text-muted-foreground">:</span>
-                                            <span className="text-[#22c55e]">{marketBreadth!.fallCount}</span>
-                                        </div>
+                                         <div className="flex items-center gap-2 font-semibold">
+                                             <span className="text-[#ef4444]">{safeValue(marketBreadth, 'riseCount', 0)}</span>
+                                             <span className="text-muted-foreground">:</span>
+                                             <span className="text-[#22c55e]">{safeValue(marketBreadth, 'fallCount', 0)}</span>
+                                         </div>
                                     </div>
-                                    <div className="flex h-1.5 rounded-full overflow-hidden">
-                                        <div className="bg-[#ef4444]" style={{ flex: marketBreadth!.riseRatio }} />
-                                        <div className="bg-[#22c55e]" style={{ flex: 100 - marketBreadth!.riseRatio }} />
-                                    </div>
+                                     <div className="flex h-1.5 rounded-full overflow-hidden">
+                                         <div className="bg-[#ef4444]" style={{ flex: safeValue(marketBreadth, 'riseRatio', 50) }} />
+                                         <div className="bg-[#22c55e]" style={{ flex: 100 - safeValue(marketBreadth, 'riseRatio', 50) }} />
+                                     </div>
                                 </div>
                             </>
                         ) : (

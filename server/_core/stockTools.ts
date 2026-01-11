@@ -374,17 +374,7 @@ export const stockTools: Tool[] = [
             }
         }
     },
-    {
-        type: "function",
-        function: {
-            name: "get_north_flow",
-            description: "获取北向资金（沪深港通）净流入数据。北向资金被称为'聪明钱'，是重要的市场风向标。当用户问'北向资金'、'外资'、'沪深港通'时调用。",
-            parameters: {
-                type: "object",
-                properties: {}
-            }
-        }
-    },
+
     {
         type: "function",
         function: {
@@ -439,8 +429,8 @@ const CACHEABLE_TOOLS = new Set([
     'get_dt_pool',
     'get_concept_board',
     'get_industry_board',
-    'get_north_flow',
     'comprehensive_analysis',
+    // 'get_north_flow', // 北向资金API已不可用，移除缓存
 ]);
 
 /**
@@ -944,29 +934,7 @@ ${techSection}${fundSection}${marketSection}${conclusionSection}`;
             }
 
             case "get_north_flow": {
-                try {
-                    const data = await akshare.getNorthFlowIn('north');
-                    if (!data || data.length === 0) {
-                        return `暂无北向资金数据`;
-                    }
-
-                    // 取最近5天
-                    const recent = data.slice(-5);
-                    const result = recent.map((d: any) => {
-                        const flow = d['北向资金'] || d['当日净流入'] || 0;
-                        const sign = flow >= 0 ? '+' : '';
-                        const emoji = flow > 50 ? '🟢' : flow < -50 ? '🔴' : '🟡';
-                        return `${d['日期'] || '--'}: ${emoji} ${sign}${(flow / 100000000).toFixed(2)}亿`;
-                    }).join('\n');
-
-                    // 计算5日累计
-                    const total = recent.reduce((sum: number, d: any) => sum + (d['北向资金'] || d['当日净流入'] || 0), 0);
-                    const totalSign = total >= 0 ? '+' : '';
-
-                    return `【北向资金近5日流向】\n${result}\n\n📊 5日累计: ${totalSign}${(total / 100000000).toFixed(2)}亿`;
-                } catch (error: any) {
-                    return `获取北向资金失败: ${error.message}`;
-                }
+                return `⚠️ 北向资金数据目前不可用。北向资金API已停止服务，无法获取相关数据。`;
             }
 
             case "get_telegraph": {

@@ -127,74 +127,19 @@ async function fetchMarketOverview() {
 }
 
 /**
- * 获取北向资金数据
+ * 获取北向资金数据 (API已不可用)
  */
 async function fetchNorthboundFlow() {
-    try {
-        const url = 'https://push2.eastmoney.com/api/qt/kamt.rtmin/get';
-        const params = {
-            fields1: 'f1,f2,f3,f4',
-            fields2: 'f51,f52,f53,f54,f55,f56',
-        };
+    // 北向资金API已停止服务，返回空数据
+    console.log('[MarketSentiment] 北向资金API已不可用，跳过获取');
 
-        const response = await axios.get(url, { params, headers: HEADERS, timeout: 10000 });
-        const data = response.data?.data;
-
-        if (!data) {
-            return {
-                netFlow: 0,
-                netFlowFormatted: '--',
-                hkToShanghai: 0,
-                hkToShenzhen: 0,
-                lastUpdateTime: '--',
-            };
-        }
-
-        // 解析沪股通数据 (s2n = south to north = 北向)
-        const s2nData = data.s2n || [];
-        const n2sData = data.n2s || [];
-
-        // 获取最新的有效数据点
-        let latestS2N = { time: '', flow: 0 };
-        let latestN2S = { time: '', flow: 0 };
-
-        for (let i = s2nData.length - 1; i >= 0; i--) {
-            const parts = s2nData[i].split(',');
-            if (parts.length >= 2 && parts[1] !== '-') {
-                latestS2N = { time: parts[0], flow: parseFloat(parts[1]) || 0 };
-                break;
-            }
-        }
-
-        for (let i = n2sData.length - 1; i >= 0; i--) {
-            const parts = n2sData[i].split(',');
-            if (parts.length >= 2 && parts[1] !== '-') {
-                latestN2S = { time: parts[0], flow: parseFloat(parts[1]) || 0 };
-                break;
-            }
-        }
-
-        // 北向资金 = 沪股通 + 深股通的净流入
-        // 注意: API返回的是万元单位
-        const netFlow = latestS2N.flow; // s2n 已经是北向合计
-
-        return {
-            netFlow,
-            netFlowFormatted: formatFlowAmount(netFlow),
-            hkToShanghai: 0, // 需要更详细的API
-            hkToShenzhen: 0,
-            lastUpdateTime: latestS2N.time || data.s2nDate || '--',
-        };
-    } catch (error) {
-        console.error('[MarketSentiment] Failed to fetch northbound flow:', error);
-        return {
-            netFlow: 0,
-            netFlowFormatted: '--',
-            hkToShanghai: 0,
-            hkToShenzhen: 0,
-            lastUpdateTime: '--',
-        };
-    }
+    return {
+        netFlow: 0,
+        netFlowFormatted: '暂不可用',
+        hkToShanghai: 0,
+        hkToShenzhen: 0,
+        lastUpdateTime: '--',
+    };
 }
 
 /**
@@ -273,15 +218,8 @@ function calculateFearGreedIndex(
     breadth: { riseRatio: number },
     northboundFlow: { netFlow: number }
 ) {
-    // 简化版计算：主要基于涨跌比例 + 北向资金流向
-    const breadthScore = breadth.riseRatio; // 0-100
-
-    // 北向资金得分（假设 ±100亿对应 ±50分）
-    // netFlow 单位是万元
-    const flowScore = 50 + Math.min(50, Math.max(-50, northboundFlow.netFlow / 2000));
-
-    // 综合得分 (涨跌比例权重70%, 北向资金权重30%)
-    const value = Math.round(breadthScore * 0.7 + flowScore * 0.3);
+    // 简化版计算：直接使用涨跌比例作为恐惧贪婪指数（北向资金已不可用）
+    const value = breadth.riseRatio;
 
     let level: 'extreme_fear' | 'fear' | 'neutral' | 'greed' | 'extreme_greed';
     let label: string;

@@ -162,9 +162,11 @@ export class BullStockDetectorV2 {
                 return null;
             }
 
-            // 3. 获取资金流向
+            // 3. 获取资金流向（移除北向资金依赖）
             const fundFlowResult = await executeStockTool('get_fund_flow', { code: symbol });
             const fundFlow = this.parseFundFlowResult(fundFlowResult);
+
+            // 注意：北向资金API已不可用，不再获取
 
             // 4. 计算技术指标
             const technical = this.calculateTechnicalIndicators(klineData);
@@ -314,9 +316,9 @@ export class BullStockDetectorV2 {
         if (buySignals.includes('RSI强势')) technicalScore += 10;
         if (buySignals.includes('KDJ金叉')) technicalScore += 10;
 
-        // 资金评分
-        if (fundFlow?.netInflow > 20000000) fundScore += 25; // 2000万
-        else if (fundFlow?.netInflow > 10000000) fundScore += 15;
+        // 资金评分（移除北向资金依赖）
+        if (fundFlow?.netInflow > 20000000) fundScore += 30; // 2000万 - 提高权重
+        else if (fundFlow?.netInflow > 10000000) fundScore += 20; // 1000万
 
         // 形态评分（简化为技术信号强度）
         patternScore = Math.min(buySignals.length * 5, 20);
