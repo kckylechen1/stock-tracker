@@ -47,7 +47,7 @@ async function startServer() {
     res.setHeader("Connection", "keep-alive");
     res.setHeader("Access-Control-Allow-Origin", "*");
 
-    const { messages, stockCode, stockContext, useSmartAgent = true, sessionId } = req.body;
+    const { messages, stockCode, stockContext, useSmartAgent = true, sessionId, thinkHard } = req.body;
     let fullContent = "";
 
     try {
@@ -57,7 +57,8 @@ async function startServer() {
         stockCode,
         stockContext,
         useSmartAgent,
-        sessionId
+        sessionId,
+        thinkHard,
       })) {
         fullContent += chunk;
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);

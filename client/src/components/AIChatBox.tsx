@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles, ArrowUp, Brain, Globe, Paperclip, Mic, Copy, ThumbsUp, ThumbsDown, RotateCcw, Zap } from "lucide-react";
+import { Loader2, Send, User, Sparkles, ArrowUp, Brain, Globe, Paperclip, Mic, Copy, ThumbsUp, ThumbsDown, RotateCcw, Zap, Square } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Streamdown } from "streamdown";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +23,8 @@ export type AIChatBoxProps = {
   emptyStateMessage?: string;
   suggestedPrompts?: string[];
   onRegenerate?: () => void;
+  onStop?: () => void; // 停止 streaming 的回调
+  followUpSuggestions?: string[]; // AI 回复后的 follow-up 问题
 };
 
 const TypingIndicator = () => (
@@ -43,6 +45,15 @@ const TypingIndicator = () => (
       transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
     />
   </div>
+);
+
+// 打字光标 - streaming 时显示在内容末尾
+const StreamingCursor = () => (
+  <motion.span
+    className="inline-block w-0.5 h-4 bg-primary ml-0.5 align-middle"
+    animate={{ opacity: [1, 0] }}
+    transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
+  />
 );
 
 const AIAvatar = ({ isThinking = false }: { isThinking?: boolean }) => (
@@ -156,6 +167,8 @@ export function AIChatBox({
   emptyStateMessage = "Start a conversation with AI",
   suggestedPrompts,
   onRegenerate,
+  onStop,
+  followUpSuggestions,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -179,6 +192,13 @@ export function AIChatBox({
       setMinHeightForLastMessage(Math.max(0, calculatedHeight));
     }
   }, []);
+
+  // 自动滚动到底部 - 当消息变化时（包括 streaming 更新）
+  useEffect(() => {
+    if (displayMessages.length > 0) {
+      scrollToBottom();
+    }
+  }, [displayMessages]);
 
   const scrollToBottom = () => {
     const viewport = scrollAreaRef.current?.querySelector(
@@ -296,6 +316,10 @@ export function AIChatBox({
                               <div className="overflow-x-hidden">
                                 <div className="prose prose-sm dark:prose-invert max-w-none min-w-0 [&_pre]:w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap [&_code]:break-words [&_pre_code]:break-words [&_p]:leading-relaxed">
                                   <Streamdown>{message.content}</Streamdown>
+                                  {/* Streaming 时显示闪烁光标 */}
+                                  {isLoading && isLastMessage && message.content && (
+                                    <StreamingCursor />
+                                  )}
                                 </div>
                                 {message.content && !isLoading && (
                                   <motion.div
@@ -336,6 +360,29 @@ export function AIChatBox({
                                         onClick={onRegenerate}
                                       />
                                     )}
+                                  </motion.div>
+                                )}
+
+                                {/* Follow-up 建议 - 仅在最后一条 AI 回复后显示 */}
+                                {isLastMessage && followUpSuggestions && followUpSuggestions.length > 0 && (
+                                  <motion.div
+                                    className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border/20"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                  >
+                                    {followUpSuggestions.slice(0, 3).map((suggestion, idx) => (
+                                      <motion.button
+                                        key={idx}
+                                        onClick={() => onSendMessage(suggestion)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground bg-accent/30 hover:bg-accent/50 hover:text-foreground rounded-lg border border-border/30 hover:border-border/50 transition-all duration-200"
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                      >
+                                        <Sparkles className="size-3 text-primary/60" />
+                                        <span className="truncate max-w-[180px]">{suggestion}</span>
+                                      </motion.button>
+                                    ))}
                                   </motion.div>
                                 )}
                               </div>
@@ -417,25 +464,37 @@ export function AIChatBox({
               <div className="flex items-center gap-1.5">
                 <ToolbarButton icon={Mic} title="语音输入" />
 
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    type="submit"
-                    size="icon"
-                    disabled={!input.trim() || isLoading}
-                    className={cn(
-                      "shrink-0 h-9 w-9 rounded-xl transition-all duration-300",
-                      input.trim() && !isLoading
-                        ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40"
-                        : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
+                {/* 发送/停止按钮 */}
+                {isLoading && onStop ? (
+                  // 停止按钮
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      type="button"
+                      size="icon"
+                      onClick={onStop}
+                      className="shrink-0 h-9 w-9 rounded-xl bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/30"
+                    >
+                      <Square className="size-3.5 fill-current" />
+                    </Button>
+                  </motion.div>
+                ) : (
+                  // 发送按钮
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      type="submit"
+                      size="icon"
+                      disabled={!input.trim() || isLoading}
+                      className={cn(
+                        "shrink-0 h-9 w-9 rounded-xl transition-all duration-300",
+                        input.trim() && !isLoading
+                          ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
                       <ArrowUp className="size-4" />
-                    )}
-                  </Button>
-                </motion.div>
+                    </Button>
+                  </motion.div>
+                )}
               </div>
             </div>
           </div>

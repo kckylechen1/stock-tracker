@@ -56,6 +56,9 @@ export default function Home() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
 
+  // 股票列表显示模式: 'percent' | 'amount' | '5day'
+  const [displayMode, setDisplayMode] = useState<'percent' | 'amount' | '5day'>('percent');
+
   // 响应式屏幕检测
   const isLargeScreen = useIsLargeScreen();
   const isMobile = useIsMobileScreen();
@@ -165,6 +168,13 @@ export default function Home() {
     deleteMutation.mutate({ id });
   };
 
+  // 切换显示模式
+  const handleToggleDisplayMode = () => {
+    setDisplayMode(prev =>
+      prev === 'percent' ? 'amount' : prev === 'amount' ? '5day' : 'percent'
+    );
+  };
+
   // 选择股票并添加到标签页
   const handleSelectStock = useCallback((code: string) => {
     setSelectedStock(code);
@@ -206,7 +216,12 @@ export default function Home() {
       <div className="w-80 shrink-0 border-r border-border flex flex-col">
         {/* 标题栏 */}
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <span className="font-semibold text-foreground">自选股</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-foreground">自选股</span>
+            <span className="text-xs text-muted-foreground">
+              {displayMode === 'percent' ? '涨跌幅' : displayMode === 'amount' ? '涨跌额' : '5日涨幅'}
+            </span>
+          </div>
           <ThemeToggle />
         </div>
 
@@ -274,6 +289,8 @@ export default function Home() {
                   isEditMode={false}
                   onClick={() => handleSelectStock(item.stockCode)}
                   onDelete={() => { }}
+                  displayMode={displayMode}
+                  onToggleDisplayMode={handleToggleDisplayMode}
                 />
               </div>
             ))
@@ -321,7 +338,8 @@ export default function Home() {
       <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0">
         {/* 左侧主内容面板 */}
         <ResizablePanel defaultSize={75} minSize={50}>
-          <div className="h-full flex flex-col">
+          <div className="h-full flex items-start justify-center overflow-hidden">
+            <div className="w-full max-w-[1400px] h-full flex flex-col">
             {/* 标签栏 */}
             {openedTabs.length > 0 && (
               <div className="h-9 border-b border-border flex items-center bg-card/50 overflow-x-auto">
@@ -339,8 +357,8 @@ export default function Home() {
 
             {/* 上半部分：K线图 + 筹码分布 + 技术指标 三栏显示 (占 65%) */}
             <div className="flex-[65] min-h-0 flex">
-              {/* K线图 - 在普通屏占满宽度，在宽屏(>=1600px)时占60% */}
-              <div className={`flex-1 min-w-[400px] 2xl:flex-[60] relative ${showSidePanels ? 'hidden 2xl:block' : ''}`}>
+              {/* K线图 - 在普通屏占满宽度，在宽屏(>=1600px)时占55% */}
+              <div className={`flex-1 min-w-[400px] 2xl:flex-[55] relative ${showSidePanels ? 'hidden 2xl:block' : ''}`}>
                 {selectedStock ? (
                   <StockDetailPanel stockCode={selectedStock} />
                 ) : (
@@ -373,7 +391,7 @@ export default function Home() {
 
 
               {/* 市场情绪 - Accordion 可折叠面板 */}
-              <div className={`${showSidePanels ? 'flex' : 'hidden'} 2xl:flex flex-[20] min-w-[180px] border-l border-border flex-col bg-card/30`}>
+              <div className={`${showSidePanels ? 'flex' : 'hidden'} 2xl:flex flex-[15] min-w-[160px] border-l border-border flex-col bg-card/30`}>
                 <Accordion type="multiple" defaultValue={["sentiment"]} className="flex-1 overflow-auto">
                   {/* 市场情绪 */}
                   <AccordionItem value="sentiment" className="border-b border-border/50">
@@ -494,6 +512,7 @@ export default function Home() {
                 )}
               </div>
             </div>
+          </div>
           </div>
         </ResizablePanel>
 

@@ -12,6 +12,8 @@ export interface StockListItemProps {
     isEditMode?: boolean;
     onClick: () => void;
     onDelete: (e: React.MouseEvent) => void;
+    displayMode?: 'percent' | 'amount' | '5day';
+    onToggleDisplayMode?: () => void;
 }
 
 // 获取市场标识
@@ -101,7 +103,9 @@ export function StockListItem({
     isSelected,
     isEditMode = false,
     onClick,
-    onDelete
+    onDelete,
+    displayMode = 'percent',
+    onToggleDisplayMode
 }: StockListItemProps) {
     // 获取实时行情
     const { data: quote } = trpc.stocks.getDetail.useQuery(
@@ -115,11 +119,42 @@ export function StockListItem({
         { refetchInterval: 60000 }
     );
 
+    // 获取5日K线数据用于计算5日涨幅
+    const { data: klineData } = trpc.stocks.getKline.useQuery(
+        { code: item.stockCode, period: 'day', limit: 6 },
+        {
+            enabled: displayMode === '5day',
+            refetchInterval: 60000,
+            staleTime: 60000
+        }
+    );
+
     const changePercent = quote?.quote?.changePercent || 0;
     const isPositive = changePercent > 0;
     const isNegative = changePercent < 0;
     const currentPrice = quote?.quote?.price || 0;
     const name = quote?.quote?.name || quote?.stock?.name || "加载中...";
+
+    // 计算5日涨幅
+    const calculate5DayChange = () => {
+        if (!klineData || klineData.length < 6 || !currentPrice) {
+            return null;
+        }
+
+        // 获取5个交易日前的收盘价（第6条数据是今天，往前数5条）
+        const fiveDaysAgo = klineData[0]; // 第1条K线是5天前
+        const fiveDaysAgoClose = fiveDaysAgo.close;
+
+        if (!fiveDaysAgoClose) return null;
+
+        // 计算涨幅：(当前价 - 5天前收盘价) / 5天前收盘价 * 100
+        const change5Day = ((currentPrice - fiveDaysAgoClose) / fiveDaysAgoClose) * 100;
+        return change5Day;
+    };
+
+    const change5Day = calculate5DayChange();
+    const is5DayPositive = change5Day !== null && change5Day > 0;
+    const is5DayNegative = change5Day !== null && change5Day < 0;
 
     // 获取市场标识
     const market = getMarketTag(item.stockCode);
@@ -127,9 +162,11 @@ export function StockListItem({
     // 处理分时数据为迷你图数据
     const sparklineData = timelineData?.timeline?.map((t: any) => t.price) || [];
 
-    // 涨跌颜色
-    const priceColor = isPositive ? 'text-[#e74c3c]' : isNegative ? 'text-[#2ecc71]' : 'text-foreground';
-    const badgeColor = isPositive ? 'bg-[#e74c3c]' : isNegative ? 'bg-[#2ecc71]' : 'bg-muted';
+    // 涨跌颜色 - 根据显示模式选择不同的判断逻辑
+    const isCurrentPositive = displayMode === '5day' ? is5DayPositive : isPositive;
+    const isCurrentNegative = displayMode === '5day' ? is5DayNegative : isNegative;
+    const priceColor = isCurrentPositive ? 'text-[#e74c3c]' : isCurrentNegative ? 'text-[#2ecc71]' : 'text-foreground';
+    const badgeColor = isCurrentPositive ? 'bg-[#e74c3c]' : isCurrentNegative ? 'bg-[#2ecc71]' : 'bg-muted';
 
     return (
         <div
@@ -139,10 +176,10 @@ export function StockListItem({
             `}
             onClick={onClick}
         >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
                 {/* 左侧：名称和代码 */}
                 <div className="flex-1 min-w-0">
-                    <div className="font-medium text-foreground">{name}</div>
+                    <div className="font-medium text-foreground truncate">{name}</div>
                     <div className="flex items-center gap-1 mt-0.5">
                         {market.tag && (
                             <span className={`text-[10px] px-1 rounded text-white ${market.color}`}>
@@ -155,7 +192,7 @@ export function StockListItem({
                     </div>
                 </div>
 
-                {/* 中间：迷你走势图 - 居中 */}
+                {/* 中间：迷你走势图 */}
                 <div className="flex-1 flex justify-center px-2">
                     {sparklineData.length > 5 ? (
                         <MiniSparkline
@@ -168,14 +205,29 @@ export function StockListItem({
                     )}
                 </div>
 
-                {/* 右侧：价格和涨跌幅 */}
-                <div className="flex items-center gap-2">
-                    <div className={`font-semibold tabular-nums text-right min-w-[55px] ${priceColor}`}>
-                        {currentPrice > 0 ? currentPrice.toFixed(2) : "--"}
-                    </div>
-                    <div className={`px-2 py-1 rounded text-xs font-medium text-white tabular-nums w-[72px] text-center ${badgeColor}`}>
-                        {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
-                    </div>
+                {/* 右侧：只显示涨跌幅徽章 */}
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleDisplayMode?.();
+                        }}
+                        className={`px-2 py-1 rounded text-xs font-medium text-white tabular-nums min-w-[68px] text-center ${badgeColor} hover:opacity-90 transition-opacity`}
+                    >
+                        {displayMode === 'percent' && (
+                            <>{isPositive ? '+' : ''}{changePercent.toFixed(2)}%</>
+                        )}
+                        {displayMode === 'amount' && (
+                            <>{isPositive ? '+' : ''}{(quote?.quote?.change || 0).toFixed(2)}</>
+                        )}
+                        {displayMode === '5day' && (
+                            change5Day !== null ? (
+                                <>{is5DayPositive ? '+' : ''}{change5Day.toFixed(2)}%</>
+                            ) : (
+                                <>--</>
+                            )
+                        )}
+                    </button>
 
                     {/* 编辑模式下显示删除按钮 */}
                     {isEditMode && (

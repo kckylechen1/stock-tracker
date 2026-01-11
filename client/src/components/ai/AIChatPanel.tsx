@@ -23,6 +23,7 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
     const [messages, setMessages] = useState<Message[]>(getDefaultMessages());
     const [isLoading, setIsLoading] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
     const abortControllerRef = useRef<AbortController | null>(null);
     const utils = trpc.useUtils();
 
@@ -148,6 +149,19 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                         try {
                             const json = JSON.parse(data);
                             if (json.content) {
+                                // 检查是否包含 follow-up 建议
+                                const followUpMatch = json.content.match(/<!--FOLLOWUP:(.*?)-->/);
+                                if (followUpMatch) {
+                                    try {
+                                        const followUps = JSON.parse(followUpMatch[1]);
+                                        setFollowUpSuggestions(followUps);
+                                    } catch {
+                                        // 解析失败就忽略
+                                    }
+                                    // 从内容中移除 follow-up 标记
+                                    json.content = json.content.replace(/<!--FOLLOWUP:.*?-->/g, '');
+                                }
+
                                 // 首次收到非思考内容时，计算思考时间
                                 if (!hasReceivedFirstContent && !json.content.startsWith('💭') && !json.content.startsWith('🔧') && !json.content.startsWith('📊') && !json.content.startsWith('🧠')) {
                                     thinkingTime = Math.round((Date.now() - startTime) / 1000);
@@ -155,12 +169,13 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                                 }
 
                                 fullContent += json.content;
-                                // 更新最后一条消息
+                                // 更新最后一条消息（移除 follow-up 标记）
+                                const cleanContent = fullContent.replace(/<!--FOLLOWUP:.*?-->/g, '').trim();
                                 setMessages(prev => {
                                     const updated = [...prev];
                                     updated[updated.length - 1] = {
                                         role: "assistant",
-                                        content: fullContent,
+                                        content: cleanContent,
                                         thinkingTime: thinkingTime > 0 ? thinkingTime : undefined,
                                     };
                                     return updated;
@@ -189,10 +204,14 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
             }
         } finally {
             setIsLoading(false);
+            // follow-up 建议现在从 AI 流式响应中动态解析
         }
     };
 
     const handleSendMessage = async (content: string) => {
+        // 清除之前的 follow-up 建议
+        setFollowUpSuggestions([]);
+
         // 添加用户消息
         const userMessage: Message = { role: "user", content };
         const newMessages = [...messages, userMessage];
@@ -214,92 +233,22 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
         await streamChatRequest(historyToRegenerate);
     };
 
-
+    // 停止当前 streaming
+    const handleStop = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        setIsLoading(false);
+    };
 
     // 判断是否有聊天记录（除了系统消息）
     const hasHistory = messages.length > 1;
 
-    return (
-        <>
-            <div className="h-full border-l border-border/50 flex flex-col bg-gradient-to-b from-background via-background to-background/95">
-                {/* 标题栏 - 现代风格 */}
-                <div className="p-3 border-b border-border/30 flex items-center justify-between gap-2 bg-gradient-to-r from-primary/5 via-transparent to-transparent shrink-0">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="size-7 shrink-0 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/20">
-                            <Zap className="h-3.5 w-3.5 text-primary" />
-                        </div>
-                        <span className="font-semibold text-foreground tracking-tight truncate">AI 助手</span>
-                        {selectedStock && stockDetail?.quote?.name && (
-                            <span className="text-xs text-primary/80 bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 font-medium truncate max-w-[100px]">
-                                {stockDetail.quote.name}
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                        {/* 历史对话按钮 */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
-                            onClick={() => setShowHistory(true)}
-                            title="历史对话"
-                        >
-                            <History className="h-4 w-4" />
-                        </Button>
-                        {/* 新建对话按钮 */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
-                            onClick={() => setMessages(getDefaultMessages())}
-                            title="新建对话"
-                        >
-                            <SquarePen className="h-4 w-4" />
-                        </Button>
-                        {/* 关闭按钮 */}
-                        {onCollapse && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
-                                onClick={onCollapse}
-                                title="收起面板"
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-                {/* 聊天区域 */}
-                <div className="flex-1 overflow-hidden flex flex-col">
-                    {/* 预设提示按钮 - 只在没有聊天历史时显示 */}
-                    {!hasHistory && (
-                        <PresetPrompts onSend={handleSendMessage} />
-                    )}
-                    <div className="flex-1 overflow-hidden">
-                        <AIChatBox
-                            messages={messages}
-                            onSendMessage={handleSendMessage}
-                            isLoading={isLoading}
-                            placeholder={selectedStock ? `问问关于 ${stockDetail?.quote?.name || selectedStock} 的问题...` : "输入问题..."}
-                            height="100%"
-                            emptyStateMessage={
-                                selectedStock
-                                    ? `🧠 SmartAgent 已就绪，直接提问即可`
-                                    : "选择股票后可以进行针对性分析"
-                            }
-                            suggestedPrompts={[]}
-                            onRegenerate={handleRegenerate}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* 历史对话弹窗 */}
-            <ChatHistoryDialog
-                open={historyDialogOpen}
-                onOpenChange={setHistoryDialogOpen}
+    // 如果显示历史列表
+    if (showHistory) {
+        return (
+            <ChatHistoryList
                 onSelectSession={async (stockCode) => {
                     try {
                         const history = await utils.ai.getHistory.fetch({ stockCode });
@@ -309,8 +258,89 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                     } catch (error) {
                         console.error('Failed to load session:', error);
                     }
+                    setShowHistory(false);
                 }}
+                onBack={() => setShowHistory(false)}
             />
-        </>
+        );
+    }
+
+    return (
+        <div className="h-full border-l border-border/50 flex flex-col bg-gradient-to-b from-background via-background to-background/95">
+            {/* 标题栏 - 现代风格 */}
+            <div className="p-3 border-b border-border/30 flex items-center justify-between gap-2 bg-gradient-to-r from-primary/5 via-transparent to-transparent shrink-0">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="size-7 shrink-0 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/20">
+                        <Zap className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <span className="font-semibold text-foreground tracking-tight truncate">AI 助手</span>
+                    {selectedStock && stockDetail?.quote?.name && (
+                        <span className="text-xs text-primary/80 bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 font-medium truncate max-w-[100px]">
+                            {stockDetail.quote.name}
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-1">
+                    {/* 历史对话按钮 */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
+                        onClick={() => setShowHistory(true)}
+                        title="历史对话"
+                    >
+                        <History className="h-4 w-4" />
+                    </Button>
+                    {/* 新建对话按钮 */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
+                        onClick={() => setMessages(getDefaultMessages())}
+                        title="新建对话"
+                    >
+                        <SquarePen className="h-4 w-4" />
+                    </Button>
+                    {/* 关闭按钮 */}
+                    {onCollapse && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
+                            onClick={onCollapse}
+                            title="收起面板"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    )}
+                </div>
+            </div>
+
+            {/* 聊天区域 */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+                {/* 预设提示按钮 - 只在没有聊天历史时显示 */}
+                {!hasHistory && (
+                    <PresetPrompts onSend={handleSendMessage} />
+                )}
+                <div className="flex-1 overflow-hidden">
+                    <AIChatBox
+                        messages={messages}
+                        onSendMessage={handleSendMessage}
+                        isLoading={isLoading}
+                        placeholder={selectedStock ? `问问关于 ${stockDetail?.quote?.name || selectedStock} 的问题...` : "输入问题..."}
+                        height="100%"
+                        emptyStateMessage={
+                            selectedStock
+                                ? `🧠 SmartAgent 已就绪，直接提问即可`
+                                : "选择股票后可以进行针对性分析"
+                        }
+                        suggestedPrompts={[]}
+                        onRegenerate={handleRegenerate}
+                        onStop={handleStop}
+                        followUpSuggestions={followUpSuggestions}
+                    />
+                </div>
+            </div>
+        </div>
     );
 }

@@ -253,7 +253,7 @@ export class SmartAgent {
      * 带超时的执行，20秒超时后降级到基础工具
      */
     private async runWithTimeout(agent: any, enhancedMessage: string): Promise<string> {
-        const TIMEOUT_MS = 20000; // 20秒硬上限
+        const TIMEOUT_MS = this.session.metadata.detailMode ? 45000 : 20000; // 详细模式允许更久
 
         try {
             // 创建超时 Promise

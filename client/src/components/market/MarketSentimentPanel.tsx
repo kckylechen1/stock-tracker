@@ -78,10 +78,10 @@ export function MarketSentimentPanel({ selectedStock }: MarketSentimentPanelProp
             </div>
 
             {/* Tab 内容区 */}
-            <div className="flex-1 overflow-auto p-3">
+            <div className="flex-1 overflow-auto p-2">
                 {activeTab === 'sentiment' ? (
                     /* 市场情绪内容 */
-                    <div className="space-y-2 text-xs">
+                    <div className="space-y-1.5 text-xs">
                         {isLoading ? (
                             <div className="flex items-center justify-center py-8">
                                 <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -89,12 +89,12 @@ export function MarketSentimentPanel({ selectedStock }: MarketSentimentPanelProp
                         ) : sentiment ? (
                             <>
                                 {/* 恐惧贪婪指数 - 增强视觉层次 */}
-                                <div className="p-3 rounded-xl bg-gradient-to-br from-card/80 to-card/40 border border-border/40 hover:border-border/60 transition-all duration-200">
+                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-card/80 to-card/40 border border-border/40 hover:border-border/60 transition-all duration-200">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-muted-foreground text-xs font-medium">恐惧贪婪指数</span>
                                         <div className="flex items-baseline gap-1.5">
                                             <span
-                                                className="font-bold text-xl tabular-nums"
+                                                className="font-bold text-lg tabular-nums"
                                                 style={{ color: getFearGreedColor(safeValue(fearGreedIndex, 'value', 50)) }}
                                             >
                                                 {safeValue(fearGreedIndex, 'value', 50)}
@@ -110,7 +110,7 @@ export function MarketSentimentPanel({ selectedStock }: MarketSentimentPanelProp
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="w-full h-2 bg-gradient-to-r from-[#22c55e] via-[#f59e0b] to-[#ef4444] rounded-full shadow-inner">
+                                    <div className="w-full h-1.5 bg-gradient-to-r from-[#22c55e] via-[#f59e0b] to-[#ef4444] rounded-full shadow-inner">
                                         <div
                                             className="h-full relative transition-all duration-300"
                                             style={{ width: `${safeValue(fearGreedIndex, 'value', 50)}%` }}
@@ -121,10 +121,10 @@ export function MarketSentimentPanel({ selectedStock }: MarketSentimentPanelProp
                                 </div>
 
                                 {/* 市场温度 - 更紧凑的设计 */}
-                                <div className="p-3 rounded-xl bg-gradient-to-br from-card/80 to-card/40 border border-border/40 hover:border-border/60 transition-all duration-200 flex items-center justify-between">
+                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-card/80 to-card/40 border border-border/40 hover:border-border/60 transition-all duration-200 flex items-center justify-between">
                                     <span className="text-muted-foreground text-xs font-medium">市场温度</span>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xl">{safeValue(marketTemperature, 'emoji', '😐')}</span>
+                                        <span className="text-base">{safeValue(marketTemperature, 'emoji', '😐')}</span>
                                         <span
                                             className="text-sm font-bold px-2 py-0.5 rounded"
                                             style={{
@@ -146,16 +146,16 @@ export function MarketSentimentPanel({ selectedStock }: MarketSentimentPanelProp
                                 </div>
 
                                 {/* 涨跌比 - 更清晰的数据展示 */}
-                                <div className="p-3 rounded-xl bg-gradient-to-br from-card/80 to-card/40 border border-border/40 hover:border-border/60 transition-all duration-200">
+                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-card/80 to-card/40 border border-border/40 hover:border-border/60 transition-all duration-200">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-muted-foreground text-xs font-medium">今日涨跌</span>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="text-[#ef4444] font-bold text-sm tabular-nums">{safeValue(marketBreadth, 'riseCount', 0)}</span>
+                                            <span className="text-[#ef4444] font-bold text-xs tabular-nums">{safeValue(marketBreadth, 'riseCount', 0)}</span>
                                             <span className="text-muted-foreground text-xs">:</span>
-                                            <span className="text-[#22c55e] font-bold text-sm tabular-nums">{safeValue(marketBreadth, 'fallCount', 0)}</span>
+                                            <span className="text-[#22c55e] font-bold text-xs tabular-nums">{safeValue(marketBreadth, 'fallCount', 0)}</span>
                                         </div>
                                     </div>
-                                    <div className="flex h-2 rounded-full overflow-hidden mb-2.5 shadow-inner bg-muted/30">
+                                    <div className="flex h-1.5 rounded-full overflow-hidden mb-2.5 shadow-inner bg-muted/30">
                                         <div
                                             className="bg-gradient-to-r from-[#ef4444] to-[#f87171] transition-all duration-300"
                                             style={{ flex: safeValue(marketBreadth, 'riseRatio', 50) }}
