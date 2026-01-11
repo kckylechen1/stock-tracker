@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
-import { Zap } from "lucide-react";
+import { Zap, X, SquarePen, History } from "lucide-react";
 import { AIChatBox, Message } from "@/components/AIChatBox";
 import { PresetPrompts } from "@/components/PresetPrompts";
+import { Button } from "@/components/ui/button";
+import { ChatHistoryDialog } from "./ChatHistoryDialog";
 
 export interface AIChatPanelProps {
     selectedStock: string | null;
+    onCollapse?: () => void;
 }
 
 // 获取默认系统消息
@@ -16,10 +19,12 @@ const getDefaultMessages = (): Message[] => [
     }
 ];
 
-export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
+export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
     const [messages, setMessages] = useState<Message[]>(getDefaultMessages());
     const [isLoading, setIsLoading] = useState(false);
+    const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const utils = trpc.useUtils();
 
     // 获取当前股票信息用于显示
     const { data: stockDetail } = trpc.stocks.getDetail.useQuery(
@@ -215,45 +220,100 @@ export function AIChatPanel({ selectedStock }: AIChatPanelProps) {
     const hasHistory = messages.length > 1;
 
     return (
-        <div className="h-full border-l border-border/50 flex flex-col bg-gradient-to-b from-background via-background to-background/95">
-            {/* 标题栏 - 现代风格 */}
-            <div className="p-4 border-b border-border/30 flex items-center gap-3 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
-                <div className="size-8 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/20">
-                    <Zap className="h-4 w-4 text-primary" />
+        <>
+            <div className="h-full border-l border-border/50 flex flex-col bg-gradient-to-b from-background via-background to-background/95">
+                {/* 标题栏 - 现代风格 */}
+                <div className="p-3 border-b border-border/30 flex items-center justify-between gap-2 bg-gradient-to-r from-primary/5 via-transparent to-transparent shrink-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="size-7 shrink-0 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/20">
+                            <Zap className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <span className="font-semibold text-foreground tracking-tight truncate">AI 助手</span>
+                        {selectedStock && stockDetail?.quote?.name && (
+                            <span className="text-xs text-primary/80 bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 font-medium truncate max-w-[100px]">
+                                {stockDetail.quote.name}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                        {/* 历史对话按钮 */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
+                            onClick={() => setHistoryDialogOpen(true)}
+                            title="历史对话"
+                        >
+                            <History className="h-4 w-4" />
+                        </Button>
+                        {/* 新建对话按钮 */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
+                            onClick={() => setMessages(getDefaultMessages())}
+                            title="新建对话"
+                        >
+                            <SquarePen className="h-4 w-4" />
+                        </Button>
+                        {/* 关闭按钮 */}
+                        {onCollapse && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
+                                onClick={onCollapse}
+                                title="收起面板"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground tracking-tight">AI 助手</span>
-                    {selectedStock && stockDetail?.quote?.name && (
-                        <span className="text-xs text-primary/80 bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20 font-medium">
-                            {stockDetail.quote.name}
-                        </span>
-                    )}
-                </div>
-            </div>
 
-            {/* 聊天区域 */}
-            <div className="flex-1 overflow-hidden flex flex-col">
-                {/* 预设提示按钮 - 只在没有聊天历史时显示 */}
-                {!hasHistory && (
-                    <PresetPrompts onSend={handleSendMessage} />
-                )}
-                <div className="flex-1 overflow-hidden">
-                    <AIChatBox
-                        messages={messages}
-                        onSendMessage={handleSendMessage}
-                        isLoading={isLoading}
-                        placeholder={selectedStock ? `问问关于 ${stockDetail?.quote?.name || selectedStock} 的问题...` : "输入问题..."}
-                        height="100%"
-                        emptyStateMessage={
-                            selectedStock
-                                ? `🧠 SmartAgent 已就绪，直接提问即可`
-                                : "选择股票后可以进行针对性分析"
-                        }
-                        suggestedPrompts={[]} // 不再使用旧的建议提示
-                        onRegenerate={handleRegenerate}
-                    />
+                {/* 聊天区域 */}
+                <div className="flex-1 overflow-hidden flex flex-col">
+                    {/* 预设提示按钮 - 只在没有聊天历史时显示 */}
+                    {!hasHistory && (
+                        <PresetPrompts onSend={handleSendMessage} />
+                    )}
+                    <div className="flex-1 overflow-hidden">
+                        <AIChatBox
+                            messages={messages}
+                            onSendMessage={handleSendMessage}
+                            isLoading={isLoading}
+                            placeholder={selectedStock ? `问问关于 ${stockDetail?.quote?.name || selectedStock} 的问题...` : "输入问题..."}
+                            height="100%"
+                            emptyStateMessage={
+                                selectedStock
+                                    ? `🧠 SmartAgent 已就绪，直接提问即可`
+                                    : "选择股票后可以进行针对性分析"
+                            }
+                            suggestedPrompts={[]} // 不再使用旧的建议提示
+                            onRegenerate={handleRegenerate}
+                        />
+                    </div>
                 </div>
             </div>
-        </div>
+        </div >
+
+            {/* 历史对话弹窗 */ }
+            < ChatHistoryDialog
+    open = { historyDialogOpen }
+    onOpenChange = { setHistoryDialogOpen }
+    onSelectSession = { async(stockCode) => {
+        // 加载选中的会话历史
+        try {
+            const history = await utils.ai.getHistory.fetch({ stockCode });
+            if (history && history.length > 0) {
+                setMessages(history);
+            }
+        } catch (error) {
+            console.error('Failed to load session:', error);
+        }
+    }
+}
+        />
+        </>
     );
 }

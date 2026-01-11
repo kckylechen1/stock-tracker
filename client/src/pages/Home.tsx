@@ -79,6 +79,22 @@ export default function Home() {
     setShowSidePanels(isLargeScreen);
   }, [isLargeScreen]);
 
+  // 键盘快捷键：⌘+I 切换 AI 面板
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+        e.preventDefault();
+        if (isRightPanelCollapsed) {
+          rightPanelRef.current?.expand();
+        } else {
+          rightPanelRef.current?.collapse();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isRightPanelCollapsed]);
+
   // 获取观察池列表
   const { data: watchlist, isLoading, refetch } = trpc.watchlist.list.useQuery();
 
@@ -482,62 +498,46 @@ export default function Home() {
         </ResizablePanel>
 
         {/* 可拖拽分隔条 */}
-        <ResizableHandle withHandle />
+        <ResizableHandle withHandle className={isRightPanelCollapsed ? 'hidden' : ''} />
 
         {/* 右侧 AI 聊天面板 - 可折叠 */}
         <ResizablePanel
           ref={rightPanelRef}
           defaultSize={25}
-          minSize={15}
+          minSize={20}
           maxSize={50}
           collapsible={true}
-          collapsedSize={4}
+          collapsedSize={0}
           onCollapse={() => setIsRightPanelCollapsed(true)}
           onExpand={() => setIsRightPanelCollapsed(false)}
+          className={isRightPanelCollapsed ? 'hidden' : ''}
         >
-          {isRightPanelCollapsed ? (
-            // 折叠状态 - 显示展开按钮
-            <div className="h-full flex items-center justify-center bg-gradient-to-br from-card/50 to-card/30 border-l border-border">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => rightPanelRef.current?.expand()}
-                className="h-14 w-14 rounded-full bg-primary/10 hover:bg-primary/20 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
-                title="展开 AI 助手"
-              >
-                <MessageCircle className="h-6 w-6 text-primary" />
-              </Button>
-            </div>
-          ) : (
-            // 展开状态 - 完整的 AI 聊天面板
-            <div className="h-full flex flex-col border-l border-border bg-background">
-              {/* 瘦标题栏：44px 高 */}
-              <div className="h-11 px-4 border-b border-border/50 flex items-center justify-between shrink-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
-                <div className="flex items-center gap-2">
-                  <div className="size-6 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/20">
-                    <MessageCircle className="h-3 w-3 text-primary" />
-                  </div>
-                  <span className="font-semibold text-sm text-foreground">AI 助手</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 hover:bg-accent transition-colors duration-150 cursor-pointer"
-                  onClick={() => rightPanelRef.current?.collapse()}
-                  title="收起面板"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* 聊天内容 - 占满剩余空间 */}
-              <div className="flex-1 overflow-hidden">
-                <AIChatPanel selectedStock={selectedStock} />
-              </div>
-            </div>
-          )}
+          {/* 展开状态 - 完整的 AI 聊天面板 */}
+          <div className="h-full min-w-[280px] flex flex-col border-l border-border bg-background overflow-hidden">
+            <AIChatPanel
+              selectedStock={selectedStock}
+              onCollapse={() => rightPanelRef.current?.collapse()}
+            />
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      {/* 底部浮动 AI 触发器 - 仅在面板折叠时显示 */}
+      {isRightPanelCollapsed && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <button
+            onClick={() => rightPanelRef.current?.expand()}
+            className="group flex items-center gap-2 px-5 py-3 bg-card/90 backdrop-blur-md border border-border/60 rounded-full shadow-lg hover:shadow-xl hover:border-primary/40 hover:bg-card transition-all duration-200 cursor-pointer"
+          >
+            <MessageCircle className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">向 AI 助手提问...</span>
+            <div className="flex items-center gap-1 ml-2 text-xs text-muted-foreground/60">
+              <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono">⌘</kbd>
+              <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono">I</kbd>
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -365,6 +365,12 @@ export const appRouter = router({
         return await getChatHistory(input?.stockCode);
       }),
 
+    // 获取所有对话列表
+    getSessions: publicProcedure.query(async () => {
+      const { getAllChatSessions } = await import('./local_db');
+      return await getAllChatSessions();
+    }),
+
     // 保存聊天历史 (手动)
     saveHistory: publicProcedure
       .input(z.object({

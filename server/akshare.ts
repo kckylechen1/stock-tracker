@@ -496,16 +496,16 @@ export async function getMarketActivity(): Promise<any> {
                     console.log(`${funcName} returned data`);
                     return data;
                 }
-            } catch (error) {
-                console.log(`${funcName} failed:`, error.message);
+            } catch (error: any) {
+                console.log(`${funcName} failed:`, error?.message);
                 continue;
             }
         }
 
         console.log('No market activity functions available');
         return null;
-    } catch (error) {
-        console.log('getMarketActivity failed:', error.message);
+    } catch (error: any) {
+        console.log('getMarketActivity failed:', error?.message);
         return null;
     }
 }
@@ -537,8 +537,8 @@ export async function getMarketLimitStats(): Promise<{
 }
 
 /**
- * 获取全市场涨跌统计 (改进版)
- * 尝试多种数据源获取更准确的统计
+ * 获取全市场涨跌统计 (简化可靠版)
+ * 直接从全量A股实时行情统计涨跌家数
  */
 export async function getComprehensiveMarketBreadth(): Promise<{
     riseCount: number;
@@ -547,126 +547,259 @@ export async function getComprehensiveMarketBreadth(): Promise<{
     totalCount: number;
     limitUpCount: number;
     limitDownCount: number;
+    riseRatio: number;
 }> {
     try {
-        // 并行获取多个数据源
-        const [activityData, limitStats] = await Promise.all([
-            getMarketActivity(),
-            getMarketLimitStats(),
-        ]);
+        // 获取A股实时行情数据进行统计
+        const spotData = await callAKShare<any[]>('stock_zh_a_spot_em');
 
-        // 如果有活跃度数据，直接使用
-        if (activityData && typeof activityData === 'object') {
-            const rise = activityData.riseCount || activityData.up_count || 0;
-            const fall = activityData.fallCount || activityData.down_count || 0;
-            const flat = activityData.flatCount || activityData.flat_count || 0;
-            const total = rise + fall + flat;
+        if (Array.isArray(spotData) && spotData.length > 0) {
+            let riseCount = 0;
+            let fallCount = 0;
+            let flatCount = 0;
+
+            // 统计涨跌家数
+            for (const stock of spotData) {
+                const changePercent = stock['涨跌幅'] ?? stock['changePercent'] ?? stock['pct_chg'] ?? 0;
+                if (changePercent > 0.01) {
+                    riseCount++;
+                } else if (changePercent < -0.01) {
+                    fallCount++;
+                } else {
+                    flatCount++;
+                }
+            }
+
+            console.log(`✅ Real market breadth: ↑${riseCount} ↓${fallCount} →${flatCount} (total: ${spotData.length})`);
 
             return {
-                riseCount: rise,
-                fallCount: fall,
-                flatCount: flat,
-                totalCount: total,
-                limitUpCount: limitStats.limitUp,
-                limitDownCount: limitStats.limitDown,
+                riseCount,
+                fallCount,
+                flatCount,
+                totalCount: spotData.length,
+                limitUpCount: 0,
+                limitDownCount: 0,
+                riseRatio: Math.round((riseCount / spotData.length) * 100),
             };
         }
 
-        // 如果没有活跃度数据，使用指数数据估算
-        // 注意：这是估算值，不是精确统计
-        console.log('Using estimated market breadth from index data');
-
-        // 获取主要指数的涨跌统计（这只是部分数据）
-        const indexData = await callAKShare('stock_zh_index_spot_em');
-        let estimatedRise = 0;
-        let estimatedFall = 0;
-
-        if (Array.isArray(indexData)) {
-            for (const index of indexData) {
-                if (index['涨跌幅'] > 0) estimatedRise += 50; // 估算每指数代表50只股票
-                else if (index['涨跌幅'] < 0) estimatedFall += 50;
-            }
-        }
-
-        // 尝试从实时行情数据估算更准确的涨跌统计
-        // 由于全量数据获取太慢，使用采样方法
-        try {
-            console.log('Attempting to get market breadth from index data...');
-
-            // 获取主要指数数据来估算市场情绪
-            const indexData = await callAKShare('stock_zh_index_spot_em');
-            if (Array.isArray(indexData) && indexData.length > 0) {
-                // 基于主要指数的涨跌情况估算全市场
-                let positiveIndices = 0;
-                let negativeIndices = 0;
-                let avgChange = 0;
-
-                for (const index of indexData) {
-                    const change = index['涨跌幅'] || index['change'] || 0;
-                    avgChange += change;
-                    if (change > 0) positiveIndices++;
-                    else if (change < 0) negativeIndices++;
-                }
-                avgChange /= indexData.length;
-
-                // 根据指数表现估算全市场涨跌比例
-                let estimatedRiseRatio;
-                if (avgChange > 1) estimatedRiseRatio = 0.55;      // 大涨
-                else if (avgChange > 0.5) estimatedRiseRatio = 0.50; // 中涨
-                else if (avgChange > -0.5) estimatedRiseRatio = 0.45; // 平稳
-                else if (avgChange > -1) estimatedRiseRatio = 0.40;   // 小跌
-                else estimatedRiseRatio = 0.35;                      // 大跌
-
-                const totalStocks = 5300;
-                const riseCount = Math.round(totalStocks * estimatedRiseRatio);
-                const fallCount = Math.round(totalStocks * (1 - estimatedRiseRatio - 0.1));
-                const flatCount = totalStocks - riseCount - fallCount;
-
-                console.log(`Index-based market breadth: ↑${riseCount} ↓${fallCount} →${flatCount} (avg change: ${avgChange.toFixed(2)}%)`);
-
-                return {
-                    riseCount,
-                    fallCount,
-                    flatCount,
-                    totalCount: totalStocks,
-                    limitUpCount: limitStats.limitUp,
-                    limitDownCount: limitStats.limitDown,
-                };
-            }
-        } catch (error) {
-            console.log('Failed to get market breadth from index data:', error.message);
-        }
-
-        // 如果上述方法都失败，使用估算方法
-        console.log('Using estimated market breadth');
+        // 如果行情数据获取失败，使用估算方法
+        console.log('⚠️ Failed to fetch spot data, using estimation');
         const totalStocks = 5300;
-        const estimatedRiseRatio = 0.45;
-        const estimatedFallRatio = 0.45;
+        const riseRatio = 0.45;
 
-        const riseCount = Math.round(totalStocks * estimatedRiseRatio);
-        const fallCount = Math.round(totalStocks * estimatedFallRatio);
+        const riseCount = Math.round(totalStocks * riseRatio);
+        const fallCount = Math.round(totalStocks * riseRatio);
         const flatCount = totalStocks - riseCount - fallCount;
+
+        console.log(`⚠️ Estimated market breadth: ↑${riseCount} ↓${fallCount} →${flatCount} (ratio: 45%)`);
 
         return {
             riseCount,
             fallCount,
             flatCount,
             totalCount: totalStocks,
-            limitUpCount: limitStats.limitUp,
-            limitDownCount: limitStats.limitDown,
+            limitUpCount: 50,
+            limitDownCount: 20,
+            riseRatio: Math.round(riseRatio * 100),
         };
 
     } catch (error) {
-        console.error('Failed to get comprehensive market breadth:', error);
+        console.error('getComprehensiveMarketBreadth failed:', error);
 
-        // 返回保守估算值
+        // 最终fallback：使用保守估算
         return {
             riseCount: 2400,
             fallCount: 2400,
             flatCount: 500,
             totalCount: 5300,
-            limitUpCount: 100,
+            limitUpCount: 50,
             limitDownCount: 20,
+            riseRatio: 45,
+        };
+    }
+}
+
+        // 如果行情数据获取成功，直接统计
+        if (spotData.length > 0) {
+            let riseCount = 0;
+            let fallCount = 0;
+            let flatCount = 0;
+
+            // 限制处理数量，避免超时（最多处理2000只）
+            const maxStocksToProcess = Math.min(spotData.length, 2000);
+
+            for (let i = 0; i < maxStocksToProcess; i++) {
+                const stock = spotData[i];
+                const changePercent = stock['涨跌幅'] ?? stock['changePercent'] ?? stock['pct_chg'] ?? 0;
+                if (changePercent > 0.01) {
+                    riseCount++;
+                } else if (changePercent < -0.01) {
+                    fallCount++;
+                } else {
+                    flatCount++;
+                }
+            }
+
+            console.log(`Direct market breadth: ↑${riseCount} ↓${fallCount} →${flatCount} (total: ${spotData.length}, processed: ${maxStocksToProcess})`);
+
+            return {
+                riseCount,
+                fallCount,
+                flatCount,
+                totalCount: spotData.length,
+                limitUpCount: limitStats.success ? limitStats.data.limitUp : 0,
+                limitDownCount: limitStats.success ? limitStats.data.limitDown : 0,
+                riseRatio: Math.round((riseCount / spotData.length) * 100),
+            };
+        }
+
+        // 行情数据失败时的估算
+        console.log('Using estimated market breadth from limit stats');
+        const limitUp = limitStats.success ? limitStats.data.limitUp : 0;
+        const limitDown = limitStats.success ? limitStats.data.limitDown : 0;
+
+        // 基于涨停跌停数量估算整体市场情绪
+        const totalStocks = 5300;
+        let estimatedRiseRatio = 0.45; // 基准上涨比例
+        let estimatedFallRatio = 0.45;
+
+        // 根据涨跌停情况调整估算
+        const totalLimits = limitUp + limitDown;
+        if (totalLimits > 50) {
+            // 极端行情日
+            if (limitUp > limitDown * 2) {
+                estimatedRiseRatio = 0.60;
+                estimatedFallRatio = 0.30;
+            } else if (limitDown > limitUp * 2) {
+                estimatedRiseRatio = 0.30;
+                estimatedFallRatio = 0.60;
+            }
+        } else if (totalLimits < 10) {
+            // 震荡行情日
+            estimatedRiseRatio = 0.48;
+            estimatedFallRatio = 0.42;
+        }
+
+        const riseCount = Math.round(totalStocks * estimatedRiseRatio);
+        const fallCount = Math.round(totalStocks * estimatedFallRatio);
+        const flatCount = totalStocks - riseCount - fallCount;
+
+        console.log(`Estimated market breadth: ↑${riseCount} ↓${fallCount} →${flatCount} (ratio: ${estimatedRiseRatio.toFixed(2)})`);
+
+        return {
+            riseCount,
+            fallCount,
+            flatCount,
+            totalCount: totalStocks,
+            limitUpCount: limitUp,
+            limitDownCount: limitDown,
+            riseRatio: Math.round(estimatedRiseRatio * 100),
+        };
+
+    } catch (error) {
+        console.error('getComprehensiveMarketBreadth failed:', error);
+
+        // 终极fallback：使用固定的合理值
+        return {
+            riseCount: 2400,
+            fallCount: 2400,
+            flatCount: 500,
+            totalCount: 5300,
+            limitUpCount: 50,
+            limitDownCount: 30,
+            riseRatio: 45,
+        };
+    }
+}
+
+        // 直接统计涨跌家数
+        let riseCount = 0;
+        let fallCount = 0;
+        let flatCount = 0;
+
+        for (const stock of allSpots) {
+            const changePercent = stock['涨跌幅'] ?? stock['changePercent'] ?? 0;
+            if (changePercent > 0.01) {
+                riseCount++;
+            } else if (changePercent < -0.01) {
+                fallCount++;
+            } else {
+                flatCount++;
+            }
+        }
+
+        const totalCount = allSpots.length;
+        const riseRatio = totalCount > 0 ? Math.round((riseCount / totalCount) * 100) : 50;
+
+        console.log(`[AKShare] 实时涨跌统计: ↑${riseCount} ↓${fallCount} →${flatCount} (共${totalCount}只, 上涨比${riseRatio}%)`);
+
+        return {
+            riseCount,
+            fallCount,
+            flatCount,
+            totalCount,
+            limitUpCount: limitStats.limitUp,
+            limitDownCount: limitStats.limitDown,
+            riseRatio,
+        };
+
+    } catch (error: any) {
+        console.error('[AKShare] 获取涨跌统计失败, 尝试备选方案:', error.message);
+
+        // 备选方案：使用指数数据估算
+        try {
+            const indexData = await callAKShare<any[]>('stock_zh_index_spot_em');
+            if (Array.isArray(indexData) && indexData.length > 0) {
+                // 计算主要指数的平均涨跌幅来估算市场情绪
+                let avgChange = 0;
+                for (const index of indexData.slice(0, 10)) {
+                    avgChange += (index['涨跌幅'] || 0);
+                }
+                avgChange /= 10;
+
+                // 根据指数表现估算涨跌比例
+                let riseRatio: number;
+                if (avgChange > 2) riseRatio = 70;
+                else if (avgChange > 1) riseRatio = 60;
+                else if (avgChange > 0.5) riseRatio = 55;
+                else if (avgChange > 0) riseRatio = 50;
+                else if (avgChange > -0.5) riseRatio = 45;
+                else if (avgChange > -1) riseRatio = 40;
+                else if (avgChange > -2) riseRatio = 35;
+                else riseRatio = 30;
+
+                const totalStocks = 5300;
+                const riseCount = Math.round(totalStocks * riseRatio / 100);
+                const fallCount = Math.round(totalStocks * (100 - riseRatio - 10) / 100);
+                const flatCount = totalStocks - riseCount - fallCount;
+
+                console.log(`[AKShare] 指数估算涨跌: ↑${riseCount} ↓${fallCount} (指数均涨${avgChange.toFixed(2)}%)`);
+
+                return {
+                    riseCount,
+                    fallCount,
+                    flatCount,
+                    totalCount: totalStocks,
+                    limitUpCount: 0,
+                    limitDownCount: 0,
+                    riseRatio,
+                };
+            }
+        } catch (fallbackError: any) {
+            console.error('[AKShare] 备选方案也失败:', fallbackError.message);
+        }
+
+        // 最终 fallback - 返回中性估算值
+        console.warn('[AKShare] 使用默认估算值');
+        return {
+            riseCount: 2400,
+            fallCount: 2400,
+            flatCount: 500,
+            totalCount: 5300,
+            limitUpCount: 0,
+            limitDownCount: 0,
+            riseRatio: 45,
         };
     }
 }

@@ -12,12 +12,41 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { AgentMessage } from '../agent/types';
 
+export type TodoStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
+export type TodoRunStatus = 'running' | 'completed' | 'failed';
+
+export interface TodoItem {
+    id: string;
+    title: string;
+    status: TodoStatus;
+    createdAt: string;
+    updatedAt: string;
+    toolCallId?: string;
+    toolName?: string;
+    toolArgs?: Record<string, any>;
+    resultPreview?: string;
+    error?: string;
+}
+
+export interface TodoRun {
+    id: string;
+    userMessage: string;
+    stockCode?: string;
+    thinkHard: boolean;
+    createdAt: string;
+    updatedAt: string;
+    status: TodoRunStatus;
+    todos: TodoItem[];
+}
+
 export interface SessionMetadata {
     stockCode?: string;
     taskHistory: string[];
     tokenUsage: number;
     lastActivity: string;
     detailMode?: boolean; // 是否启用详细输出模式
+    todoRuns?: TodoRun[];
+    activeTodoRunId?: string;
 }
 
 export interface Session {
@@ -83,6 +112,7 @@ export class SessionStore {
                 taskHistory: [],
                 tokenUsage: 0,
                 lastActivity: now,
+                todoRuns: [],
             },
         };
 
@@ -226,6 +256,170 @@ export class SessionStore {
     }
 
     /**
+     * 开始一次 TODO Run（一次用户请求对应一次 Run）
+     */
+    startTodoRun(sessionId: string, params: {
+        userMessage: string;
+        stockCode?: string;
+        thinkHard?: boolean;
+        initialTodos?: Array<Pick<TodoItem, 'title'> & Partial<Omit<TodoItem, 'id' | 'createdAt' | 'updatedAt'>>>;
+    }): TodoRun {
+        const session = this.sessions.get(sessionId);
+        if (!session) {
+            throw new Error(`Session not found: ${sessionId}`);
+        }
+
+        const now = new Date().toISOString();
+        const run: TodoRun = {
+            id: this.generateTodoRunId(),
+            userMessage: params.userMessage,
+            stockCode: params.stockCode,
+            thinkHard: Boolean(params.thinkHard),
+            createdAt: now,
+            updatedAt: now,
+            status: 'running',
+            todos: [],
+        };
+
+        const initialTodos = params.initialTodos || [];
+        for (const todo of initialTodos) {
+            run.todos.push({
+                id: this.generateTodoId(),
+                title: todo.title,
+                status: todo.status || 'pending',
+                createdAt: now,
+                updatedAt: now,
+                toolCallId: todo.toolCallId,
+                toolName: todo.toolName,
+                toolArgs: todo.toolArgs,
+                resultPreview: todo.resultPreview,
+                error: todo.error,
+            });
+        }
+
+        if (!session.metadata.todoRuns) {
+            session.metadata.todoRuns = [];
+        }
+        session.metadata.todoRuns.push(run);
+        session.metadata.todoRuns = session.metadata.todoRuns.slice(-20);
+        session.metadata.activeTodoRunId = run.id;
+
+        this.markDirty(sessionId);
+        if (this.config.autoSave) {
+            this.saveSession(sessionId);
+        }
+
+        return run;
+    }
+
+    getTodoRuns(sessionId: string): TodoRun[] {
+        const session = this.sessions.get(sessionId);
+        return session?.metadata.todoRuns ? [...session.metadata.todoRuns] : [];
+    }
+
+    getActiveTodoRun(sessionId: string): TodoRun | null {
+        const session = this.sessions.get(sessionId);
+        if (!session) return null;
+
+        const runId = session.metadata.activeTodoRunId;
+        if (!runId || !session.metadata.todoRuns) return null;
+
+        return session.metadata.todoRuns.find(r => r.id === runId) || null;
+    }
+
+    /**
+     * 根据 tool_call_id 添加/更新 TODO
+     */
+    upsertTodoForToolCall(sessionId: string, runId: string, params: {
+        toolCallId: string;
+        toolName: string;
+        toolArgs?: Record<string, any>;
+        status?: TodoStatus;
+        title?: string;
+    }): TodoItem {
+        const session = this.sessions.get(sessionId);
+        if (!session) {
+            throw new Error(`Session not found: ${sessionId}`);
+        }
+        const run = (session.metadata.todoRuns || []).find(r => r.id === runId);
+        if (!run) {
+            throw new Error(`Todo run not found: ${runId}`);
+        }
+
+        const now = new Date().toISOString();
+        const existing = run.todos.find(t => t.toolCallId === params.toolCallId);
+        if (existing) {
+            existing.updatedAt = now;
+            existing.status = params.status || existing.status;
+            existing.toolName = params.toolName || existing.toolName;
+            existing.toolArgs = params.toolArgs || existing.toolArgs;
+            existing.title = params.title || existing.title;
+            run.updatedAt = now;
+
+            this.markDirty(sessionId);
+            if (this.config.autoSave) this.saveSession(sessionId);
+            return existing;
+        }
+
+        const item: TodoItem = {
+            id: this.generateTodoId(),
+            title: params.title || params.toolName,
+            status: params.status || 'pending',
+            createdAt: now,
+            updatedAt: now,
+            toolCallId: params.toolCallId,
+            toolName: params.toolName,
+            toolArgs: params.toolArgs,
+        };
+        run.todos.push(item);
+        run.updatedAt = now;
+
+        this.markDirty(sessionId);
+        if (this.config.autoSave) this.saveSession(sessionId);
+        return item;
+    }
+
+    updateTodo(sessionId: string, runId: string, todoId: string, updates: Partial<Omit<TodoItem, 'id' | 'createdAt'>>): void {
+        const session = this.sessions.get(sessionId);
+        if (!session) return;
+
+        const run = (session.metadata.todoRuns || []).find(r => r.id === runId);
+        if (!run) return;
+
+        const todo = run.todos.find(t => t.id === todoId);
+        if (!todo) return;
+
+        Object.assign(todo, updates);
+        todo.updatedAt = new Date().toISOString();
+        run.updatedAt = todo.updatedAt;
+
+        this.markDirty(sessionId);
+        if (this.config.autoSave) {
+            this.saveSession(sessionId);
+        }
+    }
+
+    finishTodoRun(sessionId: string, runId: string, status: TodoRunStatus): void {
+        const session = this.sessions.get(sessionId);
+        if (!session) return;
+
+        const run = (session.metadata.todoRuns || []).find(r => r.id === runId);
+        if (!run) return;
+
+        run.status = status;
+        run.updatedAt = new Date().toISOString();
+
+        if (session.metadata.activeTodoRunId === runId) {
+            session.metadata.activeTodoRunId = undefined;
+        }
+
+        this.markDirty(sessionId);
+        if (this.config.autoSave) {
+            this.saveSession(sessionId);
+        }
+    }
+
+    /**
      * 删除会话
      */
     deleteSession(sessionId: string): boolean {
@@ -347,6 +541,18 @@ export class SessionStore {
         return `S-${timestamp}-${random}`;
     }
 
+    private generateTodoRunId(): string {
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substring(2, 8);
+        return `R-${timestamp}-${random}`;
+    }
+
+    private generateTodoId(): string {
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substring(2, 8);
+        return `T-${timestamp}-${random}`;
+    }
+
     /**
      * 导出会话为 Markdown
      */
@@ -390,6 +596,29 @@ export class SessionStore {
             lines.push(``);
             for (const task of session.metadata.taskHistory) {
                 lines.push(`- ${task}`);
+            }
+        }
+
+        if (session.metadata.todoRuns && session.metadata.todoRuns.length > 0) {
+            const latest = session.metadata.todoRuns[session.metadata.todoRuns.length - 1];
+            lines.push(``);
+            lines.push(`---`);
+            lines.push(``);
+            lines.push(`## 最近一次 TODO`);
+            lines.push(``);
+            lines.push(`- Run ID: ${latest.id}`);
+            lines.push(`- 状态: ${latest.status}`);
+            lines.push(`- ThinkHard: ${latest.thinkHard ? 'true' : 'false'}`);
+            lines.push(``);
+            for (const todo of latest.todos) {
+                const status = {
+                    pending: '⏳',
+                    in_progress: '🚧',
+                    completed: '✅',
+                    failed: '❌',
+                    skipped: '⏭️',
+                }[todo.status] || '📝';
+                lines.push(`- ${status} ${todo.title}`);
             }
         }
 

@@ -10,7 +10,7 @@
 
 import { AgentOrchestrator } from './orchestrator';
 import { AnalysisAgent } from './agents/analysis-agent';
-import { getSessionStore, type Session } from '../session';
+import { getSessionStore, type Session, type TodoItem, type TodoRunStatus } from '../session';
 import { getMemoryStore } from '../memory';
 import { getSkillRegistry, type Skill } from '../skills';
 import type { StreamEvent, AgentMessage } from './types';
@@ -20,6 +20,8 @@ export interface SmartAgentConfig {
     stockCode?: string;
     useOrchestrator?: boolean;
     verbose?: boolean;
+    thinkHard?: boolean;
+    preloadedContext?: string;
 }
 
 export class SmartAgent {
@@ -40,6 +42,12 @@ export class SmartAgent {
             config.sessionId,
             config.stockCode
         );
+
+        if (typeof config.thinkHard === 'boolean') {
+            sessionStore.updateMetadata(this.session.id, {
+                detailMode: config.thinkHard,
+            });
+        }
 
         this.orchestrator = config.useOrchestrator ? new AgentOrchestrator() : null;
         this.analysisAgent = config.useOrchestrator ? null : new AnalysisAgent(this.session.metadata.detailMode || false);
@@ -72,6 +80,13 @@ export class SmartAgent {
             ? skillRegistry.generateSkillPrompt(matchedSkill.name)
             : '';
 
+        const todoRun = sessionStore.startTodoRun(this.session.id, {
+            userMessage,
+            stockCode: this.config.stockCode,
+            thinkHard: this.session.metadata.detailMode,
+            initialTodos: this.buildInitialTodos(matchedSkill),
+        });
+
         const enhancedMessage = this.buildEnhancedMessage(
             userMessage,
             memoryContext,
@@ -84,13 +99,6 @@ export class SmartAgent {
         // 20秒超时控制，超时后降级到基础工具
         const response = await this.runWithTimeout(agent, enhancedMessage);
 
-        // 收集执行信息
-        const toolCalls: string[] = [];
-        const iterations = 1; // 简化处理，实际可以从agent状态获取
-
-        // 从agent状态中提取工具调用信息（如果可用）
-        // 这里可以根据实际实现进行调整
-
         sessionStore.addMessage(this.session.id, {
             role: 'assistant',
             content: response,
@@ -98,10 +106,20 @@ export class SmartAgent {
 
         this.extractAndSaveMemories(userMessage, response);
 
+        const toolCalls = typeof agent.getToolStats === 'function'
+            ? agent.getToolStats().map((t: any) => t.name)
+            : [];
+        const iterations = typeof agent.getThinking === 'function'
+            ? agent.getThinking().length
+            : 1;
+
+        // chat() 模式没有逐步事件：只把最终状态落盘
+        sessionStore.finishTodoRun(this.session.id, todoRun.id, 'completed');
+
         return {
             response,
-            toolCalls: ['get_stock_quote', 'analyze_stock_technical', 'get_fund_flow'], // 临时hardcode
-            iterations: 2 // 临时hardcode
+            toolCalls,
+            iterations,
         };
     }
 
@@ -128,6 +146,14 @@ export class SmartAgent {
             ? skillRegistry.generateSkillPrompt(matchedSkill.name)
             : '';
 
+        const todoRun = sessionStore.startTodoRun(this.session.id, {
+            userMessage,
+            stockCode: this.config.stockCode,
+            thinkHard: this.session.metadata.detailMode,
+            initialTodos: this.buildInitialTodos(matchedSkill),
+        });
+        const finalTodoId = todoRun.todos.find(t => !t.toolName)?.id;
+
         if (matchedSkill) {
             yield {
                 type: 'thinking',
@@ -151,12 +177,60 @@ export class SmartAgent {
 
         const agent = this.orchestrator || this.analysisAgent!;
         let fullResponse = '';
+        let runStatus: TodoRunStatus = 'completed';
 
         // 简化实现：暂时不实现流式超时，后续优化
         for await (const event of agent.stream(enhancedMessage)) {
+            if (event.type === 'tool_call') {
+                const toolCallId = event.data?.toolCallId || event.data?.id;
+                const toolName = event.data?.name;
+                const toolArgs = this.safeParseArgs(event.data?.args);
+
+                if (toolCallId && toolName) {
+                    sessionStore.upsertTodoForToolCall(this.session.id, todoRun.id, {
+                        toolCallId,
+                        toolName,
+                        toolArgs,
+                        status: 'in_progress',
+                        title: `调用工具: ${toolName}`,
+                    });
+                }
+            }
+
+            if (event.type === 'tool_result') {
+                const toolCallId = event.data?.toolCallId || event.data?.id;
+                const toolName = event.data?.name;
+                const ok = Boolean(event.data?.ok);
+                const result = typeof event.data?.result === 'string' ? event.data.result : '';
+                const error = typeof event.data?.error === 'string' ? event.data.error : undefined;
+
+                if (toolCallId && toolName) {
+                    const todo = sessionStore.upsertTodoForToolCall(this.session.id, todoRun.id, {
+                        toolCallId,
+                        toolName,
+                        status: ok ? 'completed' : 'failed',
+                        title: `调用工具: ${toolName}`,
+                    });
+                    sessionStore.updateTodo(this.session.id, todoRun.id, todo.id, {
+                        resultPreview: result.slice(0, 200),
+                        error: ok ? undefined : (error || 'Tool failed'),
+                    });
+                }
+            }
+
             if (event.type === 'content') {
                 fullResponse = event.data;
+                if (finalTodoId) {
+                    sessionStore.updateTodo(this.session.id, todoRun.id, finalTodoId, {
+                        status: 'in_progress',
+                    });
+                }
             }
+
+            if (event.type === 'error') {
+                runStatus = 'failed';
+            }
+
             yield event;
         }
 
@@ -164,6 +238,13 @@ export class SmartAgent {
             role: 'assistant',
             content: fullResponse,
         });
+
+        if (finalTodoId) {
+            sessionStore.updateTodo(this.session.id, todoRun.id, finalTodoId, {
+                status: runStatus === 'completed' ? 'completed' : 'failed',
+            });
+        }
+        sessionStore.finishTodoRun(this.session.id, todoRun.id, runStatus);
 
         this.extractAndSaveMemories(userMessage, fullResponse);
     }
@@ -259,6 +340,10 @@ export class SmartAgent {
             parts.push(`【当前股票】${this.config.stockCode}`);
         }
 
+        if (this.config.preloadedContext) {
+            parts.push(this.config.preloadedContext);
+        }
+
         if (memoryContext) {
             parts.push(memoryContext);
         }
@@ -297,12 +382,61 @@ export class SmartAgent {
             }
         }
 
-        if (this.config.stockCode && response.includes('买入') || response.includes('卖出')) {
+        if (this.config.stockCode && (response.includes('买入') || response.includes('卖出'))) {
             memoryStore.setShortTerm(
                 this.session.id,
                 'last_advice',
                 response.slice(0, 200)
             );
+        }
+    }
+
+    private buildInitialTodos(matchedSkill: Skill | null): Array<Pick<TodoItem, 'title'> & Partial<Omit<TodoItem, 'id' | 'createdAt' | 'updatedAt'>>> {
+        const stockCode = this.config.stockCode;
+        const detailMode = Boolean(this.session.metadata.detailMode);
+
+        if (!stockCode) {
+            return [{ title: '理解问题并给出回答' }];
+        }
+
+        const toolPlan = matchedSkill?.tools && matchedSkill.tools.length > 0
+            ? matchedSkill.tools
+            : detailMode
+                ? [
+                    'comprehensive_analysis',
+                    'get_guba_hot_rank',
+                    'get_trading_memory',
+                ]
+                : [
+                    'get_stock_quote',
+                    'analyze_stock_technical',
+                    'get_fund_flow',
+                    'get_market_status',
+                    'get_trading_memory',
+                ];
+
+        const todos: Array<Pick<TodoItem, 'title'> & Partial<Omit<TodoItem, 'id' | 'createdAt' | 'updatedAt'>>> = toolPlan.map(toolName => ({
+            title: `计划工具: ${toolName}`,
+            toolName,
+            toolArgs: toolName === 'get_market_status'
+                ? {}
+                : toolName === 'search_stock'
+                    ? { keyword: stockCode }
+                    : { code: stockCode },
+        }));
+
+        todos.push({ title: '生成结论与操作建议' });
+        return todos;
+    }
+
+    private safeParseArgs(args: unknown): Record<string, any> | undefined {
+        if (!args) return undefined;
+        if (typeof args === 'object') return args as Record<string, any>;
+        if (typeof args !== 'string') return undefined;
+        try {
+            return JSON.parse(args) as Record<string, any>;
+        } catch {
+            return undefined;
         }
     }
 
