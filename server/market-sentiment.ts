@@ -290,6 +290,7 @@ export async function getMarketSentiment(): Promise<MarketSentimentData> {
     // 检查缓存
     const now = Date.now();
     if (sentimentCache.data && now - sentimentCache.timestamp < CACHE_TTL) {
+        console.log(`Using cached data (age: ${Math.round((now - sentimentCache.timestamp) / 1000)}s)`);
         return sentimentCache.data;
     }
 

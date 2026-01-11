@@ -558,7 +558,7 @@ export async function getComprehensiveMarketBreadth(): Promise<{
             let fallCount = 0;
             let flatCount = 0;
 
-            // 统计涨跌家数
+            // 统计所有A股的涨跌家数（不限制数量）
             for (const stock of spotData) {
                 const changePercent = stock['涨跌幅'] ?? stock['changePercent'] ?? stock['pct_chg'] ?? 0;
                 if (changePercent > 0.01) {

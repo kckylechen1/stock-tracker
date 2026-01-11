@@ -4,7 +4,7 @@ import { Zap, X, SquarePen, History } from "lucide-react";
 import { AIChatBox, Message } from "@/components/AIChatBox";
 import { PresetPrompts } from "@/components/PresetPrompts";
 import { Button } from "@/components/ui/button";
-import { ChatHistoryDialog } from "./ChatHistoryDialog";
+import { ChatHistoryList } from "./ChatHistoryList";
 
 export interface AIChatPanelProps {
     selectedStock: string | null;
@@ -22,7 +22,7 @@ const getDefaultMessages = (): Message[] => [
 export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
     const [messages, setMessages] = useState<Message[]>(getDefaultMessages());
     const [isLoading, setIsLoading] = useState(false);
-    const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
     const utils = trpc.useUtils();
 
@@ -241,7 +241,7 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
-                            onClick={() => setHistoryDialogOpen(true)}
+                            onClick={() => setShowHistory(true)}
                             title="历史对话"
                         >
                             <History className="h-4 w-4" />
@@ -289,31 +289,28 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                                     ? `🧠 SmartAgent 已就绪，直接提问即可`
                                     : "选择股票后可以进行针对性分析"
                             }
-                            suggestedPrompts={[]} // 不再使用旧的建议提示
+                            suggestedPrompts={[]}
                             onRegenerate={handleRegenerate}
                         />
                     </div>
                 </div>
             </div>
-        </div >
 
-            {/* 历史对话弹窗 */ }
-            < ChatHistoryDialog
-    open = { historyDialogOpen }
-    onOpenChange = { setHistoryDialogOpen }
-    onSelectSession = { async(stockCode) => {
-        // 加载选中的会话历史
-        try {
-            const history = await utils.ai.getHistory.fetch({ stockCode });
-            if (history && history.length > 0) {
-                setMessages(history);
-            }
-        } catch (error) {
-            console.error('Failed to load session:', error);
-        }
-    }
-}
-        />
+            {/* 历史对话弹窗 */}
+            <ChatHistoryDialog
+                open={historyDialogOpen}
+                onOpenChange={setHistoryDialogOpen}
+                onSelectSession={async (stockCode) => {
+                    try {
+                        const history = await utils.ai.getHistory.fetch({ stockCode });
+                        if (history && history.length > 0) {
+                            setMessages(history);
+                        }
+                    } catch (error) {
+                        console.error('Failed to load session:', error);
+                    }
+                }}
+            />
         </>
     );
 }

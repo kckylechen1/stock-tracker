@@ -1,10 +1,8 @@
 /**
  * 历史对话弹窗组件
  */
-import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { MessageCircle, Trash2, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MessageCircle, ChevronRight } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -23,7 +21,7 @@ export function ChatHistoryDialog({
     onOpenChange,
     onSelectSession
 }: ChatHistoryDialogProps) {
-    const { data: sessions, isLoading, refetch } = trpc.ai.getSessions.useQuery(undefined, {
+    const { data: sessions, isLoading } = trpc.ai.getSessions.useQuery(undefined, {
         enabled: open,
     });
 
@@ -35,9 +33,9 @@ export function ChatHistoryDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md bg-card border-border">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
+                    <DialogTitle className="flex items-center gap-2 text-foreground">
                         <MessageCircle className="h-5 w-5 text-primary" />
                         历史对话
                     </DialogTitle>
@@ -54,13 +52,13 @@ export function ChatHistoryDialog({
                                 <button
                                     key={session.id}
                                     onClick={() => handleSelect(session.id)}
-                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors text-left group"
+                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors text-left group border border-transparent hover:border-border/50"
                                 >
                                     <div className="size-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                                         <MessageCircle className="h-4 w-4 text-primary" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-medium text-sm truncate">
+                                        <div className="font-medium text-sm text-foreground truncate">
                                             {session.stockCode}
                                         </div>
                                         <div className="text-xs text-muted-foreground truncate">
