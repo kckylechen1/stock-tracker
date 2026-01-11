@@ -143,16 +143,20 @@ export function MarketSentimentPanel({ selectedStock }: MarketSentimentPanelProp
                                 <div className="px-3 py-2 rounded-lg bg-card/50 border border-border/30">
                                     <div className="flex justify-between items-center mb-1.5">
                                         <span className="text-muted-foreground">今日涨跌</span>
-                                         <div className="flex items-center gap-2 font-semibold">
-                                             <span className="text-[#ef4444]">{safeValue(marketBreadth, 'riseCount', 0)}</span>
-                                             <span className="text-muted-foreground">:</span>
-                                             <span className="text-[#22c55e]">{safeValue(marketBreadth, 'fallCount', 0)}</span>
-                                         </div>
+                                        <div className="flex items-center gap-2 font-semibold">
+                                            <span className="text-[#ef4444]">{safeValue(marketBreadth, 'riseCount', 0)}</span>
+                                            <span className="text-muted-foreground">:</span>
+                                            <span className="text-[#22c55e]">{safeValue(marketBreadth, 'fallCount', 0)}</span>
+                                        </div>
                                     </div>
-                                     <div className="flex h-1.5 rounded-full overflow-hidden">
-                                         <div className="bg-[#ef4444]" style={{ flex: safeValue(marketBreadth, 'riseRatio', 50) }} />
-                                         <div className="bg-[#22c55e]" style={{ flex: 100 - safeValue(marketBreadth, 'riseRatio', 50) }} />
-                                     </div>
+                                    <div className="flex h-1.5 rounded-full overflow-hidden mb-2">
+                                        <div className="bg-[#ef4444]" style={{ flex: safeValue(marketBreadth, 'riseRatio', 50) }} />
+                                        <div className="bg-[#22c55e]" style={{ flex: 100 - safeValue(marketBreadth, 'riseRatio', 50) }} />
+                                    </div>
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>涨停: {safeValue(marketBreadth, 'limitUpCount', 0)}</span>
+                                        <span>跌停: {safeValue(marketBreadth, 'limitDownCount', 0)}</span>
+                                    </div>
                                 </div>
                             </>
                         ) : (
