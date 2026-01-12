@@ -15,7 +15,7 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "sk-ucmeiodrdhubymxanffmxjyrgyyvnfrffeerejhgpzokawhl",
   // xAI Grok API
   grokApiUrl: process.env.GROK_API_URL ?? "https://api.x.ai/v1",
-  grokApiKey: process.env.GROK_API_KEY ?? "",
+  grokApiKey: process.env.XAI_API_KEY ?? process.env.GROK_API_KEY ?? "",
   grokModel: process.env.GROK_MODEL ?? "grok-4-1-fast-reasoning",
   // 智谱AI GLM API
   glmApiUrl: process.env.GLM_API_URL ?? "https://open.bigmodel.cn/api/paas/v4",

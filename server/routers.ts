@@ -169,6 +169,89 @@ export const appRouter = router({
           return null;
         }
       }),
+
+    // 获取热门股票排行榜（基于Gauge评分）
+    getTopStocks: publicProcedure
+      .input(z.object({
+        limit: z.number().optional().default(20),
+        sortBy: z.enum(['score', 'change', 'volume']).optional().default('score')
+      }))
+      .query(async ({ input }) => {
+        try {
+          const { getWatchlist } = await import('./db');
+          const { calculateGaugeScore } = await import('./gauge/indicators');
+          
+          // 获取观察池股票
+          const watchlist = await getWatchlist();
+          
+          // 并发获取每只股票的评分和行情
+          const stocksWithScores = await Promise.all(
+            watchlist.map(async (stock) => {
+              try {
+                // 获取K线数据
+                const klines = await eastmoney.getKlineData(stock.stockCode, 'day');
+                const recentKlines = klines.slice(-80);
+                
+                if (recentKlines.length < 30) {
+                  return null;
+                }
+                
+                // 转换格式
+                const formattedKlines = recentKlines.map((item: any) => ({
+                  time: item.time,
+                  open: item.open,
+                  high: item.high,
+                  low: item.low,
+                  close: item.close,
+                  volume: item.volume,
+                }));
+                
+                // 计算Gauge评分
+                const gaugeScore = calculateGaugeScore(formattedKlines);
+                
+                // 获取实时行情
+                const quote = await eastmoney.getStockQuote(stock.stockCode);
+                
+                return {
+                  code: stock.stockCode,
+                  name: quote.name,
+                  price: quote.price,
+                  change: quote.change,
+                  changePercent: quote.changePercent,
+                  volume: quote.volume,
+                  amount: quote.amount,
+                  turnoverRate: quote.turnoverRate,
+                  gaugeScore: gaugeScore.score,
+                  signal: gaugeScore.signal,
+                  confidence: gaugeScore.confidence,
+                };
+              } catch (error) {
+                console.error(`Failed to get score for ${stock.stockCode}:`, error);
+                return null;
+              }
+            })
+          );
+          
+          // 过滤空值并排序
+          const validStocks = stocksWithScores.filter(s => s !== null);
+          
+          // 根据排序方式排序
+          validStocks.sort((a, b) => {
+            if (input.sortBy === 'score') {
+              return b.gaugeScore - a.gaugeScore;
+            } else if (input.sortBy === 'change') {
+              return b.changePercent - a.changePercent;
+            } else {
+              return b.volume - a.volume;
+            }
+          });
+          
+          return validStocks.slice(0, input.limit);
+        } catch (error) {
+          console.error('Get top stocks failed:', error);
+          return [];
+        }
+      }),
   }),
 
   // 市场情绪路由

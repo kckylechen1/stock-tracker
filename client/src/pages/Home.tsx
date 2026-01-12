@@ -12,7 +12,7 @@ import { useIsLargeScreen, useIsMobileScreen } from "@/hooks";
 // 导入模块化组件
 import { StockListItem, StockDetailPanel } from "@/components/stock";
 import { AIChatPanel } from "@/components/ai";
-import { MarketSentimentPanel } from "@/components/market";
+import { MarketSentimentPanel, TopStocksPanel } from "@/components/market";
 
 // 单个股票标签组件 - 动态获取股票名称
 function StockTab({
@@ -392,7 +392,7 @@ export default function Home() {
 
               {/* 市场情绪 - Accordion 可折叠面板 */}
               <div className={`${showSidePanels ? 'flex' : 'hidden'} 2xl:flex flex-[15] min-w-[160px] border-l border-border flex-col bg-card/30`}>
-                <Accordion type="multiple" defaultValue={["sentiment"]} className="flex-1 overflow-auto">
+                <Accordion type="multiple" defaultValue={[]} className="flex-1 overflow-auto">
                   {/* 市场情绪 */}
                   <AccordionItem value="sentiment" className="border-b border-border/50">
                     <AccordionTrigger className="px-3 py-2.5 text-sm font-semibold hover:no-underline hover:bg-accent/50">
@@ -406,18 +406,21 @@ export default function Home() {
                     </AccordionContent>
                   </AccordionItem>
 
-                  {/* 资金面 (占位 - 后续填充) */}
-                  <AccordionItem value="capital" className="border-b border-border/50">
+                  {/* 热门股票排行榜 */}
+                  <AccordionItem value="topstocks" className="border-b border-border/50">
                     <AccordionTrigger className="px-3 py-2.5 text-sm font-semibold hover:no-underline hover:bg-accent/50">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-green-500" />
-                        资金面
+                        热门排行
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
-                      <div className="px-3 py-4 text-xs text-muted-foreground text-center">
-                        资金面数据已整合到 K线图下方
-                      </div>
+                      <TopStocksPanel onSelectStock={(code) => {
+                        setSelectedStock(code);
+                        if (!openedTabs.includes(code)) {
+                          setOpenedTabs([...openedTabs, code]);
+                        }
+                      }} />
                     </AccordionContent>
                   </AccordionItem>
 
