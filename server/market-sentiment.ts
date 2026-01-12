@@ -4,6 +4,7 @@
  */
 
 import axios from 'axios';
+import { getComprehensiveMarketBreadth } from './akshare';
 
 // 请求头配置
 const HEADERS = {
@@ -93,7 +94,7 @@ async function fetchMarketOverview() {
                 timeout: 10000,
             }),
             // 获取综合市场宽度数据 (使用新的AKShare函数)
-            import('../akshare').then(ak => ak.getComprehensiveMarketBreadth()),
+            getComprehensiveMarketBreadth(),
         ]);
 
         const indexResponse = indexData.data?.data?.diff || [];

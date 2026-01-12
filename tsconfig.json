@@ -9,12 +9,21 @@
     "build",
     "dist",
     "**/*.test.ts",
-    "server/ai/**/*"
+    "server/ai/**/*",
+    "server/_core/skills/**/*",
+    "server/_core/stockAgent.ts",
+    "server/_core/agent/**/*",
+    "server/analyze*.ts",
+    "server/test_*.ts",
+    "server/*backtest*.ts",
+    "server/ai_agent_*.ts",
+    "test_*.ts"
   ],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
+    "downlevelIteration": true,
     "module": "ESNext",
     "strict": true,
     "lib": [
