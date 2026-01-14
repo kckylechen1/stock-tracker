@@ -1,16 +1,75 @@
 /**
  * AKShare HTTP API 集成
  * 通过 AKTools 服务调用 AKShare 数据接口
+ * 
+ * 注意：AKTools 需要单独启动 Python 服务
+ * 启动命令：pnpm start:aktools
+ * 
+ * 数据源优先级：
+ * 1. Eastmoney API - 主要数据源（免费、可靠）
+ * 2. AKShare/AKTools - 补充数据源（龙虎榜、融资融券等）
+ * 3. iFind - 未来专业数据源（付费）
  */
 
 import axios from 'axios';
 
 const AKTOOLS_BASE_URL = process.env.AKTOOLS_URL || 'http://127.0.0.1:8098';
 
+// AKTools 服务状态缓存
+let aktoolsStatus: { available: boolean; lastCheck: number; error?: string } = {
+    available: false,
+    lastCheck: 0,
+};
+const STATUS_CHECK_INTERVAL = 60000; // 1分钟检查一次
+
+/**
+ * 检查 AKTools 服务是否可用
+ */
+export async function checkAKToolsStatus(): Promise<boolean> {
+    const now = Date.now();
+    
+    // 使用缓存结果
+    if (now - aktoolsStatus.lastCheck < STATUS_CHECK_INTERVAL) {
+        return aktoolsStatus.available;
+    }
+
+    try {
+        const response = await axios.get(`${AKTOOLS_BASE_URL}/version`, { timeout: 3000 });
+        aktoolsStatus = {
+            available: true,
+            lastCheck: now,
+        };
+        console.log(`✅ [AKTools] 服务可用: ${JSON.stringify(response.data)}`);
+        return true;
+    } catch (error: any) {
+        aktoolsStatus = {
+            available: false,
+            lastCheck: now,
+            error: error.message,
+        };
+        console.warn(`⚠️ [AKTools] 服务不可用: ${error.message}`);
+        console.warn('   提示: 运行 "pnpm start:aktools" 启动服务');
+        return false;
+    }
+}
+
+/**
+ * 获取 AKTools 服务状态
+ */
+export function getAKToolsStatus(): typeof aktoolsStatus {
+    return { ...aktoolsStatus };
+}
+
 /**
  * 调用 AKTools API
  */
 export async function callAKShare<T = any>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
+    // 先检查服务是否可用
+    const isAvailable = await checkAKToolsStatus();
+    if (!isAvailable) {
+        throw new Error(`AKTools 服务未运行。请执行 "pnpm start:aktools" 启动服务。`);
+    }
+
     try {
         const url = `${AKTOOLS_BASE_URL}/api/public/${endpoint}`;
         const response = await axios.get(url, { params, timeout: 30000 });
@@ -22,10 +81,16 @@ export async function callAKShare<T = any>(endpoint: string, params: Record<stri
 }
 
 /**
- * 获取龙虎榜详情（最近的龙虎榜数据）
+ * 获取龙虎榜详情
+ * @param date 可选，日期格式 YYYYMMDD，不传则获取最新个股上榜统计
  */
-export async function getLongHuBangDetail(): Promise<any[]> {
-    return callAKShare('stock_lhb_detail_em');
+export async function getLongHuBangDetail(date?: string): Promise<any[]> {
+    if (date) {
+        // 如果指定日期，使用新浪接口
+        return callAKShare('stock_lhb_detail_daily_sina', { date });
+    }
+    // 默认使用东方财富-个股上榜统计，数据更新及时
+    return callAKShare('stock_lhb_stock_statistic_em');
 }
 
 /**
@@ -86,14 +151,10 @@ export function getYesterdayDate(): string {
 
 /**
  * 检查 AKTools 服务是否可用
+ * @deprecated Use checkAKToolsStatus() instead - this is kept for backward compatibility
  */
 export async function checkAKToolsHealth(): Promise<boolean> {
-    try {
-        const response = await axios.get(`${AKTOOLS_BASE_URL}/version`, { timeout: 5000 });
-        return response.status === 200;
-    } catch {
-        return false;
-    }
+    return checkAKToolsStatus();
 }
 
 // ==================== 股票基础数据 ====================
@@ -137,7 +198,8 @@ export async function getStockInfo(symbol: string): Promise<StockInfo | null> {
             sector: info['行业'] || '',
             totalValue: parseFloat(info['总市值'] || 0),
         };
-    } catch {
+    } catch (error: any) {
+        console.error(`[AKShare] getStockInfo(${symbol}) failed:`, error?.message);
         return null;
     }
 }
@@ -177,7 +239,8 @@ export async function getStockHistory(
             amount: parseFloat(item['成交额'] || 0),
             changePct: parseFloat(item['涨跌幅'] || 0),
         }));
-    } catch {
+    } catch (error: any) {
+        console.error(`[AKShare] getStockHistory(${symbol}, ${period}) failed:`, error?.message);
         return [];
     }
 }
@@ -210,7 +273,8 @@ export async function getStockMinuteHistory(
             amount: parseFloat(item['成交额'] || 0),
             changePct: parseFloat(item['涨跌幅'] || 0),
         }));
-    } catch {
+    } catch (error: any) {
+        console.error(`[AKShare] getStockMinuteHistory(${symbol}, ${period}) failed:`, error?.message);
         return [];
     }
 }
@@ -557,11 +621,26 @@ export async function getComprehensiveMarketBreadth(): Promise<{
             let riseCount = 0;
             let fallCount = 0;
             let flatCount = 0;
+            let limitUpCount = 0;
+            let limitDownCount = 0;
 
-            // 统计所有A股的涨跌家数（不限制数量）
+            // 统计所有A股的涨跌家数和涨跌停数（不限制数量）
             for (const stock of spotData) {
-                const changePercent = stock['涨跌幅'] ?? stock['changePercent'] ?? stock['pct_chg'] ?? 0;
-                if (changePercent > 0.01) {
+                const raw = stock['涨跌幅'] ?? stock['changePercent'] ?? stock['pct_chg'] ?? 0;
+                const changePercent = Number(raw) || 0;
+                
+                // 涨跌停判断：主板±10%，科创板/创业板±20%，ST股±5%
+                // 简化处理：涨幅>=9.9%视为涨停，跌幅<=-9.9%视为跌停
+                const isLimitUp = changePercent >= 9.9;
+                const isLimitDown = changePercent <= -9.9;
+                
+                if (isLimitUp) {
+                    limitUpCount++;
+                    riseCount++;
+                } else if (isLimitDown) {
+                    limitDownCount++;
+                    fallCount++;
+                } else if (changePercent > 0.01) {
                     riseCount++;
                 } else if (changePercent < -0.01) {
                     fallCount++;
@@ -570,53 +649,26 @@ export async function getComprehensiveMarketBreadth(): Promise<{
                 }
             }
 
-            console.log(`✅ Real market breadth: ↑${riseCount} ↓${fallCount} →${flatCount} (total: ${spotData.length})`);
+            console.log(`✅ Real market breadth: ↑${riseCount} ↓${fallCount} →${flatCount} | 涨停${limitUpCount} 跌停${limitDownCount} (total: ${spotData.length})`);
 
             return {
                 riseCount,
                 fallCount,
                 flatCount,
                 totalCount: spotData.length,
-                limitUpCount: 0,
-                limitDownCount: 0,
+                limitUpCount,
+                limitDownCount,
                 riseRatio: Math.round((riseCount / spotData.length) * 100),
             };
         }
 
-        // 如果行情数据获取失败，使用估算方法
-        console.log('⚠️ Failed to fetch spot data, using estimation');
-        const totalStocks = 5300;
-        const riseRatio = 0.45;
-
-        const riseCount = Math.round(totalStocks * riseRatio);
-        const fallCount = Math.round(totalStocks * riseRatio);
-        const flatCount = totalStocks - riseCount - fallCount;
-
-        console.log(`⚠️ Estimated market breadth: ↑${riseCount} ↓${fallCount} →${flatCount} (ratio: 45%)`);
-
-        return {
-            riseCount,
-            fallCount,
-            flatCount,
-            totalCount: totalStocks,
-            limitUpCount: 50,
-            limitDownCount: 20,
-            riseRatio: Math.round(riseRatio * 100),
-        };
+        // 如果行情数据获取失败，抛出错误让上层处理
+        throw new Error('Failed to fetch spot data: empty or invalid response');
 
     } catch (error) {
-        console.error('getComprehensiveMarketBreadth failed:', error);
-
-        // 最终fallback：使用保守估算
-        return {
-            riseCount: 2400,
-            fallCount: 2400,
-            flatCount: 500,
-            totalCount: 5300,
-            limitUpCount: 50,
-            limitDownCount: 20,
-            riseRatio: 45,
-        };
+        console.error('❌ getComprehensiveMarketBreadth failed:', error);
+        // 向上抛出错误，不返回假数据
+        throw error;
     }
 }
 

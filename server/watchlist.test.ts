@@ -1,8 +1,9 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
+const isOffline = process.env.TEST_OFFLINE === "true";
 
 function createTestContext(): TrpcContext {
   const user: AuthenticatedUser = {
@@ -31,7 +32,9 @@ function createTestContext(): TrpcContext {
   return ctx;
 }
 
-describe("Watchlist", () => {
+const describeWatchlist = isOffline ? describe.skip : describe;
+
+describeWatchlist("Watchlist", () => {
   it("should add stock to watchlist with all fields", async () => {
     const ctx = createTestContext();
     const caller = appRouter.createCaller(ctx);

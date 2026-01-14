@@ -181,6 +181,30 @@ export class SessionStore {
     }
 
     /**
+     * 替换会话消息（用于对齐外部传入历史）
+     */
+    setMessages(sessionId: string, messages: AgentMessage[]): void {
+        const session = this.sessions.get(sessionId);
+        if (!session) {
+            throw new Error(`Session not found: ${sessionId}`);
+        }
+
+        session.messages = [...messages];
+        session.updatedAt = new Date().toISOString();
+        session.metadata.lastActivity = session.updatedAt;
+
+        if (session.messages.length > this.config.maxMessagesPerSession) {
+            this.compressContext(sessionId);
+        }
+
+        this.markDirty(sessionId);
+
+        if (this.config.autoSave) {
+            this.saveSession(sessionId);
+        }
+    }
+
+    /**
      * 获取会话消息
      */
     getMessages(sessionId: string): AgentMessage[] {

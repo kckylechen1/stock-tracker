@@ -6,16 +6,18 @@ import { MessageCircle, ChevronRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ChatHistoryListProps {
-    onSelectSession: (stockCode: string) => void;
+    onSelectSession: (sessionId: string) => void;
     onBack: () => void;
+    stockCode: string | null;
 }
 
-export function ChatHistoryList({ onSelectSession, onBack }: ChatHistoryListProps) {
-    const { data: sessions, isLoading } = trpc.ai.getSessions.useQuery();
+export function ChatHistoryList({ onSelectSession, onBack, stockCode }: ChatHistoryListProps) {
+    const { data: sessions, isLoading } = trpc.ai.getSessions.useQuery({
+        stockCode: stockCode || undefined,
+    });
 
     const handleSelect = (sessionId: string) => {
-        // sessionId 是 stockCode 或 'default'
-        onSelectSession(sessionId === '通用对话' ? 'default' : sessionId);
+        onSelectSession(sessionId);
     };
 
     return (

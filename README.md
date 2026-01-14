@@ -62,6 +62,19 @@ pnpm dev
 http://localhost:6888
 ```
 
+## 测试
+
+```bash
+# 标准测试（需要网络 + MySQL 可用）
+pnpm -s test
+
+# 离线测试（跳过外部 API + DB 相关用例）
+TEST_OFFLINE=true pnpm -s test
+
+# Dev 脚本类型检查（非阻塞）
+pnpm -s check:dev
+```
+
 ### 环境变量
 
 ```bash

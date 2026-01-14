@@ -12,6 +12,7 @@ import { formatMoney, formatPercent, formatDate } from './formatUtils';
 import { analyzeStock, formatAnalysisForAI } from './technicalAnalysis';
 import { analyzeMinutePatterns, formatMinuteAnalysis } from './minutePatterns';
 import * as tradingMemory from './tradingMemory';
+import * as akShareTool from './akshare-tool';
 
 // ==================== 工具定义 ====================
 
@@ -164,13 +165,17 @@ export const stockTools: Tool[] = [
         type: "function",
         function: {
             name: "get_longhu_bang",
-            description: "获取龙虎榜数据，包括上榜股票、机构买卖情况、游资动向等。适合分析短线热点和资金动向。",
+            description: "获取龙虎榜数据，包括上榜股票、机构买卖情况、游资动向等。适合分析短线热点和资金动向。默认获取最近5个交易日数据。",
             parameters: {
                 type: "object",
                 properties: {
                     limit: {
                         type: "number",
                         description: "返回数量，默认10"
+                    },
+                    date: {
+                        type: "string",
+                        description: "可选，指定日期，格式 YYYYMMDD（如20260114）。不传则获取最近5个交易日数据。"
                     }
                 }
             }
@@ -406,7 +411,85 @@ export const stockTools: Tool[] = [
                 required: ["function_name"]
             }
         }
-    }
+    },
+
+    // ==================== AKShare 智能工具 ====================
+    {
+        type: "function",
+        function: {
+            name: "check_aktools_status",
+            description: "检查 AKTools 服务是否可用。在调用 AKShare 接口前应先检查状态。如果不可用，会提示用户启动服务。",
+            parameters: {
+                type: "object",
+                properties: {},
+            },
+        },
+    },
+    {
+        type: "function",
+        function: {
+            name: "smart_akshare_query",
+            description: `智能查询 AKShare 数据，根据用户需求自动匹配最佳接口。支持的数据类型：
+- 龙虎榜：游资动向、营业部买卖
+- 融资融券：两融余额、融资买入
+- 北向资金：沪深港通持股、外资流入
+- 行业板块：行业涨跌、成分股
+- 概念板块：热门概念、题材股
+- 高管持股：董监高增减持
+- 研报：机构评级、目标价
+- 宏观数据：GDP、CPI、M2
+- 涨停数据：涨停股池、连板股`,
+            parameters: {
+                type: "object",
+                properties: {
+                    query: {
+                        type: "string",
+                        description: "用户的数据查询需求，如：'龙虎榜数据'、'北向资金持股'、'半导体板块成分股'"
+                    },
+                    params: {
+                        type: "object",
+                        description: "可选参数，根据具体接口需要传入",
+                        additionalProperties: true,
+                    },
+                },
+                required: ["query"],
+            },
+        },
+    },
+    {
+        type: "function",
+        function: {
+            name: "search_akshare_endpoint",
+            description: "搜索可用的 AKShare 接口。当不确定应该使用哪个接口时，可以先搜索相关接口。",
+            parameters: {
+                type: "object",
+                properties: {
+                    keyword: {
+                        type: "string",
+                        description: "搜索关键词，如：龙虎榜、融资、北向资金、板块、研报"
+                    },
+                },
+                required: ["keyword"],
+            },
+        },
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_akshare_endpoint_info",
+            description: "获取指定 AKShare 接口的详细信息，包括参数说明和返回值说明。在调用接口前可以先查看接口信息。",
+            parameters: {
+                type: "object",
+                properties: {
+                    endpoint: {
+                        type: "string",
+                        description: "AKShare 接口名称，如 stock_lhb_detail_em"
+                    },
+                },
+                required: ["endpoint"],
+            },
+        },
+    },
 ];
 
 // ==================== 工具执行器 ====================
@@ -571,7 +654,8 @@ async function executeStockToolInternal(toolName: string, args: Record<string, a
 
             case "get_longhu_bang": {
                 const limit = args.limit || 10;
-                const data = await akshare.getLongHuBangDetail();
+                const date = args.date as string | undefined;
+                const data = await akshare.getLongHuBangDetail(date);
                 if (!data || data.length === 0) {
                     return `暂无龙虎榜数据`;
                 }
@@ -971,12 +1055,10 @@ ${techSection}${fundSection}${marketSection}${conclusionSection}`;
                         return `调用 ${funcName} 返回空数据`;
                     }
 
-                    // 如果是数组，格式化输出
                     if (Array.isArray(data)) {
                         if (data.length === 0) {
                             return `调用 ${funcName} 返回空列表`;
                         }
-                        // 只返回前10条
                         const preview = data.slice(0, 10);
                         return `【${funcName} 返回数据】共 ${data.length} 条，预览前10条:\n\n${JSON.stringify(preview, null, 2)}`;
                     }
@@ -985,6 +1067,56 @@ ${techSection}${fundSection}${marketSection}${conclusionSection}`;
                 } catch (error: any) {
                     return `调用 ${funcName} 失败: ${error.message}`;
                 }
+            }
+
+            // ==================== AKShare 智能工具 ====================
+            case "check_aktools_status": {
+                console.log(`[StockTools] 执行: check_aktools_status`);
+                return await akShareTool.executeAKShareTool('check_aktools_status', {});
+            }
+
+            case "smart_akshare_query": {
+                console.log(`[StockTools] 执行: smart_akshare_query`, args);
+                const { query, params } = args;
+                
+                if (!query) {
+                    return JSON.stringify({ error: '请提供查询需求' });
+                }
+
+                const result = await akShareTool.smartAKShareQuery(query, params);
+                
+                if (!result.success) {
+                    return JSON.stringify({ 
+                        error: result.error,
+                        hint: '可以使用 search_akshare_endpoint 工具搜索相关接口'
+                    });
+                }
+
+                if (Array.isArray(result.data)) {
+                    const preview = result.data.slice(0, 20);
+                    return JSON.stringify({
+                        endpoint: result.endpoint,
+                        total: result.data.length,
+                        showing: preview.length,
+                        data: preview,
+                        note: result.data.length > 20 ? `共 ${result.data.length} 条数据，仅显示前 20 条` : undefined,
+                    }, null, 2);
+                }
+
+                return JSON.stringify({
+                    endpoint: result.endpoint,
+                    data: result.data,
+                }, null, 2);
+            }
+
+            case "search_akshare_endpoint": {
+                console.log(`[StockTools] 执行: search_akshare_endpoint`, args);
+                return await akShareTool.executeAKShareTool('search_akshare_endpoint', args);
+            }
+
+            case "get_akshare_endpoint_info": {
+                console.log(`[StockTools] 执行: get_akshare_endpoint_info`, args);
+                return await akShareTool.executeAKShareTool('get_akshare_endpoint_info', args);
             }
 
             default:
@@ -1169,14 +1301,18 @@ function formatLongHuBang(data: any[]): string {
         const buyAmount = formatMoney(item['龙虎榜买入额']);
         const sellAmount = formatMoney(item['龙虎榜卖出额']);
         const changePercent = item['涨跌幅']?.toFixed(2) ?? '--';
-        const date = formatDate(item['上榜日'] || '');
+        // 兼容两种接口的日期字段
+        const date = formatDate(item['最近上榜日'] || item['上榜日'] || '');
+        const listCount = item['上榜次数'] || '--';
+        const orgBuyCount = item['买方机构次数'] || 0;
+        const orgSellCount = item['卖方机构次数'] || 0;
 
         return `${i + 1}. ${item['名称']}(${item['代码']})
-   📅 上榜日：${date}
+   📅 最近上榜：${date}
    📈 涨跌幅：${changePercent}%
    💰 净买额：${netBuy}（买入${buyAmount} / 卖出${sellAmount}）
-   📝 原因：${item['上榜原因'] || '--'}
-   💡 解读：${item['解读'] || '--'}`;
+   📊 上榜次数：${listCount}次，机构买入${orgBuyCount}次/卖出${orgSellCount}次
+   📝 原因：${item['上榜原因'] || '--'}`;
     });
 
     return `【龙虎榜数据】\n\n${items.join('\n\n')}`;

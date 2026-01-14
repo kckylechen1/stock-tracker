@@ -4,7 +4,6 @@
  */
 
 import axios from 'axios';
-import { getComprehensiveMarketBreadth } from './akshare';
 
 // 请求头配置
 const HEADERS = {
@@ -79,62 +78,154 @@ export interface MarketSentimentData {
 /**
  * 获取大盘指数和涨跌家数
  */
-async function fetchMarketOverview() {
+async function fetchMarketOverview(): Promise<{
+    indices: Array<{ name: string; code: string; price: number; change: number; changePercent: number }>;
+    marketBreadth: {
+        riseCount: number;
+        fallCount: number;
+        flatCount: number;
+        riseRatio: number;
+        totalCount: number;
+        limitUpCount: number;
+        limitDownCount: number;
+    };
+    isRealData: boolean;
+}> {
+    let indices: Array<{ name: string; code: string; price: number; change: number; changePercent: number }> = [];
+    let marketBreadth: any = null;
+    let isRealData = false;
+
+    // 尝试获取指数数据
     try {
-        // 并行获取指数数据和综合市场宽度数据
-        const [indexData, breadthData] = await Promise.all([
-            // 获取指数数据
-            axios.get('https://push2.eastmoney.com/api/qt/ulist.np/get', {
-                params: {
-                    fltt: 2,
-                    secids: '1.000001,0.399001,0.399006',
-                    fields: 'f2,f3,f4,f12,f14',
-                },
-                headers: HEADERS,
-                timeout: 10000,
-            }),
-            // 获取综合市场宽度数据 (使用新的AKShare函数)
-            getComprehensiveMarketBreadth(),
-        ]);
+        const indexData = await axios.get('https://push2.eastmoney.com/api/qt/ulist.np/get', {
+            params: {
+                fltt: 2,
+                secids: '1.000001,0.399001,0.399006',
+                fields: 'f2,f3,f4,f12,f14',
+            },
+            headers: HEADERS,
+            timeout: 10000,
+        });
 
         const indexResponse = indexData.data?.data?.diff || [];
-
-        // 解析指数数据
-        const indices = indexResponse.map((item: any) => ({
+        indices = indexResponse.map((item: any) => ({
             name: item.f14,
             code: item.f12,
             price: item.f2,
             change: item.f4,
             changePercent: item.f3,
         }));
-
-        // 使用AKShare获取的综合市场宽度数据
-        const marketBreadth = await breadthData;
-        if (!marketBreadth) {
-            throw new Error('Failed to get comprehensive market breadth data');
-        }
-
-        return {
-            indices,
-            marketBreadth,
-        };
+        console.log(`✅ [MarketSentiment] 指数数据获取成功: ${indices.length} 条`);
     } catch (error) {
-        console.error('[MarketSentiment] Failed to fetch market overview:', error);
-
-        // 返回估算数据作为fallback
-        return {
-            indices: [],
-            marketBreadth: {
-                riseCount: 2400,
-                fallCount: 2400,
-                flatCount: 500,
-                riseRatio: 45,
-                totalCount: 5300,
-                limitUpCount: 100,
-                limitDownCount: 20,
-            },
-        };
+        console.error('[MarketSentiment] 指数数据获取失败:', error);
     }
+
+    // 尝试获取市场宽度数据
+    try {
+        const ak = await import('./akshare');
+        marketBreadth = await ak.getComprehensiveMarketBreadth();
+        isRealData = true;
+        console.log(`✅ [MarketSentiment] 市场宽度数据获取成功: 涨${marketBreadth.riseCount} 跌${marketBreadth.fallCount}`);
+    } catch (error) {
+        console.error('[MarketSentiment] 市场宽度数据获取失败，尝试使用Eastmoney API:', error);
+        
+        // 备用方案：使用Eastmoney API获取市场宽度
+        try {
+            marketBreadth = await fetchMarketBreadthFromEastmoney();
+            isRealData = true;
+            console.log(`✅ [MarketSentiment] Eastmoney备用数据获取成功: 涨${marketBreadth.riseCount} 跌${marketBreadth.fallCount}`);
+        } catch (eastmoneyError) {
+            console.error('[MarketSentiment] Eastmoney备用方案也失败:', eastmoneyError);
+            // 不使用假数据，返回null让前端显示错误状态
+            marketBreadth = null;
+        }
+    }
+
+    return {
+        indices,
+        marketBreadth,
+        isRealData,
+    };
+}
+
+/**
+ * 从Eastmoney获取市场宽度数据（备用方案）
+ * 使用clist接口批量获取A股数据并统计
+ */
+async function fetchMarketBreadthFromEastmoney(): Promise<{
+    riseCount: number;
+    fallCount: number;
+    flatCount: number;
+    totalCount: number;
+    limitUpCount: number;
+    limitDownCount: number;
+    riseRatio: number;
+}> {
+    // 获取所有A股实时行情 - 使用分页获取全部数据
+    // fs: m:0+t:6 (深圳主板), m:0+t:80 (创业板), m:1+t:2 (上海主板), m:1+t:23 (科创板)
+    const url = 'https://push2.eastmoney.com/api/qt/clist/get';
+    const params = {
+        pn: 1,
+        pz: 6000, // 获取足够多的股票
+        po: 1,
+        np: 1,
+        fltt: 2,
+        invt: 2,
+        fid: 'f3',
+        fs: 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23',
+        fields: 'f3,f12', // f3=涨跌幅, f12=代码
+    };
+
+    const response = await axios.get(url, {
+        params,
+        headers: HEADERS,
+        timeout: 15000,
+    });
+
+    const stocks = response.data?.data?.diff || [];
+    
+    if (!Array.isArray(stocks) || stocks.length === 0) {
+        throw new Error('Eastmoney返回数据为空');
+    }
+
+    let riseCount = 0;
+    let fallCount = 0;
+    let flatCount = 0;
+    let limitUpCount = 0;
+    let limitDownCount = 0;
+
+    for (const stock of stocks) {
+        const changePercent = stock.f3 ?? 0; // 涨跌幅（已经是百分比形式）
+        
+        if (changePercent >= 9.9) {
+            limitUpCount++;
+            riseCount++;
+        } else if (changePercent <= -9.9) {
+            limitDownCount++;
+            fallCount++;
+        } else if (changePercent > 0.01) {
+            riseCount++;
+        } else if (changePercent < -0.01) {
+            fallCount++;
+        } else {
+            flatCount++;
+        }
+    }
+
+    const totalCount = stocks.length;
+    const riseRatio = Math.round((riseCount / totalCount) * 100);
+
+    console.log(`✅ [Eastmoney] 市场宽度: ↑${riseCount} ↓${fallCount} →${flatCount} | 涨停${limitUpCount} 跌停${limitDownCount} (total: ${totalCount})`);
+
+    return {
+        riseCount,
+        fallCount,
+        flatCount,
+        totalCount,
+        limitUpCount,
+        limitDownCount,
+        riseRatio,
+    };
 }
 
 /**
@@ -287,11 +378,11 @@ function calculateFearGreedIndex(
 /**
  * 获取完整的市场情绪数据
  */
-export async function getMarketSentiment(): Promise<MarketSentimentData> {
+export async function getMarketSentiment(): Promise<MarketSentimentData | null> {
     // 检查缓存
     const now = Date.now();
     if (sentimentCache.data && now - sentimentCache.timestamp < CACHE_TTL) {
-        console.log(`Using cached data (age: ${Math.round((now - sentimentCache.timestamp) / 1000)}s)`);
+        console.log(`✅ [MarketSentiment] 使用缓存数据 (age: ${Math.round((now - sentimentCache.timestamp) / 1000)}s)`);
         return sentimentCache.data;
     }
 
@@ -301,20 +392,17 @@ export async function getMarketSentiment(): Promise<MarketSentimentData> {
         fetchNorthboundFlow(),
     ]);
 
-    // 使用默认值处理失败情况
-    const indices = marketData?.indices || [];
-    const marketBreadth = marketData?.marketBreadth || {
-        riseCount: 2400,
-        fallCount: 2400,
-        flatCount: 500,
-        riseRatio: 45,
-        totalCount: 5300,
-        limitUpCount: 100,
-        limitDownCount: 20,
-    };
+    // 如果市场宽度数据获取失败，返回 null
+    if (!marketData.marketBreadth) {
+        console.error('❌ [MarketSentiment] 市场宽度数据为空，返回 null');
+        return null;
+    }
+
+    const indices = marketData.indices;
+    const marketBreadth = marketData.marketBreadth;
     const northboundFlow = northboundData || {
         netFlow: 0,
-        netFlowFormatted: '--',
+        netFlowFormatted: '暂不可用',
         hkToShanghai: 0,
         hkToShenzhen: 0,
         lastUpdateTime: '--',
@@ -339,6 +427,7 @@ export async function getMarketSentiment(): Promise<MarketSentimentData> {
         timestamp: now,
     };
 
+    console.log(`✅ [MarketSentiment] 数据获取成功，isRealData: ${marketData.isRealData}`);
     return result;
 }
 

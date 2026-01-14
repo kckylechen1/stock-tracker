@@ -201,6 +201,7 @@ export class SmartAgent {
                 const toolCallId = event.data?.toolCallId || event.data?.id;
                 const toolName = event.data?.name;
                 const ok = Boolean(event.data?.ok);
+                const skipped = Boolean(event.data?.skipped);
                 const result = typeof event.data?.result === 'string' ? event.data.result : '';
                 const error = typeof event.data?.error === 'string' ? event.data.error : undefined;
 
@@ -208,12 +209,12 @@ export class SmartAgent {
                     const todo = sessionStore.upsertTodoForToolCall(this.session.id, todoRun.id, {
                         toolCallId,
                         toolName,
-                        status: ok ? 'completed' : 'failed',
+                        status: skipped ? 'skipped' : ok ? 'completed' : 'failed',
                         title: `调用工具: ${toolName}`,
                     });
                     sessionStore.updateTodo(this.session.id, todoRun.id, todo.id, {
                         resultPreview: result.slice(0, 200),
-                        error: ok ? undefined : (error || 'Tool failed'),
+                        error: ok || skipped ? undefined : (error || 'Tool failed'),
                     });
                 }
             }

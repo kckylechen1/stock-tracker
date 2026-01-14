@@ -1,6 +1,6 @@
 # Stock Tracker 项目 TODO
 
-**最后更新**: 2026-01-11 16:20  
+**最后更新**: 2026-01-12 11:15  
 **负责人**: Kyle + Team
 
 ---
@@ -16,6 +16,10 @@
 - [x] **并发控制** - 使用 p-limit 限制 AKShare 并发为 6，加指数退避重试
 - [x] **Prompt 优化** - 多维度分析框架（技术/资金/舆情/风险）+ 工具扩展
 - [x] **缓存策略** - 区分交易时段/非交易时段的 TTL
+- [x] TODO 进度可视化（SessionStore 记录 + UI 面板）
+- [x] 会话历史统一到 SessionStore（替代 local_db）
+- [x] 最近一次 TODO 任务展示（未运行时仍可回看）
+- [x] `ai.chat` 统一到 SessionStore
 
 ### 性能优化
 
@@ -36,6 +40,10 @@
 - [ ] 使用 ECharts 替换现有图表库
 - [ ] 右栏使用 `react-window` 虚拟列表优化
 - [ ] 移动端响应式：底部 TabBar 切换
+
+### 工程化
+
+- [x] CI 增加非阻塞 `pnpm check:dev`（覆盖 dev 脚本类型检查）
 
 ### 牛股信号系统
 
@@ -116,6 +124,12 @@
 - [x] 前端简化输出（移除思考/工具调用过程）
 - [x] 更新系统提示词支持推特搜索
 - [x] 创建工作流文档 `daily-summary-2026-01-11.md`
+
+### 2026-01-12
+
+- [x] TODO 任务可视化面板 + 活动任务接口
+- [x] 聊天历史/会话列表改为 SessionStore
+- [x] 添加 `tsconfig.dev.json` 与 `pnpm check:dev`
 
 ---
 

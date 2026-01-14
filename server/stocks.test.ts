@@ -6,6 +6,9 @@ import type { TrpcContext } from "./_core/context";
  * 股票API测试
  */
 
+const isOffline = process.env.TEST_OFFLINE === "true";
+const describeNetwork = isOffline ? describe.skip : describe;
+
 function createTestContext(): TrpcContext {
   return {
     user: null,
@@ -19,7 +22,7 @@ function createTestContext(): TrpcContext {
   };
 }
 
-describe("stocks.search", () => {
+describeNetwork("stocks.search", () => {
   it("should search stocks by keyword", async () => {
     const ctx = createTestContext();
     const caller = appRouter.createCaller(ctx);
@@ -36,7 +39,7 @@ describe("stocks.search", () => {
   }, 30000); // 30秒超时，因为需要调用外部API
 });
 
-describe("stocks.getDetail", () => {
+describeNetwork("stocks.getDetail", () => {
   it("should get stock detail by code", async () => {
     const ctx = createTestContext();
     const caller = appRouter.createCaller(ctx);
@@ -49,7 +52,7 @@ describe("stocks.getDetail", () => {
   }, 30000);
 });
 
-describe("stocks.getKline", () => {
+describeNetwork("stocks.getKline", () => {
   it("should get kline data", async () => {
     const ctx = createTestContext();
     const caller = appRouter.createCaller(ctx);

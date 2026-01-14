@@ -174,7 +174,10 @@ export class BullStockDetectorV2 {
             // 5. 检测买入信号
             const signals = this.detectBuySignals(technical, fundFlow, klineData);
 
-            // 6. 检测卖出信号（使用增强版检测器）
+            // 6. 确定启动日期（最近的强势信号日）
+            const launchInfo = this.findLaunchDate(klineData, technical);
+
+            // 7. 检测卖出信号（使用增强版检测器）
             const sellSignalAnalysis = await this.sellSignalDetector.analyzeSellSignals(
                 symbol,
                 quote.price,
@@ -182,11 +185,9 @@ export class BullStockDetectorV2 {
                 70 // 临时评分，用于sell signal检测
             );
 
-            // 7. 计算综合评分（考虑卖出信号的影响）
-            const scores = this.calculateComprehensiveScore(technical, fundFlow, signals, sellSignalAnalysis.sellSignals);
-
-            // 8. 确定启动日期（最近的强势信号日）
-            const launchInfo = this.findLaunchDate(klineData, technical);
+            // 8. 计算综合评分（考虑卖出信号的影响）
+            const sellSignals = sellSignalAnalysis.sellSignals.map(s => s.signal);
+            const scores = this.calculateComprehensiveScore(technical, fundFlow, signals, sellSignals);
 
             return {
                 symbol,
@@ -197,7 +198,7 @@ export class BullStockDetectorV2 {
                 gain: ((quote.price - launchInfo.price) / launchInfo.price) * 100,
                 totalScore: scores.total,
                 signals,
-                sellSignals: sellSignalAnalysis.sellSignals.map(s => s.signal),
+                sellSignals,
                 riskLevel: sellSignalAnalysis.riskLevel,
                 action: sellSignalAnalysis.action,
                 technicalScore: scores.technical,
@@ -233,6 +234,8 @@ export class BullStockDetectorV2 {
             fastPeriod: 12,
             slowPeriod: 26,
             signalPeriod: 9,
+            SimpleMAOscillator: false,
+            SimpleMASignal: false,
         });
 
         // RSI

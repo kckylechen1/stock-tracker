@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
-import { Zap, X, SquarePen, History } from "lucide-react";
+import { Zap, X, SquarePen, History, Brain } from "lucide-react";
 import { AIChatBox, Message } from "@/components/AIChatBox";
 import { PresetPrompts } from "@/components/PresetPrompts";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,11 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
+    const [thinkHard, setThinkHard] = useState(false);
+    const [sessionId, setSessionId] = useState<string | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const utils = trpc.useUtils();
+    const createSessionMutation = trpc.ai.createSession.useMutation();
 
     // 获取当前股票信息用于显示
     const { data: stockDetail } = trpc.stocks.getDetail.useQuery(
@@ -34,26 +37,58 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
     );
 
     // 获取服务器端聊天历史
-    const { data: historyMessages, isLoading: isHistoryLoading } = trpc.ai.getHistory.useQuery(
-        { stockCode: selectedStock || undefined },
+    const { data: historyData, isLoading: isHistoryLoading } = trpc.ai.getHistory.useQuery(
         {
+            sessionId: sessionId || undefined,
+            stockCode: selectedStock || undefined,
+        },
+        {
+            enabled: Boolean(sessionId || selectedStock),
             refetchOnWindowFocus: false,
         }
     );
 
+    // 当切换股票时清空 sessionId，触发重新加载
+    useEffect(() => {
+        setSessionId(null);
+    }, [selectedStock]);
+
     // 当历史记录加载完成后，更新本地消息状态
-    // 当切换股票导致加载时，重置为默认消息
     useEffect(() => {
         if (isHistoryLoading) {
             setMessages(getDefaultMessages());
-        } else if (historyMessages) {
-            if (historyMessages.length > 0) {
-                setMessages(historyMessages);
-            } else {
-                setMessages(getDefaultMessages());
-            }
+            return;
         }
-    }, [historyMessages, isHistoryLoading, selectedStock]);
+
+        if (!historyData) return;
+
+        if (historyData.messages.length > 0) {
+            setMessages(historyData.messages);
+        } else {
+            setMessages(getDefaultMessages());
+        }
+
+        if (historyData.sessionId && historyData.sessionId !== sessionId) {
+            setSessionId(historyData.sessionId);
+        } else if (!historyData.sessionId && sessionId) {
+            setSessionId(null);
+        }
+    }, [historyData, isHistoryLoading, sessionId]);
+
+    const { data: activeTodoRun } = trpc.ai.getActiveTodoRun.useQuery(
+        { sessionId: sessionId || "" },
+        {
+            enabled: Boolean(sessionId),
+            refetchInterval: isLoading ? 1000 : 3000,
+        }
+    );
+    const { data: latestTodoRun } = trpc.ai.getLatestTodoRun.useQuery(
+        { sessionId: sessionId || "" },
+        {
+            enabled: Boolean(sessionId),
+        }
+    );
+    const todoRun = activeTodoRun ?? latestTodoRun;
 
     // 统一的处理流式对话的函数
     const streamChatRequest = async (historyMessages: Message[]) => {
@@ -103,6 +138,10 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                 } : null,
             } : null;
 
+            const lastUserMessage = [...historyMessages].reverse().find(m => m.role === "user")?.content || "";
+            const requestThinkHard =
+                thinkHard || /详细分析|完整版|深度分析|深度模式/.test(lastUserMessage);
+
             const response = await fetch("/api/ai/stream", {
                 method: "POST",
                 headers: {
@@ -116,12 +155,20 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                     stockCode: selectedStock || undefined,
                     stockContext, // 传递前端已加载的数据
                     useSmartAgent: true, // 使用新架构
+                    thinkHard: requestThinkHard,
+                    sessionId: sessionId || undefined,
                 }),
                 signal: abortControllerRef.current.signal,
             });
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // 记录后端分配/确认的 sessionId
+            const newSessionId = response.headers.get("X-Session-Id");
+            if (newSessionId) {
+                setSessionId(newSessionId);
             }
 
             const reader = response.body?.getReader();
@@ -249,15 +296,21 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
     if (showHistory) {
         return (
             <ChatHistoryList
-                onSelectSession={async (stockCode) => {
+                stockCode={selectedStock}
+                onSelectSession={async (selectedSessionId) => {
                     try {
-                        const history = await utils.ai.getHistory.fetch({ stockCode });
-                        if (history && history.length > 0) {
-                            setMessages(history);
+                        const history = await utils.ai.getHistory.fetch({
+                            sessionId: selectedSessionId,
+                        });
+                        if (history?.messages?.length > 0) {
+                            setMessages(history.messages);
+                        } else {
+                            setMessages(getDefaultMessages());
                         }
                     } catch (error) {
                         console.error('Failed to load session:', error);
                     }
+                    setSessionId(selectedSessionId);
                     setShowHistory(false);
                 }}
                 onBack={() => setShowHistory(false)}
@@ -281,6 +334,17 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                     )}
                 </div>
                 <div className="flex items-center gap-1">
+                    {/* 深度模式 */}
+                    <Button
+                        variant={thinkHard ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-7 px-2 shrink-0"
+                        onClick={() => setThinkHard(v => !v)}
+                        title="深度模式：更详细分析 + 更多工具调用"
+                    >
+                        <Brain className="h-4 w-4" />
+                        深度
+                    </Button>
                     {/* 历史对话按钮 */}
                     <Button
                         variant="ghost"
@@ -296,7 +360,19 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 shrink-0 hover:bg-accent transition-colors duration-150 cursor-pointer"
-                        onClick={() => setMessages(getDefaultMessages())}
+                        onClick={async () => {
+                            setMessages(getDefaultMessages());
+                            setFollowUpSuggestions([]);
+                            try {
+                                const result = await createSessionMutation.mutateAsync({
+                                    stockCode: selectedStock || undefined,
+                                });
+                                setSessionId(result.sessionId);
+                            } catch (error) {
+                                console.error('Failed to create session:', error);
+                                setSessionId(null);
+                            }
+                        }}
                         title="新建对话"
                     >
                         <SquarePen className="h-4 w-4" />
@@ -322,6 +398,34 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                 {!hasHistory && (
                     <PresetPrompts onSend={handleSendMessage} />
                 )}
+                {todoRun && (
+                    <div className="px-3 pt-2">
+                        <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="font-medium text-foreground">
+                                    {todoRun.status === "running"
+                                        ? "任务进度"
+                                        : "最近任务"}
+                                </span>
+                                <span className="text-muted-foreground">
+                                    {formatTodoRunStatus(todoRun.status)}
+                                </span>
+                            </div>
+                            <div className="mt-2 space-y-1">
+                                {todoRun.todos.map(todo => (
+                                    <div key={todo.id} className="flex items-center gap-2">
+                                        <span className={getTodoStatusClass(todo.status)}>
+                                            {formatTodoStatus(todo.status)}
+                                        </span>
+                                        <span className="text-muted-foreground truncate">
+                                            {todo.title}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <div className="flex-1 overflow-hidden">
                     <AIChatBox
                         messages={messages}
@@ -343,4 +447,47 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
             </div>
         </div>
     );
+}
+
+function formatTodoStatus(status: string) {
+    switch (status) {
+        case "completed":
+            return "✅";
+        case "failed":
+            return "❌";
+        case "in_progress":
+            return "⏳";
+        case "skipped":
+            return "⏭️";
+        default:
+            return "•";
+    }
+}
+
+function formatTodoRunStatus(status: string) {
+    switch (status) {
+        case "completed":
+            return "已完成";
+        case "failed":
+            return "失败";
+        case "running":
+            return "进行中";
+        default:
+            return "未知";
+    }
+}
+
+function getTodoStatusClass(status: string) {
+    switch (status) {
+        case "completed":
+            return "text-emerald-500";
+        case "failed":
+            return "text-red-500";
+        case "in_progress":
+            return "text-amber-500";
+        case "skipped":
+            return "text-muted-foreground";
+        default:
+            return "text-muted-foreground";
+    }
 }

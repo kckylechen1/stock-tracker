@@ -318,10 +318,10 @@ export class StockAgent {
      */
     getToolStats(): { name: string; count: number }[] {
         const stats = new Map<string, number>();
-        for (const key of this.state.toolResults.keys()) {
+        this.state.toolResults.forEach((_value, key) => {
             const name = key.split(':')[0];
             stats.set(name, (stats.get(name) || 0) + 1);
-        }
+        });
         return Array.from(stats.entries()).map(([name, count]) => ({ name, count }));
     }
 }

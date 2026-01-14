@@ -438,21 +438,102 @@ export const appRouter = router({
 
   // AI 聊天路由
   ai: router({
+    // 创建新会话
+    createSession: publicProcedure
+      .input(z.object({
+        stockCode: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { getSessionStore } = await import('./_core/session');
+        const sessionStore = getSessionStore();
+        const session = sessionStore.createSession(input.stockCode);
+        return { sessionId: session.id };
+      }),
+
     // 获取聊天历史
     getHistory: publicProcedure
+      .input(z.object({
+        sessionId: z.string().optional(),
+        stockCode: z.string().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        const { getSessionStore } = await import('./_core/session');
+        const sessionStore = getSessionStore();
+
+        let session = input?.sessionId
+          ? sessionStore.getSession(input.sessionId)
+          : null;
+
+        if (!session && input?.stockCode) {
+          session = sessionStore.findSessionsByStock(input.stockCode)[0] || null;
+        }
+
+        if (!session) {
+          return { sessionId: null, messages: [] };
+        }
+
+        const messages = session.messages
+          .filter(msg => msg.role === 'system' || msg.role === 'user' || msg.role === 'assistant')
+          .map(msg => ({
+            role: msg.role as 'system' | 'user' | 'assistant',
+            content: msg.content,
+          }));
+
+        return {
+          sessionId: session.id,
+          messages,
+        };
+      }),
+
+    // 获取所有对话列表
+    getSessions: publicProcedure
       .input(z.object({
         stockCode: z.string().optional(),
       }).optional())
       .query(async ({ input }) => {
-        const { getChatHistory } = await import('./local_db');
-        return await getChatHistory(input?.stockCode);
+        const { getSessionStore } = await import('./_core/session');
+        const sessionStore = getSessionStore();
+        const sessions = input?.stockCode
+          ? sessionStore.findSessionsByStock(input.stockCode)
+          : sessionStore.listSessions();
+
+        return sessions.map(session => {
+          const userMessages = session.messages.filter(m => m.role === 'user');
+          const lastUserMessage = userMessages[userMessages.length - 1];
+          const stockCode = session.metadata.stockCode || 'default';
+
+          return {
+            id: session.id,
+            stockCode: stockCode === 'default' ? '通用对话' : stockCode,
+            messageCount: session.messages.length,
+            lastMessage: lastUserMessage?.content?.slice(0, 50) || '暂无消息',
+            lastMessageTime: session.updatedAt,
+          };
+        });
       }),
 
-    // 获取所有对话列表
-    getSessions: publicProcedure.query(async () => {
-      const { getAllChatSessions } = await import('./local_db');
-      return await getAllChatSessions();
-    }),
+    // 获取当前 TODO 进度
+    getActiveTodoRun: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const { getSessionStore } = await import('./_core/session');
+        const sessionStore = getSessionStore();
+        return sessionStore.getActiveTodoRun(input.sessionId);
+      }),
+
+    // 获取最近完成的 TODO 进度
+    getLatestTodoRun: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const { getSessionStore } = await import('./_core/session');
+        const sessionStore = getSessionStore();
+        const runs = sessionStore.getTodoRuns(input.sessionId);
+        return [...runs].reverse().find(run => run.status !== 'running') || null;
+      }),
 
     // 保存聊天历史 (手动)
     saveHistory: publicProcedure
@@ -461,12 +542,15 @@ export const appRouter = router({
           role: z.enum(['system', 'user', 'assistant']),
           content: z.string(),
         })),
+        sessionId: z.string().optional(),
         stockCode: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        const { saveChatHistory } = await import('./local_db');
-        await saveChatHistory(input.messages, input.stockCode);
-        return { success: true };
+        const { getSessionStore } = await import('./_core/session');
+        const sessionStore = getSessionStore();
+        const session = sessionStore.getOrCreateSession(input.sessionId, input.stockCode);
+        sessionStore.setMessages(session.id, input.messages);
+        return { success: true, sessionId: session.id };
       }),
 
     // AI 对话
@@ -476,12 +560,15 @@ export const appRouter = router({
           role: z.enum(['system', 'user', 'assistant']),
           content: z.string(),
         })),
+        sessionId: z.string().optional(),
         stockCode: z.string().optional(),
         useThinking: z.boolean().optional(),
       }))
       .mutation(async ({ input }) => {
         const { invokeLLM } = await import('./_core/llm');
-        const { saveChatHistory } = await import('./local_db');
+        const { getSessionStore } = await import('./_core/session');
+        const sessionStore = getSessionStore();
+        const session = sessionStore.getOrCreateSession(input.sessionId, input.stockCode);
 
         let stockContext = '';
 
@@ -554,6 +641,9 @@ ${stockContext}`;
           messagesWithContext.unshift({ role: 'system' as const, content: systemPrompt });
         }
 
+        // 同步会话历史到 SessionStore
+        sessionStore.setMessages(session.id, messagesWithContext);
+
         try {
           const response = await invokeLLM({
             messages: messagesWithContext,
@@ -564,26 +654,22 @@ ${stockContext}`;
           const content = response.choices[0]?.message?.content;
           const finalContent = typeof content === 'string' ? content : '抱歉，生成回复时出现问题。';
 
-          // 自动保存聊天历史 (保存用户发送的历史 + AI回复)
-          try {
-            const newHistory = [
-              ...input.messages,
-              { role: 'assistant' as const, content: finalContent }
-            ];
-            await saveChatHistory(newHistory);
-          } catch (saveError) {
-            console.error('Failed to auto-save chat history:', saveError);
-          }
+          sessionStore.addMessage(session.id, {
+            role: 'assistant',
+            content: finalContent,
+          });
 
           return {
             success: true,
             content: finalContent,
+            sessionId: session.id,
           };
         } catch (error) {
           console.error('AI chat failed:', error);
           return {
             success: false,
             content: '抱歉，AI服务暂时不可用，请稍后再试。',
+            sessionId: session.id,
           };
         }
       }),

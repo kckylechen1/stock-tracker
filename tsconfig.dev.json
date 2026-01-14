@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "**/*.test.ts",
+    "server/analyze_*.ts",
+    "server/ai_agent_*.ts",
+    "server/test_*.ts",
+    "server/bull_stock_signal_backtest.ts",
+    "server/analyze_980112.ts",
+    "server/analyze_980112_simple.ts",
+    "server/analyze_ai_sector.ts",
+    "server/analyze_ai_sector_simple.ts",
+    "server/ai/**/*"
+  ]
+}

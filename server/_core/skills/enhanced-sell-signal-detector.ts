@@ -367,6 +367,8 @@ export class EnhancedSellSignalDetector {
             fastPeriod: 12,
             slowPeriod: 26,
             signalPeriod: 9,
+            SimpleMAOscillator: false,
+            SimpleMASignal: false,
         });
 
         const rsiResult = RSI.calculate({ values: closes, period: 14 });

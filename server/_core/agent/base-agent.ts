@@ -24,6 +24,14 @@ import type {
 // 并发限制：最多同时执行 6 个工具调用，防止 AKShare API 限流
 const toolConcurrencyLimit = pLimit(6);
 
+type ToolExecutionResult = {
+    ok: boolean;
+    toolName: string;
+    result: string;
+    error?: string;
+    skipped?: boolean;
+};
+
 export abstract class BaseAgent {
     protected config: AgentConfig;
     protected state: AgentState;
@@ -181,16 +189,30 @@ export abstract class BaseAgent {
                     for (const tc of response.tool_calls) {
                         yield {
                             type: 'tool_call',
-                            data: { name: tc.function.name, args: tc.function.arguments },
+                            data: {
+                                toolCallId: tc.id,
+                                name: tc.function.name,
+                                args: tc.function.arguments,
+                            },
                         };
                     }
 
                     const results = await this.executeToolCalls(response.tool_calls);
 
-                    for (const [name, result] of Array.from(results.entries())) {
+                    for (const tc of response.tool_calls) {
+                        const exec = results.get(tc.id);
+                        if (!exec) continue;
+
                         yield {
                             type: 'tool_result',
-                            data: { name, result: this.truncate(result, 200) },
+                            data: {
+                                toolCallId: tc.id,
+                                name: exec.toolName,
+                                ok: exec.ok,
+                                skipped: exec.skipped,
+                                result: this.truncate(exec.result, 200),
+                                error: exec.error,
+                            },
                         };
                     }
 
@@ -228,7 +250,7 @@ export abstract class BaseAgent {
     protected async callLLM(): Promise<LLMResponse> {
         const apiUrl = ENV.grokApiUrl || 'https://api.x.ai/v1';
         const apiKey = ENV.grokApiKey;
-        const model = this.config.model || ENV.grokModel || 'grok-3-mini';
+        const model = this.config.model || ENV.grokModel || 'grok-4-1-fast-reasoning';
 
         const payload: any = {
             model,
@@ -286,8 +308,8 @@ export abstract class BaseAgent {
     /**
      * 执行工具调用（支持并行 + 并发限制）
      */
-    private async executeToolCalls(toolCalls: ToolCall[]): Promise<Map<string, string>> {
-        const results = new Map<string, string>();
+    private async executeToolCalls(toolCalls: ToolCall[]): Promise<Map<string, ToolExecutionResult>> {
+        const results = new Map<string, ToolExecutionResult>();
 
         // 检查工具预算
         const maxTools = this.config.toolBudget![this.state.queryComplexity!];
@@ -295,7 +317,15 @@ export abstract class BaseAgent {
 
         if (remainingTools <= 0) {
             this.log(`⚠️ 工具预算已耗尽 (最大 ${maxTools} 个工具)`);
-            results.set('budget_exceeded', `已达到工具使用上限 (${maxTools} 个)，请简化问题或分步查询。`);
+            for (const tc of toolCalls) {
+                results.set(tc.id, {
+                    ok: false,
+                    skipped: true,
+                    toolName: tc.function.name,
+                    result: `已达到工具使用上限 (${maxTools} 个)，本轮跳过工具 ${tc.function.name}。请简化问题或分步查询。`,
+                    error: 'budget_exceeded',
+                });
+            }
             return results;
         }
 
@@ -304,15 +334,23 @@ export abstract class BaseAgent {
 
         if (allowedToolCalls.length < toolCalls.length) {
             this.log(`⚠️ 工具调用被截断: ${toolCalls.length} → ${allowedToolCalls.length} (预算限制)`);
-            results.set('budget_limited', `工具调用数量已限制为 ${allowedToolCalls.length} 个 (预算: ${maxTools})`);
+            for (const tc of toolCalls.slice(allowedToolCalls.length)) {
+                results.set(tc.id, {
+                    ok: false,
+                    skipped: true,
+                    toolName: tc.function.name,
+                    result: `工具调用数量已限制为 ${allowedToolCalls.length} 个 (预算: ${maxTools})，本轮跳过工具 ${tc.function.name}。`,
+                    error: 'budget_limited',
+                });
+            }
         }
 
         if (this.config.parallelToolCalls && allowedToolCalls.length > 1) {
             // 使用 p-limit 控制并发，最多同时执行 6 个
             const promises = allowedToolCalls.map((tc) =>
                 toolConcurrencyLimit(async () => {
-                    const result = await this.executeSingleToolWithRetry(tc);
-                    return { id: tc.id, name: tc.function.name, result };
+                    const exec = await this.executeSingleToolWithRetry(tc);
+                    return { id: tc.id, exec };
                 })
             );
 
@@ -320,16 +358,19 @@ export abstract class BaseAgent {
 
             for (const item of settled) {
                 if (item.status === 'fulfilled') {
-                    results.set(item.value.id, item.value.result);
+                    results.set(item.value.id, item.value.exec);
                     this.state.toolsUsed++;
                 } else {
-                    results.set('error', `执行失败: ${item.reason}`);
+                    // 不预期会走到这里（executeSingleToolWithRetry 不抛出），保底兜底
+                    const errorMessage = item.reason instanceof Error ? item.reason.message : String(item.reason);
+                    // 无法确定对应的 tool_call_id，这里只记录到日志
+                    this.log(`   ❌ 工具执行 Promise 失败: ${errorMessage}`);
                 }
             }
         } else {
             for (const tc of allowedToolCalls) {
-                const result = await this.executeSingleToolWithRetry(tc);
-                results.set(tc.id, result);
+                const exec = await this.executeSingleToolWithRetry(tc);
+                results.set(tc.id, exec);
                 this.state.toolsUsed++;
             }
         }
@@ -340,12 +381,17 @@ export abstract class BaseAgent {
     /**
      * 执行单个工具（带指数退避重试）
      */
-    private async executeSingleToolWithRetry(toolCall: ToolCall, maxRetries = 3): Promise<string> {
+    private async executeSingleToolWithRetry(toolCall: ToolCall, maxRetries = 3): Promise<ToolExecutionResult> {
         let lastError: Error | null = null;
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
-                return await this.executeSingleTool(toolCall);
+                const result = await this.executeSingleTool(toolCall);
+                return {
+                    ok: true,
+                    toolName: toolCall.function.name,
+                    result,
+                };
             } catch (error: any) {
                 lastError = error;
 
@@ -356,7 +402,12 @@ export abstract class BaseAgent {
             }
         }
 
-        return `工具 ${toolCall.function.name} 执行失败（重试 ${maxRetries} 次）: ${lastError?.message}`;
+        return {
+            ok: false,
+            toolName: toolCall.function.name,
+            result: `工具 ${toolCall.function.name} 执行失败（重试 ${maxRetries} 次）: ${lastError?.message}`,
+            error: lastError?.message,
+        };
     }
 
     /**
@@ -367,29 +418,24 @@ export abstract class BaseAgent {
         const executor = this.toolExecutors.get(name);
 
         if (!executor) {
-            return `未知工具: ${name}`;
+            throw new Error(`未知工具: ${name}`);
         }
 
-        try {
-            const args = JSON.parse(argsStr || '{}');
-            this.log(`   执行: ${name}(${JSON.stringify(args).slice(0, 100)})`);
+        const args = JSON.parse(argsStr || '{}');
+        this.log(`   执行: ${name}(${JSON.stringify(args).slice(0, 100)})`);
 
-            const result = await executor(args);
-            this.state.toolResults.set(`${name}:${argsStr}`, result);
+        const result = await executor(args);
+        this.state.toolResults.set(`${name}:${argsStr}`, result);
 
-            return result;
-        } catch (error: any) {
-            this.log(`   ❌ ${name} 失败: ${error.message}`);
-            return `工具 ${name} 执行失败: ${error.message}`;
-        }
+        return result;
     }
 
     /**
      * 添加工具结果到消息历史
      */
-    private addToolResultsToMessages(response: LLMResponse, results: Map<string, string>): void {
+    private addToolResultsToMessages(response: LLMResponse, results: Map<string, ToolExecutionResult>): void {
         for (const tc of response.tool_calls!) {
-            const result = results.get(tc.id) || '执行失败';
+            const result = results.get(tc.id)?.result || '执行失败';
             this.state.messages.push({
                 role: 'tool',
                 tool_call_id: tc.id,
