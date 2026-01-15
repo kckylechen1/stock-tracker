@@ -2,83 +2,144 @@
 description: 查询股票数据 API 文档和实现指南
 ---
 
-# 股票数据 API 查询指南
+# 股票数据 API 指南
 
-当遇到股票数据 API 相关问题时，按以下顺序查阅：
+## 可用的数据源
 
-## 1. 东方财富 API（当前主要使用）
+### 1. 东方财富 API (主要数据源)
 
-**实现文件：**
-- `server/eastmoney.ts` - 基础行情 API
-- `server/fundflow.ts` - 资金流向 API ⭐新增
+**文件**: `server/eastmoney.ts`
 
-**常用接口：**
-- `getStockQuote()` - 实时行情
-- `getTimelineData()` - 分时数据
-- `getKlineData()` - K线数据
-- `searchStock()` - 股票搜索
+```typescript
+import { eastmoney } from './eastmoney';
 
-**资金流向接口：**
-- `getStockFundFlow()` - 个股今日资金流向
-- `getStockFundFlowHistory()` - 个股资金流向历史
-- `getMarketFundFlow()` - 大盘资金流向
-- `getFundFlowRank()` - 资金流排行
+// 获取实时行情
+const quote = await eastmoney.getStockQuote('300750');
 
-## 2. 同花顺 iFinD API（备用）
+// 获取 K 线数据
+const klines = await eastmoney.getKlineData('300750', 'day'); // day/week/month
 
-**参考文档：**
-- `.agent/docs/iFinD_API_Reference.md` - 完整 API 参考
+// 搜索股票
+const results = await eastmoney.searchStock('宁德');
 
-**实现文件：**
-- `server/ifind.ts` - API 封装模块
+// 获取分时数据
+const minutes = await eastmoney.getMinuteData('300750');
 
-**认证信息：**
-- refresh_token 和 access_token 已配置
-- 免费账户部分指标不可用
+// 获取资金流向
+const fundFlow = await eastmoney.getFundFlow('300750');
+```
 
-## 3. AKShare（参考）
+### 2. AKShare API (专业数据)
 
-**文档：** https://akshare.akfamily.xyz/
-**用途：** Python 量化数据库，本项目使用其底层数据源（东方财富）
+**文件**: `server/akshare.ts`
 
-## 切换 API 注意事项
+**使用前提**: 需要启动 AKTools 服务
 
-1. 修改 `server/routers.ts` 中的路由调用
-2. 确保数据格式转换正确
-3. 处理好错误情况和降级逻辑
+```bash
+npm run start:all  # 会自动启动 AKTools
+```
 
-## 3. AI 助手工具调用（Function Calling）
+```typescript
+import { callAKShare } from './akshare';
 
-**实现文件：**
-- `server/_core/stockTools.ts` - 工具定义和执行器
-- `server/_core/streamChat.ts` - 流式聊天（支持工具调用）
-- `server/_core/prompts/grokPrompt.ts` - Grok 系统提示词
+// 龙虎榜数据
+const data = await callAKShare('stock_lhb_detail_em', {
+    start_date: '20260101',
+    end_date: '20260115'
+});
 
-**可用工具：**
-| 工具名称 | 功能描述 |
-|---------|---------|
-| `search_stock` | 根据关键词搜索股票 |
-| `get_stock_quote` | 获取股票实时行情 |
-| `get_kline_data` | 获取K线数据 |
-| `get_fund_flow` | 获取今日资金流向 |
-| `get_fund_flow_history` | 获取历史资金流向 |
-| `get_fund_flow_rank` | 获取资金流入排行榜 |
-| `get_market_fund_flow` | 获取大盘资金流向 |
-| `get_zt_pool` | 获取涨停股池 ⭐新增 |
-| `get_dt_pool` | 获取跌停股池 ⭐新增 |
-| `get_concept_board` | 获取概念板块涨跌 ⭐新增 |
-| `get_industry_board` | 获取行业板块涨跌 ⭐新增 |
-| `get_north_flow` | 获取北向资金 ⭐新增 |
-| `get_telegraph` | 获取财联社电报 ⭐新增 |
-| `call_akshare` | 动态调用任意AKShare接口 ⭐新增 |
+// 北向资金
+const northFlow = await callAKShare('stock_hsgt_north_net_flow_in_em');
 
-**工作原理：**
-1. 用户提问 → LLM 识别需要查询数据
-2. LLM 调用工具 → 执行 API 获取真实数据
-3. 数据返回给 LLM → LLM 基于真实数据生成回答
-4. 支持多轮工具调用（最多5轮）
+// 融资融券
+const margin = await callAKShare('stock_margin_detail_szse', {
+    date: '20260115'
+});
+```
 
-**模型说明：**
-- Grok 模式使用 `grok-4-1-fast-reasoning`（支持工具调用 + 推理）
-- 通过 `call_akshare` 工具可动态调用任意 AKShare 接口
-- AKShare 知识库文档: `.agent/docs/akshare-api-guide.md`
+### 3. Tushare API (备用)
+
+**文件**: `server/tushare.ts`
+
+**注意**: 需要 Tushare Pro 积分，免费账户有限制
+
+## 常用接口
+
+### 实时行情
+```typescript
+// 通过 tRPC 调用
+const quote = trpc.stocks.getDetail.useQuery({ code: '300750' });
+
+// 返回数据结构
+{
+    code: string;
+    name: string;
+    price: number;
+    change: number;
+    changePercent: number;
+    volume: number;
+    amount: number;
+    open: number;
+    high: number;
+    low: number;
+    preClose: number;
+    turnoverRate: number;
+    pe: number;
+    pb: number;
+}
+```
+
+### K 线数据
+```typescript
+// 通过 tRPC 调用
+const klines = trpc.stocks.getKline.useQuery({
+    code: '300750',
+    period: 'day'  // day | week | month
+});
+
+// 返回数据结构
+{
+    time: string;  // YYYY-MM-DD
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+}[]
+```
+
+### 市场情绪
+```typescript
+// 通过 tRPC 调用
+const sentiment = trpc.market.sentiment.useQuery();
+
+// 返回数据结构
+{
+    fearGreedIndex: number;      // 恐惧贪婪指数 0-100
+    marketTemperature: number;   // 市场温度
+    upDownRatio: number;         // 涨跌比
+    northFlow: number;           // 北向资金净流入
+}
+```
+
+## AKShare 常用端点
+
+| 接口名称 | 说明 | 参数 |
+|----------|------|------|
+| `stock_zh_a_spot_em` | 沪深A股实时行情 | 无 |
+| `stock_lhb_detail_em` | 龙虎榜详情 | start_date, end_date |
+| `stock_hsgt_north_net_flow_in_em` | 北向资金流入 | 无 |
+| `stock_individual_fund_flow` | 个股资金流向 | stock, market |
+| `stock_board_industry_name_em` | 行业板块列表 | 无 |
+| `stock_board_concept_name_em` | 概念板块列表 | 无 |
+| `stock_zt_pool_em` | 涨停股票池 | date |
+| `stock_margin_detail_szse` | 融资融券明细 | date |
+
+## 数据缓存策略
+
+| 数据类型 | TTL | 说明 |
+|----------|-----|------|
+| 实时行情 | 5s | 交易时间内短缓存 |
+| K线数据 | 1h | 相对稳定 |
+| 市场情绪 | 5min | 中等缓存 |
+| 龙虎榜 | 24h | 每日更新 |

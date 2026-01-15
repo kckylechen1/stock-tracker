@@ -4,80 +4,94 @@ description: 项目命名规范 - 对话记录、分支、文档等命名标准
 
 # 命名规范
 
-## 一、对话记录命名
-
-AI 对话记录按以下格式命名：
+## 1. Git 分支命名
 
 ```
-[日期] [主要功能/模块]
+feature/功能名称     # 新功能
+fix/bug描述          # Bug修复
+refactor/模块名称    # 重构
+docs/文档类型        # 文档更新
 ```
 
-### 示例
-- `2026-01-08 AI Function Calling + 策略 UI`
-- `2026-01-09 Skill 管理模块开发`
-- `2026-01-10 回测引擎集成`
-- `2026-01-11 K线图优化 + 技术指标`
+**示例**：
+- `feature/ai-chat-streaming`
+- `fix/market-sentiment-loading`
+- `refactor/akshare-integration`
 
-### 规则
-1. 日期格式：`YYYY-MM-DD`
-2. 功能描述：简洁明了，2-5 个关键词
-3. 多个功能用 `+` 连接
-4. 中文优先，技术术语可用英文
-
----
-
-## 二、Git 分支命名
+## 2. Commit Message
 
 ```
-[类型]/[日期]-[功能描述]
+feat: 新增功能描述
+fix: 修复问题描述
+refactor: 重构内容描述
+docs: 文档更新描述
+style: 代码格式调整
+test: 测试相关
+chore: 构建/配置相关
 ```
 
-### 类型
-- `feature/` - 新功能
-- `fix/` - Bug 修复
-- `refactor/` - 重构
-- `docs/` - 文档更新
+**示例**：
+- `feat: 添加拖拽删除自选股功能`
+- `fix: 修复AI聊天流式响应中断`
+- `refactor: 重构市场情绪数据获取逻辑`
 
-### 示例
-- `feature/2026-01-08-ai-function-calling`
-- `fix/2026-01-09-kline-loading`
-- `refactor/2026-01-10-chat-panel`
+## 3. 文件命名
 
----
+### React 组件
+- PascalCase: `StockListItem.tsx`, `AIChatPanel.tsx`
+- 组件放在对应功能目录下
 
-## 三、文档命名
+### TypeScript 模块
+- camelCase: `eastmoney.ts`, `akshare.ts`
+- 工具函数: `xxxUtils.ts`
+- 类型定义: `types.ts` 或 `xxx.types.ts`
 
-### 设计文档
+### 目录结构
 ```
-[模块名]-design.md
-[模块名]-dev-plan.md
+client/src/
+├── components/
+│   ├── ai/           # AI 相关组件
+│   ├── market/       # 市场相关组件
+│   ├── stock/        # 股票相关组件
+│   └── ui/           # 通用 UI 组件
+├── hooks/            # 自定义 Hooks
+├── lib/              # 工具库
+└── pages/            # 页面组件
+
+server/
+├── _core/            # 核心逻辑
+├── data/             # 数据文件
+└── gauge/            # Gauge 评分
 ```
 
-示例：
-- `nlp-strategy-design.md`
-- `nlp-strategy-dev-plan.md`
+## 4. Workflow 文件命名
 
-### 每日总结
 ```
-daily-summary-[日期].md
+daily-summary-YYYY-MM-DD.md   # 每日总结
+git-workflow.md               # Git 工作流
+dev-workflow.md               # 开发流程
+debug-guide.md                # 调试指南
 ```
 
-示例：
-- `daily-summary-2026-01-08.md`
+## 5. 变量命名
 
----
+### JavaScript/TypeScript
+- 变量/函数: camelCase (`stockCode`, `getMarketData`)
+- 常量: UPPER_SNAKE_CASE (`API_BASE_URL`, `MAX_RETRY_COUNT`)
+- 类/接口: PascalCase (`StockQuote`, `MarketSentiment`)
+- 布尔值: 使用 is/has/can 前缀 (`isLoading`, `hasError`)
 
-## 四、代码文件命名
+### CSS 类名
+- 使用 Tailwind 时遵循 Tailwind 规范
+- 自定义类使用 kebab-case (`stock-list-item`, `ai-chat-panel`)
 
-| 类型 | 格式 | 示例 |
-|-----|------|------|
-| React 组件 | PascalCase | `StockDetailPanel.tsx` |
-| 工具函数 | camelCase | `stockTools.ts` |
-| 常量/配置 | camelCase | `env.ts`, `config.ts` |
-| API 路由 | camelCase | `routers.ts` |
-| 类型定义 | camelCase | `types.ts` |
+## 6. API 端点命名
 
----
-
-**创建日期**: 2026-01-08
-**最后更新**: 2026-01-08
+```
+stocks.search      # 搜索股票
+stocks.getDetail   # 获取详情
+watchlist.add      # 添加到观察池
+watchlist.remove   # 从观察池删除
+market.sentiment   # 市场情绪
+ai.chat            # AI 聊天
+```
