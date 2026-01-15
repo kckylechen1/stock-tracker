@@ -400,25 +400,43 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
                 )}
                 {todoRun && (
                     <div className="px-3 pt-2">
-                        <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
-                            <div className="flex items-center justify-between gap-3">
-                                <span className="font-medium text-foreground">
-                                    {todoRun.status === "running"
-                                        ? "任务进度"
-                                        : "最近任务"}
+                        <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs transition-all duration-300">
+                            <div className="flex items-center justify-between gap-3 mb-2">
+                                <span className="font-medium text-foreground flex items-center gap-1.5">
+                                    {todoRun.status === "running" ? (
+                                        <>
+                                            <span className="relative flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                            </span>
+                                            思考规划中...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="h-2 w-2 rounded-full bg-muted-foreground/30"></span>
+                                            执行记录
+                                        </>
+                                    )}
                                 </span>
-                                <span className="text-muted-foreground">
-                                    {formatTodoRunStatus(todoRun.status)}
+                                <span className="text-muted-foreground font-mono text-[10px] opacity-70">
+                                    {todoRun.status === 'completed' ? 'Tasks Done' : 'Processing'}
                                 </span>
                             </div>
-                            <div className="mt-2 space-y-1">
-                                {todoRun.todos.map(todo => (
-                                    <div key={todo.id} className="flex items-center gap-2">
-                                        <span className={getTodoStatusClass(todo.status)}>
+                            <div className="space-y-1.5 pl-1">
+                                {todoRun.todos.map((todo, index) => (
+                                    <div key={todo.id} className={`flex items-center gap-2 transition-all duration-500 ${todo.status === 'in_progress' ? 'translate-x-1' : ''
+                                        }`}>
+                                        <div className={`shrink-0 w-4 flex justify-center ${todo.status === 'in_progress' ? 'animate-spin' : ''
+                                            }`}>
                                             {formatTodoStatus(todo.status)}
-                                        </span>
-                                        <span className="text-muted-foreground truncate">
-                                            {todo.title}
+                                        </div>
+                                        <span className={`truncate text-[11px] ${todo.status === 'in_progress'
+                                            ? 'text-primary font-medium'
+                                            : todo.status === 'failed'
+                                                ? 'text-red-500 line-through opacity-80'
+                                                : 'text-muted-foreground'
+                                            }`}>
+                                            {formatTodoTitle(todo.title)}
                                         </span>
                                     </div>
                                 ))}
@@ -447,6 +465,27 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
             </div>
         </div>
     );
+}
+
+
+function formatTodoTitle(title: string) {
+    if (!title) return "执行任务";
+    if (title.includes('get_stock_quote')) return '📊 获取实时行情';
+    if (title.includes('analyze_stock_technical')) return '📈 技术面深度扫描';
+    if (title.includes('get_fund_flow_history')) return '💰 追踪资金历史趋势'; // 优先匹配长名称
+    if (title.includes('get_fund_flow')) return '💰 追踪主力资金';
+    if (title.includes('get_market_status')) return '🌍 研判大盘环境';
+    if (title.includes('comprehensive_analysis')) return '🏥 全方位诊断中...';
+    if (title.includes('get_trading_memory')) return '🧠 回顾交易记忆';
+    if (title.includes('get_guba_hot_rank')) return '🔥 监测市场热度';
+    if (title.includes('get_market_news')) return '📰 收集市场资讯';
+    if (title.includes('analyze_minute_patterns')) return '⏱️ 分时形态识别';
+
+    // 生成建议等其他步骤
+    if (title.includes('生成')) return '✍️ ' + title;
+    if (title.includes('调用工具')) return '🛠️ ' + title.replace('调用工具: ', '');
+
+    return title;
 }
 
 function formatTodoStatus(status: string) {

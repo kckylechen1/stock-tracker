@@ -334,7 +334,14 @@ export function formatMinuteAnalysis(result: MinuteAnalysisResult): string {
         conclusion = `❌ **不建议进场**: 当前无明确形态，耐心等待。盲目进场容易被洗出去。`;
     }
 
-    return `【5分钟形态分析】${result.date}
+    // 添加当前系统日期，确保 AI 有明确的时间感知
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+    const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    const weekday = weekdays[now.getDay()];
+
+    return `【5分钟形态分析】(分析时间: ${dateStr} ${weekday})
+👉 数据最后更新: ${result.date}
 
 ${morningAnalysis}
 

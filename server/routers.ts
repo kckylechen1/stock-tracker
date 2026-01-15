@@ -180,10 +180,10 @@ export const appRouter = router({
         try {
           const { getWatchlist } = await import('./db');
           const { calculateGaugeScore } = await import('./gauge/indicators');
-          
+
           // 获取观察池股票
           const watchlist = await getWatchlist();
-          
+
           // 并发获取每只股票的评分和行情
           const stocksWithScores = await Promise.all(
             watchlist.map(async (stock) => {
@@ -191,11 +191,11 @@ export const appRouter = router({
                 // 获取K线数据
                 const klines = await eastmoney.getKlineData(stock.stockCode, 'day');
                 const recentKlines = klines.slice(-80);
-                
+
                 if (recentKlines.length < 30) {
                   return null;
                 }
-                
+
                 // 转换格式
                 const formattedKlines = recentKlines.map((item: any) => ({
                   time: item.time,
@@ -205,13 +205,13 @@ export const appRouter = router({
                   close: item.close,
                   volume: item.volume,
                 }));
-                
+
                 // 计算Gauge评分
                 const gaugeScore = calculateGaugeScore(formattedKlines);
-                
+
                 // 获取实时行情
                 const quote = await eastmoney.getStockQuote(stock.stockCode);
-                
+
                 return {
                   code: stock.stockCode,
                   name: quote.name,
@@ -231,10 +231,10 @@ export const appRouter = router({
               }
             })
           );
-          
+
           // 过滤空值并排序
           const validStocks = stocksWithScores.filter(s => s !== null);
-          
+
           // 根据排序方式排序
           validStocks.sort((a, b) => {
             if (input.sortBy === 'score') {
@@ -245,7 +245,7 @@ export const appRouter = router({
               return b.volume - a.volume;
             }
           });
-          
+
           return validStocks.slice(0, input.limit);
         } catch (error) {
           console.error('Get top stocks failed:', error);
@@ -284,7 +284,16 @@ export const appRouter = router({
         throw new Error('Invalid input');
       })
       .mutation(async ({ input }) => {
-        const { addToWatchlist } = await import('./db');
+        const { addToWatchlist, getWatchlist } = await import('./db');
+
+        // 检查是否已存在
+        const existingList = await getWatchlist();
+        const alreadyExists = existingList.some(item => item.stockCode === input.stockCode);
+
+        if (alreadyExists) {
+          return { success: false, error: '该股票已在观察池中' };
+        }
+
         await addToWatchlist(input);
         return { success: true };
       }),

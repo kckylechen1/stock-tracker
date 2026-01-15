@@ -774,7 +774,11 @@ async function executeStockToolInternal(toolName: string, args: Record<string, a
                         marketStatus = '🔴 **大幅下跌** - 建议规避，即使技术面好也可能被带崩';
                     }
 
-                    return `【大盘今日状态】
+                    // 添加当前日期
+                    const now = new Date();
+                    const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+
+                    return `【大盘今日状态】（${dateStr}）
 
 ${formatIndex(shangzheng, '上证指数')}
 ${formatIndex(shenzhen, '深证成指')}
@@ -1078,15 +1082,15 @@ ${techSection}${fundSection}${marketSection}${conclusionSection}`;
             case "smart_akshare_query": {
                 console.log(`[StockTools] 执行: smart_akshare_query`, args);
                 const { query, params } = args;
-                
+
                 if (!query) {
                     return JSON.stringify({ error: '请提供查询需求' });
                 }
 
                 const result = await akShareTool.smartAKShareQuery(query, params);
-                
+
                 if (!result.success) {
-                    return JSON.stringify({ 
+                    return JSON.stringify({
                         error: result.error,
                         hint: '可以使用 search_akshare_endpoint 工具搜索相关接口'
                     });
@@ -1134,12 +1138,19 @@ function formatQuoteData(quote: any): string {
     const changeSign = quote.change >= 0 ? '+' : '';
     const changePercentSign = quote.changePercent >= 0 ? '+' : '';
 
+    // 添加当前日期，让 AI 明确知道今天的日期
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+    const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    const weekday = weekdays[now.getDay()];
+
     return `【${quote.name} (${quote.code}) 实时行情】
+⏰ 数据时间：${dateStr} ${weekday}
 📊 当前价格：${quote.price ?? '--'} 元
 ${quote.changePercent >= 0 ? '📈' : '📉'} 涨跌幅：${changePercentSign}${quote.changePercent?.toFixed(2) ?? '--'}%
 💰 涨跌额：${changeSign}${quote.change?.toFixed(2) ?? '--'} 元
 
-📅 今日交易：
+📅 今日交易（${dateStr}）：
   今开：${quote.open ?? '--'} 元
   最高：${quote.high ?? '--'} 元
   最低：${quote.low ?? '--'} 元
