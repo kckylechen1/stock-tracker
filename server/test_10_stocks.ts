@@ -2,36 +2,36 @@
  * 10只股票AI Agent测试 - 完整流程验证
  */
 
-import { createSmartAgent } from './_core/agent';
-import * as fs from 'fs';
+import { createSmartAgent } from "./_core/agent";
+import * as fs from "fs";
 
 // 测试股票 (精选10只代表性股票)
 const TEST_STOCKS = [
-  '002594', // 比亚迪 - 新能源龙头
-  '600519', // 茅台 - 白酒龙头
-  '300750', // 宁德时代 - 创业板明星
-  '688981', // 中芯国际 - 科创板代表
-  '000001', // 平安银行 - 银行股代表
-  '600036', // 招商银行 - 另一银行股
-  '300274', // 阳光电源 - 新能源
-  '688008', // 澜起科技 - 芯片
-  '002131', // 利欧股份 - 教育
-  '600276'  // 恒瑞医药 - 医药
+  "002594", // 比亚迪 - 新能源龙头
+  "600519", // 茅台 - 白酒龙头
+  "300750", // 宁德时代 - 创业板明星
+  "688981", // 中芯国际 - 科创板代表
+  "000001", // 平安银行 - 银行股代表
+  "600036", // 招商银行 - 另一银行股
+  "300274", // 阳光电源 - 新能源
+  "688008", // 澜起科技 - 芯片
+  "002131", // 利欧股份 - 教育
+  "600276", // 恒瑞医药 - 医药
 ];
 
 const TEST_CONFIG = {
-  testDate: '2025-09-15',
-  outputFile: './ai_agent_10_stocks_test.md'
+  testDate: "2025-09-15",
+  outputFile: "./ai_agent_10_stocks_test.md",
 };
 
 // 测试结果接口
 interface TestResult {
   stockCode: string;
-  model: 'grok' | 'glm';
+  model: "grok" | "glm";
   success: boolean;
   executionTime: number;
   recommendation?: {
-    type: '买入' | '持有' | '卖出';
+    type: "买入" | "持有" | "卖出";
     confidence: number;
     reasoning: string;
   };
@@ -44,7 +44,10 @@ interface TestResult {
 }
 
 // 测试单只股票
-async function testSingleStock(stockCode: string, model: 'grok' | 'glm'): Promise<TestResult> {
+async function testSingleStock(
+  stockCode: string,
+  model: "grok" | "glm"
+): Promise<TestResult> {
   const startTime = Date.now();
 
   try {
@@ -53,7 +56,7 @@ async function testSingleStock(stockCode: string, model: 'grok' | 'glm'): Promis
     const agent = createSmartAgent({
       stockCode,
       preferredModel: model,
-      testMode: true
+      testMode: true,
     });
 
     const query = `请对 ${stockCode} 进行技术分析，给出买入/持有/卖出的投资建议，并说明理由。当前时间是${TEST_CONFIG.testDate}。`;
@@ -71,9 +74,8 @@ async function testSingleStock(stockCode: string, model: 'grok' | 'glm'): Promis
       success: true,
       executionTime: Date.now() - startTime,
       recommendation,
-      analysis: result
+      analysis: result,
     };
-
   } catch (error) {
     console.log(`❌ ${stockCode} 失败: ${error.message}`);
 
@@ -82,31 +84,50 @@ async function testSingleStock(stockCode: string, model: 'grok' | 'glm'): Promis
       model,
       success: false,
       executionTime: Date.now() - startTime,
-      error: error.message
+      error: error.message,
     };
   }
 }
 
 // 解析AI推荐
-function parseRecommendation(content: string): { type: '买入' | '持有' | '卖出'; confidence: number; reasoning: string } {
-  let type: '买入' | '持有' | '卖出' = '持有';
+function parseRecommendation(content: string): {
+  type: "买入" | "持有" | "卖出";
+  confidence: number;
+  reasoning: string;
+} {
+  let type: "买入" | "持有" | "卖出" = "持有";
   let confidence = 50;
   let reasoning = content;
 
   // 关键词匹配
-  if (content.includes('强烈买入') || content.includes('推荐买入') || content.includes('积极买入')) {
-    type = '买入';
+  if (
+    content.includes("强烈买入") ||
+    content.includes("推荐买入") ||
+    content.includes("积极买入")
+  ) {
+    type = "买入";
     confidence = 80;
-  } else if (content.includes('买入') || content.includes('看涨') || content.includes('看好')) {
-    type = '买入';
+  } else if (
+    content.includes("买入") ||
+    content.includes("看涨") ||
+    content.includes("看好")
+  ) {
+    type = "买入";
     confidence = 60;
-  } else if (content.includes('卖出') || content.includes('看跌') || content.includes('看空') || content.includes('推荐卖出')) {
-    type = '卖出';
+  } else if (
+    content.includes("卖出") ||
+    content.includes("看跌") ||
+    content.includes("看空") ||
+    content.includes("推荐卖出")
+  ) {
+    type = "卖出";
     confidence = 60;
   }
 
   // 提取关键理由
-  const reasoningMatch = content.match(/(?:理由|因为|由于|分析)([:：].*?)(?:\n|$)/);
+  const reasoningMatch = content.match(
+    /(?:理由|因为|由于|分析)([:：].*?)(?:\n|$)/
+  );
   if (reasoningMatch) {
     reasoning = reasoningMatch[1].trim();
   }
@@ -116,14 +137,14 @@ function parseRecommendation(content: string): { type: '买入' | '持有' | '�
 
 // 生成报告
 function generateTestReport(results: TestResult[]): string {
-  const grokResults = results.filter(r => r.model === 'grok');
-  const glmResults = results.filter(r => r.model === 'deepseek'); // GLM用deepseek
+  const grokResults = results.filter(r => r.model === "grok");
+  const glmResults = results.filter(r => r.model === "deepseek"); // GLM用deepseek
 
   let report = `# AI Agent 10只股票技术分析测试报告
 
 ## 测试概况
 - **测试时间**: ${new Date().toISOString()}
-- **测试股票**: 10只 (${TEST_STOCKS.join(', ')})
+- **测试股票**: 10只 (${TEST_STOCKS.join(", ")})
 - **模型对比**: Grok vs GLM (DeepSeek)
 - **测试类型**: 真实API调用 + 技术分析
 
@@ -134,7 +155,7 @@ function generateTestReport(results: TestResult[]): string {
 
   grokResults.forEach(result => {
     report += `#### ${result.stockCode}\n`;
-    report += `- **状态**: ${result.success ? '✅ 成功' : '❌ 失败'}\n`;
+    report += `- **状态**: ${result.success ? "✅ 成功" : "❌ 失败"}\n`;
     report += `- **耗时**: ${result.executionTime}ms\n`;
 
     if (result.success && result.recommendation) {
@@ -145,7 +166,7 @@ function generateTestReport(results: TestResult[]): string {
     if (result.error) {
       report += `- **错误**: ${result.error}\n`;
     }
-    report += '\n';
+    report += "\n";
   });
 
   report += `### GLM模型结果 (DeepSeek)
@@ -153,7 +174,7 @@ function generateTestReport(results: TestResult[]): string {
 
   glmResults.forEach(result => {
     report += `#### ${result.stockCode}\n`;
-    report += `- **状态**: ${result.success ? '✅ 成功' : '❌ 失败'}\n`;
+    report += `- **状态**: ${result.success ? "✅ 成功" : "❌ 失败"}\n`;
     report += `- **耗时**: ${result.executionTime}ms\n`;
 
     if (result.success && result.recommendation) {
@@ -164,21 +185,24 @@ function generateTestReport(results: TestResult[]): string {
     if (result.error) {
       report += `- **错误**: ${result.error}\n`;
     }
-    report += '\n';
+    report += "\n";
   });
 
   // 统计
   const grokSuccess = grokResults.filter(r => r.success).length;
   const glmSuccess = glmResults.filter(r => r.success).length;
 
-  const grokAvgTime = grokResults.reduce((sum, r) => sum + r.executionTime, 0) / grokResults.length;
-  const glmAvgTime = glmResults.reduce((sum, r) => sum + r.executionTime, 0) / glmResults.length;
+  const grokAvgTime =
+    grokResults.reduce((sum, r) => sum + r.executionTime, 0) /
+    grokResults.length;
+  const glmAvgTime =
+    glmResults.reduce((sum, r) => sum + r.executionTime, 0) / glmResults.length;
 
   report += `## 性能统计
 
 ### 成功率
-- **Grok**: ${grokSuccess}/${grokResults.length} (${(grokSuccess/grokResults.length*100).toFixed(1)}%)
-- **GLM**: ${glmSuccess}/${glmResults.length} (${(glmSuccess/glmResults.length*100).toFixed(1)}%)
+- **Grok**: ${grokSuccess}/${grokResults.length} (${((grokSuccess / grokResults.length) * 100).toFixed(1)}%)
+- **GLM**: ${glmSuccess}/${glmResults.length} (${((glmSuccess / glmResults.length) * 100).toFixed(1)}%)
 
 ### 平均耗时
 - **Grok**: ${grokAvgTime.toFixed(0)}ms
@@ -188,8 +212,12 @@ function generateTestReport(results: TestResult[]): string {
 `;
 
   // 统计建议分布
-  const grokRecommendations = grokResults.filter(r => r.success && r.recommendation);
-  const glmRecommendations = glmResults.filter(r => r.success && r.recommendation);
+  const grokRecommendations = grokResults.filter(
+    r => r.success && r.recommendation
+  );
+  const glmRecommendations = glmResults.filter(
+    r => r.success && r.recommendation
+  );
 
   const countRecommendations = (results: TestResult[]) => {
     const counts = { 买入: 0, 持有: 0, 卖出: 0 };
@@ -216,9 +244,11 @@ function generateTestReport(results: TestResult[]): string {
 
 ## 结论
 
-${grokSuccess >= 8 && glmSuccess >= 8 ?
-  '✅ 测试成功！两个模型都能正常进行股票技术分析。AI Agent框架运行稳定，可以进行更大规模测试。' :
-  '⚠️ 测试存在问题，需要检查API配置或网络连接。'}
+${
+  grokSuccess >= 8 && glmSuccess >= 8
+    ? "✅ 测试成功！两个模型都能正常进行股票技术分析。AI Agent框架运行稳定，可以进行更大规模测试。"
+    : "⚠️ 测试存在问题，需要检查API配置或网络连接。"
+}
 
 ---
 *测试完成时间: ${new Date().toISOString()}*
@@ -229,21 +259,21 @@ ${grokSuccess >= 8 && glmSuccess >= 8 ?
 
 // 主函数
 async function main() {
-  console.log('🚀 开始10只股票AI Agent测试\n');
+  console.log("🚀 开始10只股票AI Agent测试\n");
 
   const results: TestResult[] = [];
 
   // 逐个测试，避免并发问题
   for (const stockCode of TEST_STOCKS) {
     // 测试Grok
-    const grokResult = await testSingleStock(stockCode, 'grok');
+    const grokResult = await testSingleStock(stockCode, "grok");
     results.push(grokResult);
 
     // 短暂延迟
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 测试GLM (用deepseek)
-    const glmResult = await testSingleStock(stockCode, 'deepseek');
+    const glmResult = await testSingleStock(stockCode, "deepseek");
     results.push(glmResult);
 
     // 批次间延迟
@@ -251,25 +281,25 @@ async function main() {
   }
 
   // 生成报告
-  console.log('\n📄 生成测试报告...');
+  console.log("\n📄 生成测试报告...");
   const report = generateTestReport(results);
-  await fs.promises.writeFile(TEST_CONFIG.outputFile, report, 'utf8');
+  await fs.promises.writeFile(TEST_CONFIG.outputFile, report, "utf8");
 
   console.log(`💾 报告已保存: ${TEST_CONFIG.outputFile}`);
 
   // 输出统计
-  const grokResults = results.filter(r => r.model === 'grok');
-  const glmResults = results.filter(r => r.model === 'deepseek');
+  const grokResults = results.filter(r => r.model === "grok");
+  const glmResults = results.filter(r => r.model === "deepseek");
 
   const grokSuccess = grokResults.filter(r => r.success).length;
   const glmSuccess = glmResults.filter(r => r.success).length;
 
-  console.log('\n🎯 最终统计:');
+  console.log("\n🎯 最终统计:");
   console.log(`Grok: ${grokSuccess}/${grokResults.length} 成功`);
   console.log(`GLM:  ${glmSuccess}/${glmResults.length} 成功`);
 
   if (grokSuccess >= 8 && glmSuccess >= 8) {
-    console.log('\n🎉 10只股票测试成功！可以开始100只股票大规模测试了。');
+    console.log("\n🎉 10只股票测试成功！可以开始100只股票大规模测试了。");
   }
 }
 

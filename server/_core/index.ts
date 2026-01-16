@@ -48,7 +48,14 @@ async function startServer() {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Expose-Headers", "X-Session-Id");
 
-    const { messages, stockCode, stockContext, useSmartAgent = true, sessionId, thinkHard } = req.body;
+    const {
+      messages,
+      stockCode,
+      stockContext,
+      useSmartAgent = true,
+      sessionId,
+      thinkHard,
+    } = req.body;
 
     try {
       const sessionStore = getSessionStore();
@@ -67,7 +74,6 @@ async function startServer() {
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
       }
       res.write(`data: [DONE]\n\n`);
-
     } catch (error) {
       console.error("Stream error:", error);
       res.write(`data: ${JSON.stringify({ error: "Stream failed" })}\n\n`);

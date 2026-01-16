@@ -43,15 +43,16 @@
 
 ### 2.1 Qwen Worker 模型推荐
 
-| 模型 | 参数量 | 速度 | 成本 | 推荐场景 |
-|------|--------|------|------|----------|
-| `Qwen/Qwen3-235B-A22B` | 235B | 慢 | 高 | ❌ Worker不需要这么强 |
-| `Qwen/Qwen3-32B` | 32B | 中 | 中 | ✅ **推荐** 平衡性能和成本 |
-| `Qwen/Qwen2.5-32B-Instruct` | 32B | 中 | 中 | ✅ 备选，指令遵循更好 |
-| `Qwen/Qwen3-14B` | 14B | 快 | 低 | ✅ 简单任务可用 |
-| `Qwen/Qwen3-8B` | 8B | 最快 | 最低 | ⚠️ 可能不够稳定 |
+| 模型                        | 参数量 | 速度 | 成本 | 推荐场景                   |
+| --------------------------- | ------ | ---- | ---- | -------------------------- |
+| `Qwen/Qwen3-235B-A22B`      | 235B   | 慢   | 高   | ❌ Worker不需要这么强      |
+| `Qwen/Qwen3-32B`            | 32B    | 中   | 中   | ✅ **推荐** 平衡性能和成本 |
+| `Qwen/Qwen2.5-32B-Instruct` | 32B    | 中   | 中   | ✅ 备选，指令遵循更好      |
+| `Qwen/Qwen3-14B`            | 14B    | 快   | 低   | ✅ 简单任务可用            |
+| `Qwen/Qwen3-8B`             | 8B     | 最快 | 最低 | ⚠️ 可能不够稳定            |
 
 **推荐配置**:
+
 ```typescript
 // Worker 模型（数据获取、简单任务）
 const QWEN_WORKER_MODEL = "Qwen/Qwen3-32B";
@@ -62,12 +63,12 @@ const QWEN_CLASSIFIER_MODEL = "Qwen/Qwen2.5-32B-Instruct";
 
 ### 2.2 模型参数对比
 
-| 模型 | temperature | max_tokens | 用途 |
-|------|-------------|------------|------|
-| Grok 4 | **0.85** (提高创造性) | 4096 | 深度分析、长回答 |
-| DeepSeek V3 | 0.7 | 4096 | 备用分析 |
-| Qwen Worker | **0.2** (确定性输出) | 2048 | 数据获取 |
-| Qwen Classifier | **0.1** (稳定分类) | 256 | 意图识别 |
+| 模型            | temperature           | max_tokens | 用途             |
+| --------------- | --------------------- | ---------- | ---------------- |
+| Grok 4          | **0.85** (提高创造性) | 4096       | 深度分析、长回答 |
+| DeepSeek V3     | 0.7                   | 4096       | 备用分析         |
+| Qwen Worker     | **0.2** (确定性输出)  | 2048       | 数据获取         |
+| Qwen Classifier | **0.1** (稳定分类)    | 256        | 意图识别         |
 
 ---
 
@@ -76,27 +77,27 @@ const QWEN_CLASSIFIER_MODEL = "Qwen/Qwen2.5-32B-Instruct";
 ### 3.1 意图类型定义
 
 ```typescript
-export type IntentType = 
+export type IntentType =
   // Grok 4 处理（复杂分析）
-  | 'ANALYZE_STOCK'      // 走势分析、技术分析
-  | 'TRADING_DECISION'   // 买卖决策、止损持有
-  | 'COMPARE_STOCKS'     // 股票对比
-  | 'STRATEGY_ADVICE'    // 策略建议
-  | 'MARKET_ANALYSIS'    // 大盘分析
-  
+  | "ANALYZE_STOCK" // 走势分析、技术分析
+  | "TRADING_DECISION" // 买卖决策、止损持有
+  | "COMPARE_STOCKS" // 股票对比
+  | "STRATEGY_ADVICE" // 策略建议
+  | "MARKET_ANALYSIS" // 大盘分析
+
   // Qwen Worker 处理（数据获取）
-  | 'GET_QUOTE'          // 查价格
-  | 'GET_NEWS'           // 查新闻
-  | 'ADD_WATCHLIST'      // 添加自选（触发数据预加载）
-  | 'BACKGROUND_TASK'    // 后台任务
-  
+  | "GET_QUOTE" // 查价格
+  | "GET_NEWS" // 查新闻
+  | "ADD_WATCHLIST" // 添加自选（触发数据预加载）
+  | "BACKGROUND_TASK" // 后台任务
+
   // 直接处理（无需 LLM）
-  | 'SEARCH_STOCK'       // 搜索股票
-  | 'GET_TIME'           // 查时间
-  | 'GREETING'           // 打招呼
-  
+  | "SEARCH_STOCK" // 搜索股票
+  | "GET_TIME" // 查时间
+  | "GREETING" // 打招呼
+
   // 兜底
-  | 'GENERAL_QA';        // 一般问答
+  | "GENERAL_QA"; // 一般问答
 ```
 
 ### 3.2 规则匹配引擎
@@ -121,9 +122,9 @@ const INTENT_RULES: IntentRule[] = [
       /能(买|卖|入|出)吗/,
       /(买入|卖出|加仓|减仓|清仓).*(时机|点位|建议)/,
     ],
-    intent: 'ANALYZE_STOCK',
+    intent: "ANALYZE_STOCK",
     confidence: 0.95,
-    requiredTools: ['comprehensive_analysis']
+    requiredTools: ["comprehensive_analysis"],
   },
   {
     patterns: [
@@ -132,75 +133,61 @@ const INTENT_RULES: IntentRule[] = [
       /(亏|赔|套).*怎么办/,
       /能不能(继续)?持有/,
     ],
-    intent: 'TRADING_DECISION',
+    intent: "TRADING_DECISION",
     confidence: 0.95,
-    requiredTools: ['comprehensive_analysis', 'get_trading_memory']
+    requiredTools: ["comprehensive_analysis", "get_trading_memory"],
   },
   {
     patterns: [
       /(.+)(和|与|跟)(.+)(哪个|对比|比较)/,
       /(对比|比较).*(股票|个股)/,
     ],
-    intent: 'COMPARE_STOCKS',
+    intent: "COMPARE_STOCKS",
     confidence: 0.9,
-    requiredTools: ['comprehensive_analysis']
+    requiredTools: ["comprehensive_analysis"],
   },
   {
-    patterns: [
-      /(大盘|上证|深证|创业板|指数)/,
-      /市场.*(情绪|状态|怎么样)/,
-    ],
-    intent: 'MARKET_ANALYSIS',
+    patterns: [/(大盘|上证|深证|创业板|指数)/, /市场.*(情绪|状态|怎么样)/],
+    intent: "MARKET_ANALYSIS",
     confidence: 0.9,
-    requiredTools: ['get_market_status', 'get_market_fund_flow']
+    requiredTools: ["get_market_status", "get_market_fund_flow"],
   },
-  
+
   // === Qwen Worker 路由 ===
   {
-    patterns: [
-      /(现在|当前).*价格/,
-      /多少钱/,
-      /(股价|价格)是多少/,
-    ],
-    intent: 'GET_QUOTE',
+    patterns: [/(现在|当前).*价格/, /多少钱/, /(股价|价格)是多少/],
+    intent: "GET_QUOTE",
     confidence: 0.95,
-    requiredTools: ['get_stock_quote']
+    requiredTools: ["get_stock_quote"],
   },
   {
-    patterns: [
-      /(新闻|消息|公告|利好|利空)/,
-      /最近.*(发生|有什么)/,
-    ],
-    intent: 'GET_NEWS',
+    patterns: [/(新闻|消息|公告|利好|利空)/, /最近.*(发生|有什么)/],
+    intent: "GET_NEWS",
     confidence: 0.85,
-    requiredTools: ['get_market_news']
+    requiredTools: ["get_market_news"],
   },
-  
+
   // === 直接处理 ===
   {
-    patterns: [
-      /^(你好|hi|hello|嗨|早|晚)/i,
-      /^(谢谢|感谢|辛苦)/,
-    ],
-    intent: 'GREETING',
-    confidence: 1.0
+    patterns: [/^(你好|hi|hello|嗨|早|晚)/i, /^(谢谢|感谢|辛苦)/],
+    intent: "GREETING",
+    confidence: 1.0,
   },
   {
-    patterns: [
-      /今天.*几号/,
-      /现在.*时间/,
-      /(日期|时间)是/,
-    ],
-    intent: 'GET_TIME',
-    confidence: 1.0
+    patterns: [/今天.*几号/, /现在.*时间/, /(日期|时间)是/],
+    intent: "GET_TIME",
+    confidence: 1.0,
   },
 ];
 
-export function classifyIntent(message: string, stockCode?: string): {
+export function classifyIntent(
+  message: string,
+  stockCode?: string
+): {
   intent: IntentType;
   confidence: number;
   requiredTools: string[];
-  model: 'grok' | 'deepseek' | 'qwen' | 'direct';
+  model: "grok" | "deepseek" | "qwen" | "direct";
 } {
   // 1. 规则匹配
   for (const rule of INTENT_RULES) {
@@ -211,47 +198,54 @@ export function classifyIntent(message: string, stockCode?: string): {
           intent: rule.intent,
           confidence: rule.confidence,
           requiredTools: rule.requiredTools || [],
-          model
+          model,
         };
       }
     }
   }
-  
+
   // 2. 有股票上下文时，默认为分析意图
   if (stockCode) {
     return {
-      intent: 'ANALYZE_STOCK',
+      intent: "ANALYZE_STOCK",
       confidence: 0.7,
-      requiredTools: ['comprehensive_analysis'],
-      model: 'grok'
+      requiredTools: ["comprehensive_analysis"],
+      model: "grok",
     };
   }
-  
+
   // 3. 兜底：一般问答
   return {
-    intent: 'GENERAL_QA',
+    intent: "GENERAL_QA",
     confidence: 0.5,
     requiredTools: [],
-    model: 'grok'
+    model: "grok",
   };
 }
 
-function getModelForIntent(intent: IntentType): 'grok' | 'deepseek' | 'qwen' | 'direct' {
+function getModelForIntent(
+  intent: IntentType
+): "grok" | "deepseek" | "qwen" | "direct" {
   const grokIntents: IntentType[] = [
-    'ANALYZE_STOCK', 'TRADING_DECISION', 'COMPARE_STOCKS', 
-    'STRATEGY_ADVICE', 'MARKET_ANALYSIS', 'GENERAL_QA'
+    "ANALYZE_STOCK",
+    "TRADING_DECISION",
+    "COMPARE_STOCKS",
+    "STRATEGY_ADVICE",
+    "MARKET_ANALYSIS",
+    "GENERAL_QA",
   ];
   const qwenIntents: IntentType[] = [
-    'GET_QUOTE', 'GET_NEWS', 'ADD_WATCHLIST', 'BACKGROUND_TASK'
+    "GET_QUOTE",
+    "GET_NEWS",
+    "ADD_WATCHLIST",
+    "BACKGROUND_TASK",
   ];
-  const directIntents: IntentType[] = [
-    'SEARCH_STOCK', 'GET_TIME', 'GREETING'
-  ];
-  
-  if (grokIntents.includes(intent)) return 'grok';
-  if (qwenIntents.includes(intent)) return 'qwen';
-  if (directIntents.includes(intent)) return 'direct';
-  return 'grok';
+  const directIntents: IntentType[] = ["SEARCH_STOCK", "GET_TIME", "GREETING"];
+
+  if (grokIntents.includes(intent)) return "grok";
+  if (qwenIntents.includes(intent)) return "qwen";
+  if (directIntents.includes(intent)) return "direct";
+  return "grok";
 }
 ```
 
@@ -276,9 +270,8 @@ export function buildGrokSystemPrompt(context: {
   stockName?: string;
   preloadedData?: string;
 }): string {
-  
   const { stockCode, stockName, preloadedData } = context;
-  
+
   return `# 角色
 你是「小A」，一位经验丰富的A股短线交易分析师。你的分析风格：
 - 🎯 **果断直接**：先给结论，再讲理由
@@ -319,15 +312,23 @@ export function buildGrokSystemPrompt(context: {
 ❌ 不要只罗列数据不解读
 ❌ 不要给模糊的建议（如"可以关注"）
 
-${stockCode ? `
+${
+  stockCode
+    ? `
 # 当前上下文
 
 📌 **当前股票**: ${stockName || stockCode} (${stockCode})
-${preloadedData ? `
+${
+  preloadedData
+    ? `
 📊 **已加载数据**:
 ${preloadedData}
-` : ''}
-` : ''}
+`
+    : ""
+}
+`
+    : ""
+}
 
 # 回答格式模板
 
@@ -384,17 +385,17 @@ ${preloadedData}
 // 用户消息预处理：注入时间
 export function preprocessUserMessage(message: string): string {
   const now = new Date();
-  const dateStr = now.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long'
+  const dateStr = now.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
   });
-  const timeStr = now.toLocaleTimeString('zh-CN', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  const timeStr = now.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
-  
+
   // 将时间放在用户消息最前面，模型更容易注意到
   return `【当前时间：${dateStr} ${timeStr}】
 
@@ -408,7 +409,7 @@ ${message}`;
 // 调用 Grok 4 时的参数配置
 const grokConfig = {
   model: "grok-4-1-fast-reasoning",
-  temperature: 0.85,  // 提高创造性，让回答更丰富
+  temperature: 0.85, // 提高创造性，让回答更丰富
   max_tokens: 4096,
   top_p: 0.95,
   // 不设置 frequency_penalty，避免重复惩罚影响专业术语
@@ -422,11 +423,13 @@ const grokConfig = {
 ### 5.1 针对 DeepSeek 的特殊优化
 
 DeepSeek V3 的问题：
+
 - 容易忽略系统提示词中的日期
 - Function calling 不够稳定
 - 容易复制粘贴工具输出
 
 解决方案：
+
 - **强制时间注入**: 在每条用户消息前加时间
 - **简化提示词**: 减少干扰信息
 - **显式工具指令**: 明确说"必须调用xxx"
@@ -441,9 +444,8 @@ export function buildDeepSeekSystemPrompt(context: {
   stockName?: string;
   preloadedData?: string;
 }): string {
-  
   const { stockCode, stockName, preloadedData } = context;
-  
+
   // DeepSeek 需要更简洁的提示词
   return `你是「小A」，A股短线分析师。
 
@@ -467,20 +469,24 @@ export function buildDeepSeekSystemPrompt(context: {
 3. 给**具体结论**（买/卖/观望）和**具体点位**
 4. 回答要**详细**，至少500字
 
-${stockCode ? `
+${
+  stockCode
+    ? `
 ## 当前股票
 ${stockName || stockCode} (${stockCode})
-${preloadedData || ''}
-` : ''}`;
+${preloadedData || ""}
+`
+    : ""
+}`;
 }
 
 // DeepSeek 特殊的消息预处理
 export function preprocessDeepSeekMessage(message: string): string {
   const now = new Date();
-  
+
   // 更强调的时间格式，DeepSeek 不容易忽略
   return `===========================================
-⏰ 系统时间：${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}
+⏰ 系统时间：${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${now.getHours()}:${now.getMinutes().toString().padStart(2, "0")}
 ⚠️ 注意：你的训练数据截止2023年，但现在是${now.getFullYear()}年！
 ===========================================
 
@@ -495,6 +501,7 @@ export function preprocessDeepSeekMessage(message: string): string {
 ### 6.1 设计原则
 
 Worker 模式的特点：
+
 - **不聊天**: 只执行任务，不废话
 - **结构化输出**: 返回 JSON 或格式化数据
 - **低温度**: 0.2-0.3，确保稳定输出
@@ -529,17 +536,17 @@ export const QWEN_WORKER_SYSTEM_PROMPT = `你是一个数据获取助手。
 
 // Worker 任务请求格式
 export function buildWorkerTask(task: {
-  type: 'gauge_data' | 'news_data' | 'quick_quote' | 'analysis';
+  type: "gauge_data" | "news_data" | "quick_quote" | "analysis";
   stockCode: string;
 }): string {
   switch (task.type) {
-    case 'gauge_data':
+    case "gauge_data":
       return `获取 ${task.stockCode} 的综合分析数据，用于填充仪表盘。调用 comprehensive_analysis。`;
-    case 'news_data':
+    case "news_data":
       return `获取 ${task.stockCode} 相关的最新新闻。调用 get_market_news。`;
-    case 'quick_quote':
+    case "quick_quote":
       return `获取 ${task.stockCode} 的实时行情。调用 get_stock_quote。`;
-    case 'analysis':
+    case "analysis":
       return `获取 ${task.stockCode} 的完整分析数据。依次调用：comprehensive_analysis, get_fund_flow_history, get_guba_hot_rank。`;
     default:
       return `获取 ${task.stockCode} 的数据。`;
@@ -551,8 +558,8 @@ export function buildWorkerTask(task: {
 
 ```typescript
 const qwenWorkerConfig = {
-  model: "Qwen/Qwen3-32B",  // 推荐使用 32B
-  temperature: 0.2,         // 低温度，确保稳定
+  model: "Qwen/Qwen3-32B", // 推荐使用 32B
+  temperature: 0.2, // 低温度，确保稳定
   max_tokens: 2048,
   top_p: 0.9,
 };
@@ -612,6 +619,7 @@ ${userMessage}
 ## 8. 工具描述优化
 
 现有工具描述太简单，需要增加：
+
 - 触发词（何时调用）
 - 输入示例
 - 输出摘要
@@ -648,12 +656,12 @@ export const stockToolsV2: Tool[] = [
         properties: {
           code: {
             type: "string",
-            description: "股票代码，如 300433、600519、002594"
-          }
+            description: "股票代码，如 300433、600519、002594",
+          },
         },
-        required: ["code"]
-      }
-    }
+        required: ["code"],
+      },
+    },
   },
   // ... 其他工具类似优化
 ];
@@ -689,8 +697,16 @@ server/_core/
 ```typescript
 // 测试用例
 const testCases = [
-  { input: "蓝思科技走势怎么样", expectedIntent: "ANALYZE_STOCK", expectedModel: "grok" },
-  { input: "应该止损还是持有", expectedIntent: "TRADING_DECISION", expectedModel: "grok" },
+  {
+    input: "蓝思科技走势怎么样",
+    expectedIntent: "ANALYZE_STOCK",
+    expectedModel: "grok",
+  },
+  {
+    input: "应该止损还是持有",
+    expectedIntent: "TRADING_DECISION",
+    expectedModel: "grok",
+  },
   { input: "现在多少钱", expectedIntent: "GET_QUOTE", expectedModel: "qwen" },
   { input: "你好", expectedIntent: "GREETING", expectedModel: "direct" },
   { input: "今天几号", expectedIntent: "GET_TIME", expectedModel: "direct" },
@@ -712,7 +728,7 @@ export const MODEL_CONFIG = {
     max_tokens: 4096,
     top_p: 0.95,
   },
-  
+
   // DeepSeek V3 - 备用
   deepseek: {
     model: "deepseek-ai/DeepSeek-V3",
@@ -720,7 +736,7 @@ export const MODEL_CONFIG = {
     max_tokens: 4096,
     top_p: 0.9,
   },
-  
+
   // Qwen Worker - 数据获取
   qwenWorker: {
     model: "Qwen/Qwen3-32B",
@@ -728,7 +744,7 @@ export const MODEL_CONFIG = {
     max_tokens: 2048,
     top_p: 0.9,
   },
-  
+
   // Qwen Classifier - 意图分类
   qwenClassifier: {
     model: "Qwen/Qwen2.5-32B-Instruct",

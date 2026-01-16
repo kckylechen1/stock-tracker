@@ -67,19 +67,8 @@
   "profile": {
     "risk_tolerance": "medium",
     "holding_period": "short",
-    "preferred_indicators": [
-      "MACD",
-      "RSI",
-      "资金流向"
-    ],
-    "avoid_patterns": [
-      "RSI<30时清仓",
-      "追高买入"
-    ],
-    "success_patterns": [
-      "分批减仓",
-      "设置trailing stop",
-      "资金票看资金不看PE"
-    ]
+    "preferred_indicators": ["MACD", "RSI", "资金流向"],
+    "avoid_patterns": ["RSI<30时清仓", "追高买入"],
+    "success_patterns": ["分批减仓", "设置trailing stop", "资金票看资金不看PE"]
   }
 }

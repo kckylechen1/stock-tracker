@@ -10,32 +10,39 @@ description: 2026-01-11 工作日总结 - SmartAgent 新架构切换
 
 创建了 `server/ai/test_old_vs_new_agent.ts` 对比脚本，测试结果：
 
-| 指标 | 旧架构 (grokAgent) | 新架构 (SmartAgent) |
-|------|-------------------|---------------------|
-| 成功率 | 100% | 100% |  
-| 平均耗时 | **10.29s** | 13.60s |
-| 平均输出长度 | 141 字符 | **299 字符** |
+| 指标         | 旧架构 (grokAgent) | 新架构 (SmartAgent) |
+| ------------ | ------------------ | ------------------- |
+| 成功率       | 100%               | 100%                |
+| 平均耗时     | **10.29s**         | 13.60s              |
+| 平均输出长度 | 141 字符           | **299 字符**        |
 
 **结论**: 新架构输出更详细 (+111%)，速度略慢 32%
 
 ### 2. 切换到 SmartAgent 新架构
 
 修改的文件：
+
 - `server/_core/index.ts` - 切换 API 端点使用 `hybridStreamChat`
 - `server/_core/smartStreamChat.ts` - 新建流式聊天入口
 
 ### 3. API 接口变化
 
 **请求体参数变化**:
+
 ```typescript
 // 旧参数
-{ messages, stockCode, stockContext, useThinking, useGrok }
+{
+  (messages, stockCode, stockContext, useThinking, useGrok);
+}
 
-// 新参数  
-{ messages, stockCode, stockContext, useSmartAgent, sessionId }
+// 新参数
+{
+  (messages, stockCode, stockContext, useSmartAgent, sessionId);
+}
 ```
 
 **切换架构方式**:
+
 - `useSmartAgent: true` (默认) - 使用新架构 SmartAgent
 - `useSmartAgent: false` - 使用旧架构 streamChat
 
@@ -49,10 +56,10 @@ description: 2026-01-11 工作日总结 - SmartAgent 新架构切换
 
 ## 📁 新增文件
 
-| 文件 | 说明 |
-|------|------|
-| `server/_core/smartStreamChat.ts` | SmartAgent 流式聊天入口 |
-| `server/ai/test_old_vs_new_agent.ts` | 新旧架构对比测试脚本 |
+| 文件                                 | 说明                    |
+| ------------------------------------ | ----------------------- |
+| `server/_core/smartStreamChat.ts`    | SmartAgent 流式聊天入口 |
+| `server/ai/test_old_vs_new_agent.ts` | 新旧架构对比测试脚本    |
 
 ## 🔧 后续优化
 

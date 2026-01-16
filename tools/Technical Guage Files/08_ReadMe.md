@@ -5,18 +5,22 @@
 你现在拥有的5个**生产级质量的MD设计文档**：
 
 ### 1️⃣ `00_Project_Overview.md` ✅
+
 **内容**：系统全景、项目结构、核心功能
 **用途**：第一次理解整个系统，对接前端和大模型时的"共同语言"
 **阅读顺序**：**最先读这个**
 
 ### 2️⃣ `01_API_Specification.md` ✅
+
 **内容**：所有7个HTTP接口的完整定义（请求/响应/参数/示例）
 **用途**：
+
 - 前端开发者：直接按这个API spec开发
 - LLM：生成routes.py代码的参考
 - 测试：准备测试用例
 
 **关键接口**：
+
 - `GET /api/gauge/daily` - 日线评分
 - `GET /api/gauge/weekly` - 周线评分
 - `GET /api/gauge/compare` - 日周对比
@@ -25,21 +29,26 @@
 - `POST /api/gauge/batch` - 批量查询
 
 ### 3️⃣ `04_Gauge_Scoring.md` ✅
+
 **内容**：Gauge核心算法的完整推导（四维度、K调整、信号映射）
 **用途**：
+
 - 理解为什么这样设计权重
 - LLM生成gauge/daily.py、gauge/weekly.py的参考
 - 调试时理解每个维度的含义
 
 **关键公式**：
+
 ```
 Score = 0.25*S_trend*K1 + 0.25*S_momentum*K2 + 0.20*S_volatility + 0.30*S_volume*K3
 ```
 
 ### 4️⃣ `07_LLM_Prompt.md` ✅（核心文件）
+
 **内容**：完整的系统架构 + 7个模块的实现指南 + 关键代码框架
 **用途**：**直接发给你的LLM来生成所有代码**
 **包含**：
+
 - 7个Python模块的接口定义
 - 实现流程建议（分5步）
 - 关键实现细节（异步、错误处理、缓存、数据验证）
@@ -51,6 +60,7 @@ Score = 0.25*S_trend*K1 + 0.25*S_momentum*K2 + 0.20*S_volatility + 0.30*S_volume
 ## 🎯 使用流程
 
 ### 步骤1：理解系统（阅读文档）
+
 ```
 1. 先读 00_Project_Overview.md （5分钟）
 2. 再读 01_API_Specification.md （10分钟）
@@ -58,6 +68,7 @@ Score = 0.25*S_trend*K1 + 0.25*S_momentum*K2 + 0.20*S_volatility + 0.30*S_volume
 ```
 
 ### 步骤2：将文档发给你的LLM
+
 **完整提示词**（复制粘贴给你的LLM）：
 
 ```
@@ -83,7 +94,9 @@ Score = 0.25*S_trend*K1 + 0.25*S_momentum*K2 + 0.20*S_volatility + 0.30*S_volume
 ```
 
 ### 步骤3：LLM生成代码
+
 你的LLM会生成：
+
 - `config.py` - 配置管理
 - `data/akshare_client.py` - 数据获取
 - `indicators/calculator.py` - 指标计算
@@ -97,6 +110,7 @@ Score = 0.25*S_trend*K1 + 0.25*S_momentum*K2 + 0.20*S_volatility + 0.30*S_volume
 - `.env.example` - 环境变量模板
 
 ### 步骤4：本地测试
+
 ```bash
 # 1. 创建项目目录
 mkdir ashare-gauge-http
@@ -128,6 +142,7 @@ curl "http://localhost:6888/api/gauge/daily?code=600519&date=20260108"
 ```
 
 ### 步骤5：集成到前端/大模型
+
 ```python
 # 前端调用示例（JavaScript）
 const response = await fetch(
@@ -176,23 +191,27 @@ print(f"当前{current_signal['name']}的信号是{current_signal['signal']}")
 LLM生成的代码应该满足以下条件。你可以用这个清单验证：
 
 ### 功能完整性
+
 - [ ] 所有7个模块都存在
 - [ ] 所有HTTP接口都有对应的route
 - [ ] 四维度评分逻辑都正确实现
 - [ ] 相关性调整因子(K1/K2/K3)正确计算
 
 ### 代码质量
+
 - [ ] 所有函数都有类型提示 (-> ReturnType)
 - [ ] 所有异常都被正确捕获和处理
 - [ ] 有完整的日志记录（logger.info/error/debug）
 - [ ] 第三方API调用都有重试机制
 
 ### API规范
+
 - [ ] 所有响应都遵循 `{code, message, data, timestamp}` 格式
 - [ ] 所有参数验证都符合 `01_API_Specification.md`
 - [ ] HTTP状态码正确（200/400/404/500）
 
 ### 测试覆盖
+
 - [ ] 可以正常启动服务（`uvicorn src.main:app --reload`）
 - [ ] Swagger UI在 http://localhost:6888/docs 正常显示
 - [ ] 至少能调用 `/api/gauge/daily` 一次成功
@@ -271,4 +290,3 @@ curl "http://localhost:6888/api/gauge/daily?code=600519&date=20260108"
 ---
 
 **现在，你拥有了完整的"设计文档库"。可以直接把这些文档发给你的LLM来生成生产级代码！** 🚀
-

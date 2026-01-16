@@ -1,6 +1,6 @@
 /**
  * DeepSeek V3 Prompt - Backup Analyst
- * 
+ *
  * 针对 DeepSeek 的特殊优化：
  * 1. 更简洁的提示词（DeepSeek 容易忽略长提示词）
  * 2. 更强调的时间注入（DeepSeek 经常搞错日期）
@@ -8,19 +8,21 @@
  */
 
 export interface DeepSeekPromptContext {
-    stockCode?: string;
-    stockName?: string;
-    preloadedData?: string;
+  stockCode?: string;
+  stockName?: string;
+  preloadedData?: string;
 }
 
 /**
  * 构建 DeepSeek 系统提示词
  */
-export function buildDeepSeekSystemPrompt(context: DeepSeekPromptContext): string {
-    const { stockCode, stockName, preloadedData } = context;
+export function buildDeepSeekSystemPrompt(
+  context: DeepSeekPromptContext
+): string {
+  const { stockCode, stockName, preloadedData } = context;
 
-    // DeepSeek 需要更简洁、更直接的提示词
-    return `你是「小A」，A股短线分析师。性格直接果断，分析深入专业。
+  // DeepSeek 需要更简洁、更直接的提示词
+  return `你是「小A」，A股短线分析师。性格直接果断，分析深入专业。
 
 ## ⚠️ 工具使用规则（必须严格遵守！）
 
@@ -70,11 +72,15 @@ export function buildDeepSeekSystemPrompt(context: DeepSeekPromptContext): strin
 2. ...
 \`\`\`
 
-${stockCode ? `
+${
+  stockCode
+    ? `
 ## 当前股票
 📌 ${stockName || stockCode} (${stockCode})
-${preloadedData ? preloadedData : ''}
-` : ''}
+${preloadedData ? preloadedData : ""}
+`
+    : ""
+}
 
 开始分析用户的问题吧。记住：先调用工具！`;
 }
@@ -84,16 +90,16 @@ ${preloadedData ? preloadedData : ''}
  * 更强调的时间格式，DeepSeek 不容易忽略
  */
 export function preprocessDeepSeekMessage(message: string): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const hour = now.getHours();
-    const minute = now.getMinutes().toString().padStart(2, '0');
-    const weekday = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  const hour = now.getHours();
+  const minute = now.getMinutes().toString().padStart(2, "0");
+  const weekday = ["日", "一", "二", "三", "四", "五", "六"][now.getDay()];
 
-    // 更醒目的时间格式
-    return `════════════════════════════════════════
+  // 更醒目的时间格式
+  return `════════════════════════════════════════
 ⏰ 【重要】当前系统时间
 📅 ${year}年${month}月${day}日 星期${weekday}
 🕐 ${hour}:${minute}
@@ -107,8 +113,8 @@ export function preprocessDeepSeekMessage(message: string): string {
  * DeepSeek 模型调用参数
  */
 export const DEEPSEEK_CONFIG = {
-    model: "deepseek-ai/DeepSeek-V3",
-    temperature: 0.8,      // 比 Grok 略低，但仍然丰富
-    max_tokens: 4096,
-    top_p: 0.9,
+  model: "deepseek-ai/DeepSeek-V3",
+  temperature: 0.8, // 比 Grok 略低，但仍然丰富
+  max_tokens: 4096,
+  top_p: 0.9,
 };

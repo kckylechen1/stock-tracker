@@ -1,6 +1,6 @@
 /**
  * AnalysisAgent - 技术分析专用 Agent
- * 
+ *
  * 擅长：
  * - 技术面分析（均线、MACD、RSI、KDJ）
  * - 资金面分析（主力流向、散户流向）
@@ -8,9 +8,9 @@
  * - 买卖点判断
  */
 
-import { BaseAgent } from '../base-agent';
-import { executeStockTool, stockTools } from '../../stockTools';
-import type { ToolDefinition } from '../types';
+import { BaseAgent } from "../base-agent";
+import { executeStockTool, stockTools } from "../../stockTools";
+import type { ToolDefinition } from "../types";
 
 const ANALYSIS_SYSTEM_PROMPT = `你是一位资深 A 股投资顾问，像朋友一样和用户聊天。
 
@@ -95,7 +95,7 @@ const ANALYSIS_SYSTEM_PROMPT = `你是一位资深 A 股投资顾问，像朋友
 ❌ 错误做法："得到错误 fetch failed..."
 
 ## 时间感知
-今天是：${new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+今天是：${new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}
 `;
 
 const ANALYSIS_SYSTEM_PROMPT_DETAILED = `你是一位资深 A 股投资顾问，像朋友一样和用户聊天。
@@ -166,52 +166,54 @@ const ANALYSIS_SYSTEM_PROMPT_DETAILED = `你是一位资深 A 股投资顾问，
 `;
 
 const ANALYSIS_TOOLS: ToolDefinition[] = stockTools.filter(t =>
-    [
-        'get_stock_quote',
-        'get_kline_data',
-        'get_fund_flow',
-        'get_fund_flow_history',
-        'analyze_stock_technical',
-        'analyze_minute_patterns',
-        'get_market_fund_flow',
-        'get_current_datetime',
-        'search_stock',
-        'get_market_status',
-        'get_guba_hot_rank',
-        'get_zt_pool',
-        'get_longhu_bang',
-        'get_concept_board',
-        'get_industry_board',
+  [
+    "get_stock_quote",
+    "get_kline_data",
+    "get_fund_flow",
+    "get_fund_flow_history",
+    "analyze_stock_technical",
+    "analyze_minute_patterns",
+    "get_market_fund_flow",
+    "get_current_datetime",
+    "search_stock",
+    "get_market_status",
+    "get_guba_hot_rank",
+    "get_zt_pool",
+    "get_longhu_bang",
+    "get_concept_board",
+    "get_industry_board",
 
-        'comprehensive_analysis',
-        'get_trading_memory',
-    ].includes(t.function.name)
+    "comprehensive_analysis",
+    "get_trading_memory",
+  ].includes(t.function.name)
 ) as ToolDefinition[];
 
 export class AnalysisAgent extends BaseAgent {
-    constructor(detailMode: boolean = false) {
-        const systemPrompt = detailMode ? ANALYSIS_SYSTEM_PROMPT_DETAILED : ANALYSIS_SYSTEM_PROMPT;
+  constructor(detailMode: boolean = false) {
+    const systemPrompt = detailMode
+      ? ANALYSIS_SYSTEM_PROMPT_DETAILED
+      : ANALYSIS_SYSTEM_PROMPT;
 
-        super({
-            name: 'AnalysisAgent',
-            description: '技术分析专家',
-            systemPrompt: systemPrompt,
-            tools: ANALYSIS_TOOLS,
-            maxIterations: detailMode ? 10 : 8, // 详细模式允许更多迭代
-            temperature: 0.5,
-            parallelToolCalls: true,
-        });
+    super({
+      name: "AnalysisAgent",
+      description: "技术分析专家",
+      systemPrompt: systemPrompt,
+      tools: ANALYSIS_TOOLS,
+      maxIterations: detailMode ? 10 : 8, // 详细模式允许更多迭代
+      temperature: 0.5,
+      parallelToolCalls: true,
+    });
 
-        this.registerAnalysisTools();
+    this.registerAnalysisTools();
+  }
+
+  private registerAnalysisTools(): void {
+    const toolNames = ANALYSIS_TOOLS.map(t => t.function.name);
+
+    for (const name of toolNames) {
+      this.registerTool(name, async args => {
+        return executeStockTool(name, args);
+      });
     }
-
-    private registerAnalysisTools(): void {
-        const toolNames = ANALYSIS_TOOLS.map(t => t.function.name);
-
-        for (const name of toolNames) {
-            this.registerTool(name, async (args) => {
-                return executeStockTool(name, args);
-            });
-        }
-    }
+  }
 }

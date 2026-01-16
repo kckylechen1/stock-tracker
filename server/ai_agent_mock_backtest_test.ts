@@ -3,22 +3,22 @@
  * 不调用真实LLM API，使用模拟数据测试框架
  */
 
-import * as fs from 'fs';
+import * as fs from "fs";
 
 // 测试配置
 const TEST_CONFIG = {
   randomSeed: 20240915,
-  testDate: '2025-09-15',
+  testDate: "2025-09-15",
   backtestDays: 60,
   accuracyThreshold: 10,
   concurrency: 3,
   successRateThreshold: 80,
-  outputFile: './ai_agent_test_results_20240915_mock.md'
+  outputFile: "./ai_agent_test_results_20240915_mock.md",
 };
 
 // Mock AI Agent响应
 function mockAIAnalysis(stockCode: string): {
-  recommendation: '买入' | '持有' | '卖出';
+  recommendation: "买入" | "持有" | "卖出";
   confidence: number;
   reasoning: string;
   executionTime: number;
@@ -26,39 +26,49 @@ function mockAIAnalysis(stockCode: string): {
   iterations: number;
 } {
   // 基于股票代码生成伪随机但一致的结果
-  const seed = stockCode.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const seed = stockCode
+    .split("")
+    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
   const random = seededRandom(seed);
 
-  const recommendations: ('买入' | '持有' | '卖出')[] = ['买入', '持有', '卖出'];
-  const recommendation = recommendations[Math.floor(random() * recommendations.length)];
+  const recommendations: ("买入" | "持有" | "卖出")[] = [
+    "买入",
+    "持有",
+    "卖出",
+  ];
+  const recommendation =
+    recommendations[Math.floor(random() * recommendations.length)];
 
   const confidence = Math.floor(random() * 40) + 30; // 30-70
   const executionTime = Math.floor(random() * 5000) + 3000; // 3-8秒
 
-  const toolCalls = ['get_stock_quote', 'analyze_stock_technical'];
-  if (random() > 0.5) toolCalls.push('get_fund_flow');
+  const toolCalls = ["get_stock_quote", "analyze_stock_technical"];
+  if (random() > 0.5) toolCalls.push("get_fund_flow");
 
   const iterations = Math.floor(random() * 3) + 2; // 2-4次迭代
 
   const reasoningTemplates = {
-    '买入': [
-      '技术面回暖，突破20日均线，资金流入明显',
-      'MACD金叉形成，RSI进入强势区间',
-      '均线多头排列，成交量放大配合'
+    买入: [
+      "技术面回暖，突破20日均线，资金流入明显",
+      "MACD金叉形成，RSI进入强势区间",
+      "均线多头排列，成交量放大配合",
     ],
-    '持有': [
-      '技术指标中性，震荡整理格局',
-      '均线支撑稳固，等待更好时机',
-      '资金关注度一般，观望为主'
+    持有: [
+      "技术指标中性，震荡整理格局",
+      "均线支撑稳固，等待更好时机",
+      "资金关注度一般，观望为主",
     ],
-    '卖出': [
-      '技术面转弱，跌破重要支撑位',
-      'MACD死叉，RSI进入超卖区间',
-      '均线空头排列，资金流出明显'
-    ]
+    卖出: [
+      "技术面转弱，跌破重要支撑位",
+      "MACD死叉，RSI进入超卖区间",
+      "均线空头排列，资金流出明显",
+    ],
   };
 
-  const reasoning = reasoningTemplates[recommendation][Math.floor(random() * reasoningTemplates[recommendation].length)];
+  const reasoning =
+    reasoningTemplates[recommendation][
+      Math.floor(random() * reasoningTemplates[recommendation].length)
+    ];
 
   return {
     recommendation,
@@ -66,7 +76,7 @@ function mockAIAnalysis(stockCode: string): {
     reasoning,
     executionTime,
     toolCalls,
-    iterations
+    iterations,
   };
 }
 
@@ -84,7 +94,7 @@ const STOCK_POOLS = {
   shanghai: { range: [600000, 699999], count: 40 },
   shenzhen: { range: [0, 199999], count: 35 },
   chuangye: { range: [300000, 399999], count: 15 },
-  kechuang: { range: [688000, 689999], count: 10 }
+  kechuang: { range: [688000, 689999], count: 10 },
 };
 
 // 生成随机股票列表
@@ -96,8 +106,10 @@ function generateSeededStockList(seed: number): string[] {
     const usedCodes = new Set<number>();
 
     while (stocks.length < config.count) {
-      const randomCode = Math.floor(random() * (config.range[1] - config.range[0] + 1)) + config.range[0];
-      const stockCode = randomCode.toString().padStart(6, '0');
+      const randomCode =
+        Math.floor(random() * (config.range[1] - config.range[0] + 1)) +
+        config.range[0];
+      const stockCode = randomCode.toString().padStart(6, "0");
 
       if (!usedCodes.has(randomCode)) {
         stocks.push(stockCode);
@@ -110,7 +122,10 @@ function generateSeededStockList(seed: number): string[] {
 }
 
 // Mock回测验证
-function mockBacktest(recommendation: '买入' | '持有' | '卖出', stockCode: string): {
+function mockBacktest(
+  recommendation: "买入" | "持有" | "卖出",
+  stockCode: string
+): {
   totalReturn: number;
   maxGain: number;
   maxLoss: number;
@@ -118,7 +133,9 @@ function mockBacktest(recommendation: '买入' | '持有' | '卖出', stockCode:
   valid: boolean;
 } {
   // 基于股票代码生成一致的模拟收益
-  const seed = stockCode.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const seed = stockCode
+    .split("")
+    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
   const random = seededRandom(seed);
 
   // 生成模拟的3个月收益 (-30% 到 +50%)
@@ -128,13 +145,22 @@ function mockBacktest(recommendation: '买入' | '持有' | '卖出', stockCode:
 
   // 计算准确性
   let accuracy = 0;
-  if (recommendation === '买入') {
-    accuracy = totalReturn > TEST_CONFIG.accuracyThreshold ? 100 :
-              totalReturn > -TEST_CONFIG.accuracyThreshold ? 50 : 0;
-  } else if (recommendation === '卖出') {
-    accuracy = totalReturn < -TEST_CONFIG.accuracyThreshold ? 100 :
-              totalReturn < TEST_CONFIG.accuracyThreshold ? 50 : 0;
-  } else { // 持有
+  if (recommendation === "买入") {
+    accuracy =
+      totalReturn > TEST_CONFIG.accuracyThreshold
+        ? 100
+        : totalReturn > -TEST_CONFIG.accuracyThreshold
+          ? 50
+          : 0;
+  } else if (recommendation === "卖出") {
+    accuracy =
+      totalReturn < -TEST_CONFIG.accuracyThreshold
+        ? 100
+        : totalReturn < TEST_CONFIG.accuracyThreshold
+          ? 50
+          : 0;
+  } else {
+    // 持有
     const volatility = Math.abs(maxGain) + Math.abs(maxLoss);
     accuracy = volatility < 40 ? 100 : volatility < 80 ? 50 : 0;
   }
@@ -144,18 +170,18 @@ function mockBacktest(recommendation: '买入' | '持有' | '卖出', stockCode:
     maxGain,
     maxLoss,
     accuracy,
-    valid: true
+    valid: true,
   };
 }
 
 // 测试结果接口
 interface TestResult {
   stockCode: string;
-  model: 'grok' | 'glm';
+  model: "grok" | "glm";
   success: boolean;
   executionTime: number;
   recommendation?: {
-    type: '买入' | '持有' | '卖出';
+    type: "买入" | "持有" | "卖出";
     confidence: number;
     reasoning: string;
   };
@@ -172,7 +198,10 @@ interface TestResult {
 }
 
 // Mock单股票测试
-async function mockTestSingleStock(stockCode: string, model: 'grok' | 'glm'): Promise<TestResult> {
+async function mockTestSingleStock(
+  stockCode: string,
+  model: "grok" | "glm"
+): Promise<TestResult> {
   // 模拟网络延迟
   await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
 
@@ -186,7 +215,7 @@ async function mockTestSingleStock(stockCode: string, model: 'grok' | 'glm'): Pr
         model,
         success: false,
         executionTime: Math.floor(Math.random() * 2000) + 1000,
-        error: '模拟API调用失败'
+        error: "模拟API调用失败",
       };
     }
 
@@ -201,37 +230,43 @@ async function mockTestSingleStock(stockCode: string, model: 'grok' | 'glm'): Pr
       recommendation: {
         type: mockResult.recommendation,
         confidence: mockResult.confidence,
-        reasoning: mockResult.reasoning
+        reasoning: mockResult.reasoning,
       },
       backtestResult,
       toolCalls: mockResult.toolCalls,
-      iterations: mockResult.iterations
+      iterations: mockResult.iterations,
     };
-
   } catch (error) {
     return {
       stockCode,
       model,
       success: false,
       executionTime: Math.floor(Math.random() * 2000) + 1000,
-      error: error.message
+      error: error.message,
     };
   }
 }
 
 // 批量测试
-async function runMockBatchTest(stocks: string[], model: 'grok' | 'glm'): Promise<TestResult[]> {
+async function runMockBatchTest(
+  stocks: string[],
+  model: "grok" | "glm"
+): Promise<TestResult[]> {
   const results: TestResult[] = [];
   let successCount = 0;
 
-  console.log(`\n🤖 开始${model.toUpperCase()}模型Mock测试 (${stocks.length}只股票)`);
+  console.log(
+    `\n🤖 开始${model.toUpperCase()}模型Mock测试 (${stocks.length}只股票)`
+  );
 
   for (let i = 0; i < stocks.length; i += TEST_CONFIG.concurrency) {
     const batch = stocks.slice(i, i + TEST_CONFIG.concurrency);
     const batchNum = Math.floor(i / TEST_CONFIG.concurrency) + 1;
     const totalBatches = Math.ceil(stocks.length / TEST_CONFIG.concurrency);
 
-    console.log(`📊 ${model.toUpperCase()} - 处理第 ${batchNum}/${totalBatches} 批 (${batch.length}只股票)`);
+    console.log(
+      `📊 ${model.toUpperCase()} - 处理第 ${batchNum}/${totalBatches} 批 (${batch.length}只股票)`
+    );
 
     const batchPromises = batch.map(stock => mockTestSingleStock(stock, model));
     const batchResults = await Promise.all(batchPromises);
@@ -243,10 +278,13 @@ async function runMockBatchTest(stocks: string[], model: 'grok' | 'glm'): Promis
     console.log(`   ✅ 本批成功: ${batchSuccess}/${batch.length}`);
 
     // 检查成功率阈值
-    const currentSuccessRate = (successCount / (i + TEST_CONFIG.concurrency)) * 100;
+    const currentSuccessRate =
+      (successCount / (i + TEST_CONFIG.concurrency)) * 100;
     if (currentSuccessRate < TEST_CONFIG.successRateThreshold) {
-      console.log(`⚠️ 警告: 当前成功率 ${currentSuccessRate.toFixed(1)}% 低于阈值 ${TEST_CONFIG.successRateThreshold}%`);
-      console.log('🛑 测试暂停，请检查问题后继续');
+      console.log(
+        `⚠️ 警告: 当前成功率 ${currentSuccessRate.toFixed(1)}% 低于阈值 ${TEST_CONFIG.successRateThreshold}%`
+      );
+      console.log("🛑 测试暂停，请检查问题后继续");
       return results; // 返回已完成的结果
     }
 
@@ -268,21 +306,34 @@ function calculateStats(results: TestResult[]) {
     totalCount: results.length,
     successCount: successful.length,
     successRate: (successful.length / results.length) * 100,
-    avgExecutionTime: successful.reduce((sum, r) => sum + r.executionTime, 0) / successful.length,
-    avgToolCalls: successful.reduce((sum, r) => sum + (r.toolCalls?.length || 0), 0) / successful.length,
-    avgIterations: successful.reduce((sum, r) => sum + (r.iterations || 0), 0) / successful.length,
-    accuracy: withBacktest.reduce((sum, r) => sum + (r.backtestResult?.accuracy || 0), 0) / withBacktest.length,
-    buyAccuracy: calculateRecommendationAccuracy(withBacktest, '买入'),
-    sellAccuracy: calculateRecommendationAccuracy(withBacktest, '卖出'),
-    holdAccuracy: calculateRecommendationAccuracy(withBacktest, '持有'),
-    marketAccuracy: calculateMarketAccuracy(withBacktest)
+    avgExecutionTime:
+      successful.reduce((sum, r) => sum + r.executionTime, 0) /
+      successful.length,
+    avgToolCalls:
+      successful.reduce((sum, r) => sum + (r.toolCalls?.length || 0), 0) /
+      successful.length,
+    avgIterations:
+      successful.reduce((sum, r) => sum + (r.iterations || 0), 0) /
+      successful.length,
+    accuracy:
+      withBacktest.reduce(
+        (sum, r) => sum + (r.backtestResult?.accuracy || 0),
+        0
+      ) / withBacktest.length,
+    buyAccuracy: calculateRecommendationAccuracy(withBacktest, "买入"),
+    sellAccuracy: calculateRecommendationAccuracy(withBacktest, "卖出"),
+    holdAccuracy: calculateRecommendationAccuracy(withBacktest, "持有"),
+    marketAccuracy: calculateMarketAccuracy(withBacktest),
   };
 }
 
 function calculateRecommendationAccuracy(results: TestResult[], type: string) {
   const filtered = results.filter(r => r.recommendation?.type === type);
   if (filtered.length === 0) return 0;
-  return filtered.reduce((sum, r) => sum + (r.backtestResult?.accuracy || 0), 0) / filtered.length;
+  return (
+    filtered.reduce((sum, r) => sum + (r.backtestResult?.accuracy || 0), 0) /
+    filtered.length
+  );
 }
 
 function calculateMarketAccuracy(results: TestResult[]) {
@@ -290,37 +341,61 @@ function calculateMarketAccuracy(results: TestResult[]) {
 
   results.forEach(result => {
     const code = result.stockCode;
-    if (code.startsWith('6')) markets.shanghai.push(result);
-    else if (code.startsWith('0')) markets.shenzhen.push(result);
-    else if (code.startsWith('3')) markets.chuangye.push(result);
-    else if (code.startsWith('688')) markets.kechuang.push(result);
+    if (code.startsWith("6")) markets.shanghai.push(result);
+    else if (code.startsWith("0")) markets.shenzhen.push(result);
+    else if (code.startsWith("3")) markets.chuangye.push(result);
+    else if (code.startsWith("688")) markets.kechuang.push(result);
   });
 
   return {
-    shanghai: markets.shanghai.length > 0 ?
-      markets.shanghai.reduce((sum, r) => sum + (r.backtestResult?.accuracy || 0), 0) / markets.shanghai.length : 0,
-    shenzhen: markets.shenzhen.length > 0 ?
-      markets.shenzhen.reduce((sum, r) => sum + (r.backtestResult?.accuracy || 0), 0) / markets.shenzhen.length : 0,
-    chuangye: markets.chuangye.length > 0 ?
-      markets.chuangye.reduce((sum, r) => sum + (r.backtestResult?.accuracy || 0), 0) / markets.chuangye.length : 0,
-    kechuang: markets.kechuang.length > 0 ?
-      markets.kechuang.reduce((sum, r) => sum + (r.backtestResult?.accuracy || 0), 0) / markets.kechuang.length : 0
+    shanghai:
+      markets.shanghai.length > 0
+        ? markets.shanghai.reduce(
+            (sum, r) => sum + (r.backtestResult?.accuracy || 0),
+            0
+          ) / markets.shanghai.length
+        : 0,
+    shenzhen:
+      markets.shenzhen.length > 0
+        ? markets.shenzhen.reduce(
+            (sum, r) => sum + (r.backtestResult?.accuracy || 0),
+            0
+          ) / markets.shenzhen.length
+        : 0,
+    chuangye:
+      markets.chuangye.length > 0
+        ? markets.chuangye.reduce(
+            (sum, r) => sum + (r.backtestResult?.accuracy || 0),
+            0
+          ) / markets.chuangye.length
+        : 0,
+    kechuang:
+      markets.kechuang.length > 0
+        ? markets.kechuang.reduce(
+            (sum, r) => sum + (r.backtestResult?.accuracy || 0),
+            0
+          ) / markets.kechuang.length
+        : 0,
   };
 }
 
 function compareModels(grokStats: any, glmStats: any) {
   return {
-    winner: grokStats.successRate > glmStats.successRate ? 'Grok' : 'GLM',
+    winner: grokStats.successRate > glmStats.successRate ? "Grok" : "GLM",
     successRateDiff: grokStats.successRate - glmStats.successRate,
-    speedWinner: grokStats.avgExecutionTime < glmStats.avgExecutionTime ? 'Grok' : 'GLM',
+    speedWinner:
+      grokStats.avgExecutionTime < glmStats.avgExecutionTime ? "Grok" : "GLM",
     speedDiff: grokStats.avgExecutionTime - glmStats.avgExecutionTime,
-    accuracyWinner: grokStats.accuracy > glmStats.accuracy ? 'Grok' : 'GLM',
-    accuracyDiff: grokStats.accuracy - glmStats.accuracy
+    accuracyWinner: grokStats.accuracy > glmStats.accuracy ? "Grok" : "GLM",
+    accuracyDiff: grokStats.accuracy - glmStats.accuracy,
   };
 }
 
 // 生成测试报告
-function generateMockTestReport(grokResults: TestResult[], glmResults: TestResult[]): string {
+function generateMockTestReport(
+  grokResults: TestResult[],
+  glmResults: TestResult[]
+): string {
   const grokStats = calculateStats(grokResults);
   const glmStats = calculateStats(glmResults);
   const comparison = compareModels(grokStats, glmStats);
@@ -350,7 +425,7 @@ function generateMockTestReport(grokResults: TestResult[], glmResults: TestResul
 - 🧠 **平均推理迭代**: ${glmStats.avgIterations.toFixed(1)}次/股票
 
 ### 模型对比
-- 🏆 **胜者**: ${comparison.winner} (成功率${comparison.successRateDiff > 0 ? '+' : ''}${comparison.successRateDiff.toFixed(1)}%)
+- 🏆 **胜者**: ${comparison.winner} (成功率${comparison.successRateDiff > 0 ? "+" : ""}${comparison.successRateDiff.toFixed(1)}%)
 - ⚡ **速度**: ${comparison.speedWinner}快${Math.abs(comparison.speedDiff).toFixed(1)}秒
 - 🎯 **准确性**: ${comparison.accuracyWinner}高${Math.abs(comparison.accuracyDiff).toFixed(1)}%
 
@@ -389,10 +464,10 @@ function generateMockTestReport(grokResults: TestResult[], glmResults: TestResul
 ## 详细结果示例
 
 ### 成功预测案例
-${generateDetailedExamples(grokResults, 'success').slice(0, 300)}...
+${generateDetailedExamples(grokResults, "success").slice(0, 300)}...
 
 ### 预测偏差案例
-${generateDetailedExamples(grokResults, 'fail').slice(0, 300)}...
+${generateDetailedExamples(grokResults, "fail").slice(0, 300)}...
 
 ## 错误模式分析
 - **测试失败**: ${grokResults.filter(r => !r.success).length + glmResults.filter(r => !r.success).length}只股票
@@ -441,13 +516,21 @@ ${generateDetailedExamples(grokResults, 'fail').slice(0, 300)}...
   return report;
 }
 
-function generateDetailedExamples(results: TestResult[], type: 'success' | 'fail'): string {
-  let content = '';
+function generateDetailedExamples(
+  results: TestResult[],
+  type: "success" | "fail"
+): string {
+  let content = "";
 
-  if (type === 'success') {
-    const successExamples = results.filter(r =>
-      r.success && r.backtestResult?.valid && r.backtestResult.accuracy >= 80
-    ).slice(0, 2);
+  if (type === "success") {
+    const successExamples = results
+      .filter(
+        r =>
+          r.success &&
+          r.backtestResult?.valid &&
+          r.backtestResult.accuracy >= 80
+      )
+      .slice(0, 2);
 
     successExamples.forEach(result => {
       content += `**股票: ${result.stockCode}**\n`;
@@ -457,9 +540,12 @@ function generateDetailedExamples(results: TestResult[], type: 'success' | 'fail
       content += `- 准确性: ✅ 正确\n\n`;
     });
   } else {
-    const failExamples = results.filter(r =>
-      r.success && r.backtestResult?.valid && r.backtestResult.accuracy < 50
-    ).slice(0, 2);
+    const failExamples = results
+      .filter(
+        r =>
+          r.success && r.backtestResult?.valid && r.backtestResult.accuracy < 50
+      )
+      .slice(0, 2);
 
     failExamples.forEach(result => {
       content += `**股票: ${result.stockCode}**\n`;
@@ -475,62 +561,71 @@ function generateDetailedExamples(results: TestResult[], type: 'success' | 'fail
 
 // 主函数
 async function main() {
-  console.log('🚀 AI Agent技术分析Mock回测测试开始\n');
+  console.log("🚀 AI Agent技术分析Mock回测测试开始\n");
 
   try {
     // 1. 生成股票列表
-    console.log('📊 生成随机股票列表...');
+    console.log("📊 生成随机股票列表...");
     const testStocks = generateSeededStockList(TEST_CONFIG.randomSeed);
     console.log(`🎯 生成 ${testStocks.length} 只股票`);
 
     // Mock验证数据完整性 (模拟)
-    console.log('🔍 模拟验证股票数据完整性...');
+    console.log("🔍 模拟验证股票数据完整性...");
     const validStocks = testStocks; // Mock测试跳过实际验证
     console.log(`✅ 模拟验证完成: ${validStocks.length} 只股票`);
 
     // 2. Grok模型Mock测试
-    console.log('\n🤖 开始Grok模型Mock测试...');
-    const grokResults = await runMockBatchTest(validStocks, 'grok');
+    console.log("\n🤖 开始Grok模型Mock测试...");
+    const grokResults = await runMockBatchTest(validStocks, "grok");
 
     // 检查是否需要暂停
-    const grokSuccessRate = (grokResults.filter(r => r.success).length / grokResults.length) * 100;
+    const grokSuccessRate =
+      (grokResults.filter(r => r.success).length / grokResults.length) * 100;
     if (grokSuccessRate < TEST_CONFIG.successRateThreshold) {
-      console.log(`⚠️ Grok成功率 ${grokSuccessRate.toFixed(1)}% 低于阈值，测试暂停`);
+      console.log(
+        `⚠️ Grok成功率 ${grokSuccessRate.toFixed(1)}% 低于阈值，测试暂停`
+      );
       return;
     }
 
     // 3. GLM模型Mock测试
-    console.log('\n🧠 开始GLM模型Mock测试...');
-    const glmResults = await runMockBatchTest(validStocks, 'glm');
+    console.log("\n🧠 开始GLM模型Mock测试...");
+    const glmResults = await runMockBatchTest(validStocks, "glm");
 
     // 检查是否需要暂停
-    const glmSuccessRate = (glmResults.filter(r => r.success).length / glmResults.length) * 100;
+    const glmSuccessRate =
+      (glmResults.filter(r => r.success).length / glmResults.length) * 100;
     if (glmSuccessRate < TEST_CONFIG.successRateThreshold) {
-      console.log(`⚠️ GLM成功率 ${glmSuccessRate.toFixed(1)}% 低于阈值，测试暂停`);
+      console.log(
+        `⚠️ GLM成功率 ${glmSuccessRate.toFixed(1)}% 低于阈值，测试暂停`
+      );
       return;
     }
 
     // 4. 生成报告
-    console.log('\n📄 生成Mock测试报告...');
+    console.log("\n📄 生成Mock测试报告...");
     const report = generateMockTestReport(grokResults, glmResults);
 
     // 保存报告
-    await fs.promises.writeFile(TEST_CONFIG.outputFile, report, 'utf8');
+    await fs.promises.writeFile(TEST_CONFIG.outputFile, report, "utf8");
     console.log(`💾 Mock报告已保存: ${TEST_CONFIG.outputFile}`);
 
     // 5. 输出关键指标
     const grokStats = calculateStats(grokResults);
     const glmStats = calculateStats(glmResults);
 
-    console.log('\n🎯 Mock测试完成关键指标:');
-    console.log(`Grok - 成功率: ${grokStats.successRate.toFixed(1)}%, 准确率: ${grokStats.accuracy.toFixed(1)}%`);
-    console.log(`GLM  - 成功率: ${glmStats.successRate.toFixed(1)}%, 准确率: ${glmStats.accuracy.toFixed(1)}%`);
+    console.log("\n🎯 Mock测试完成关键指标:");
+    console.log(
+      `Grok - 成功率: ${grokStats.successRate.toFixed(1)}%, 准确率: ${grokStats.accuracy.toFixed(1)}%`
+    );
+    console.log(
+      `GLM  - 成功率: ${glmStats.successRate.toFixed(1)}%, 准确率: ${glmStats.accuracy.toFixed(1)}%`
+    );
 
-    console.log('\n✅ Mock测试完成！');
-    console.log('📋 下一步: 配置真实API keys后进行真实测试');
-
+    console.log("\n✅ Mock测试完成！");
+    console.log("📋 下一步: 配置真实API keys后进行真实测试");
   } catch (error) {
-    console.error('❌ 测试失败:', error);
+    console.error("❌ 测试失败:", error);
   }
 }
 

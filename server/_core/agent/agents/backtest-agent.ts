@@ -1,6 +1,6 @@
 /**
  * BacktestAgent - 回测专用 Agent
- * 
+ *
  * 擅长：
  * - 历史信号验证
  * - 策略回测
@@ -8,9 +8,9 @@
  * - 胜率计算
  */
 
-import { BaseAgent } from '../base-agent';
-import { executeStockTool, stockTools } from '../../stockTools';
-import type { ToolDefinition } from '../types';
+import { BaseAgent } from "../base-agent";
+import { executeStockTool, stockTools } from "../../stockTools";
+import type { ToolDefinition } from "../types";
 
 const BACKTEST_SYSTEM_PROMPT = `你是一个专业的量化回测分析师，擅长验证交易信号和策略的历史表现。
 
@@ -80,167 +80,180 @@ const BACKTEST_SYSTEM_PROMPT = `你是一个专业的量化回测分析师，擅
 `;
 
 const BACKTEST_TOOLS: ToolDefinition[] = [
-    ...stockTools.filter(t =>
-        [
-            'get_stock_quote',
-            'get_kline_data',
-            'get_fund_flow_history',
-            'analyze_stock_technical',
-            'get_current_datetime',
-            'search_stock',
-        ].includes(t.function.name)
-    ),
-    {
-        type: 'function',
-        function: {
-            name: 'run_signal_backtest',
-            description: '对指定股票运行信号回测，返回历史信号触发点和收益统计',
-            parameters: {
-                type: 'object',
-                properties: {
-                    code: {
-                        type: 'string',
-                        description: '股票代码',
-                    },
-                    signal_type: {
-                        type: 'string',
-                        enum: ['launch_day', 'macd_golden', 'rsi_oversold', 'volume_breakout'],
-                        description: '信号类型',
-                    },
-                    start_date: {
-                        type: 'string',
-                        description: '回测开始日期 YYYY-MM-DD',
-                    },
-                    end_date: {
-                        type: 'string',
-                        description: '回测结束日期 YYYY-MM-DD',
-                    },
-                    hold_days: {
-                        type: 'number',
-                        description: '持有天数，默认5天',
-                    },
-                },
-                required: ['code', 'signal_type'],
-            },
+  ...stockTools.filter(t =>
+    [
+      "get_stock_quote",
+      "get_kline_data",
+      "get_fund_flow_history",
+      "analyze_stock_technical",
+      "get_current_datetime",
+      "search_stock",
+    ].includes(t.function.name)
+  ),
+  {
+    type: "function",
+    function: {
+      name: "run_signal_backtest",
+      description: "对指定股票运行信号回测，返回历史信号触发点和收益统计",
+      parameters: {
+        type: "object",
+        properties: {
+          code: {
+            type: "string",
+            description: "股票代码",
+          },
+          signal_type: {
+            type: "string",
+            enum: [
+              "launch_day",
+              "macd_golden",
+              "rsi_oversold",
+              "volume_breakout",
+            ],
+            description: "信号类型",
+          },
+          start_date: {
+            type: "string",
+            description: "回测开始日期 YYYY-MM-DD",
+          },
+          end_date: {
+            type: "string",
+            description: "回测结束日期 YYYY-MM-DD",
+          },
+          hold_days: {
+            type: "number",
+            description: "持有天数，默认5天",
+          },
         },
+        required: ["code", "signal_type"],
+      },
     },
-    {
-        type: 'function',
-        function: {
-            name: 'batch_backtest',
-            description: '批量回测多只股票的信号表现',
-            parameters: {
-                type: 'object',
-                properties: {
-                    codes: {
-                        type: 'array',
-                        items: { type: 'string' },
-                        description: '股票代码列表',
-                    },
-                    signal_type: {
-                        type: 'string',
-                        enum: ['launch_day', 'macd_golden', 'rsi_oversold', 'volume_breakout'],
-                        description: '信号类型',
-                    },
-                },
-                required: ['codes', 'signal_type'],
-            },
+  },
+  {
+    type: "function",
+    function: {
+      name: "batch_backtest",
+      description: "批量回测多只股票的信号表现",
+      parameters: {
+        type: "object",
+        properties: {
+          codes: {
+            type: "array",
+            items: { type: "string" },
+            description: "股票代码列表",
+          },
+          signal_type: {
+            type: "string",
+            enum: [
+              "launch_day",
+              "macd_golden",
+              "rsi_oversold",
+              "volume_breakout",
+            ],
+            description: "信号类型",
+          },
         },
+        required: ["codes", "signal_type"],
+      },
     },
+  },
 ] as ToolDefinition[];
 
 export class BacktestAgent extends BaseAgent {
-    constructor() {
-        super({
-            name: 'BacktestAgent',
-            description: '回测分析专家',
-            systemPrompt: BACKTEST_SYSTEM_PROMPT,
-            tools: BACKTEST_TOOLS,
-            maxIterations: 15,
-            maxTokens: 8000,
-            temperature: 0.3,
-            parallelToolCalls: true,
-        });
+  constructor() {
+    super({
+      name: "BacktestAgent",
+      description: "回测分析专家",
+      systemPrompt: BACKTEST_SYSTEM_PROMPT,
+      tools: BACKTEST_TOOLS,
+      maxIterations: 15,
+      maxTokens: 8000,
+      temperature: 0.3,
+      parallelToolCalls: true,
+    });
 
-        this.registerBacktestTools();
+    this.registerBacktestTools();
+  }
+
+  private registerBacktestTools(): void {
+    const standardTools = [
+      "get_stock_quote",
+      "get_kline_data",
+      "get_fund_flow_history",
+      "analyze_stock_technical",
+      "get_current_datetime",
+      "search_stock",
+    ];
+
+    for (const name of standardTools) {
+      this.registerTool(name, async args => {
+        return executeStockTool(name, args);
+      });
     }
 
-    private registerBacktestTools(): void {
-        const standardTools = [
-            'get_stock_quote',
-            'get_kline_data',
-            'get_fund_flow_history',
-            'analyze_stock_technical',
-            'get_current_datetime',
-            'search_stock',
-        ];
+    this.registerTool(
+      "run_signal_backtest",
+      async (args: Record<string, any>) => {
+        return this.runSignalBacktest({
+          code: args.code as string,
+          signal_type: args.signal_type as string,
+          start_date: args.start_date,
+          end_date: args.end_date,
+          hold_days: args.hold_days,
+        });
+      }
+    );
 
-        for (const name of standardTools) {
-            this.registerTool(name, async (args) => {
-                return executeStockTool(name, args);
-            });
+    this.registerTool("batch_backtest", async (args: Record<string, any>) => {
+      return this.batchBacktest({
+        codes: args.codes as string[],
+        signal_type: args.signal_type as string,
+      });
+    });
+  }
+
+  private async runSignalBacktest(args: {
+    code: string;
+    signal_type: string;
+    start_date?: string;
+    end_date?: string;
+    hold_days?: number;
+  }): Promise<string> {
+    const { code, signal_type, hold_days = 5 } = args;
+
+    try {
+      const klineResult = await executeStockTool("get_kline_data", {
+        code,
+        period: "day",
+        limit: 120,
+      });
+
+      const signals: { date: string; gain: number }[] = [];
+      let totalGain = 0;
+      let wins = 0;
+
+      const lines = klineResult.split("\n");
+      for (let i = 0; i < lines.length - hold_days; i++) {
+        const line = lines[i];
+        if (line.includes("收") && Math.random() > 0.7) {
+          const gain = (Math.random() - 0.4) * 20;
+          signals.push({
+            date: `Day ${i}`,
+            gain: Math.round(gain * 100) / 100,
+          });
+          totalGain += gain;
+          if (gain > 0) wins++;
         }
+      }
 
-        this.registerTool('run_signal_backtest', async (args: Record<string, any>) => {
-            return this.runSignalBacktest({
-                code: args.code as string,
-                signal_type: args.signal_type as string,
-                start_date: args.start_date,
-                end_date: args.end_date,
-                hold_days: args.hold_days,
-            });
-        });
+      if (signals.length === 0) {
+        return `【${code} ${signal_type} 回测】\n未找到符合条件的信号`;
+      }
 
-        this.registerTool('batch_backtest', async (args: Record<string, any>) => {
-            return this.batchBacktest({
-                codes: args.codes as string[],
-                signal_type: args.signal_type as string,
-            });
-        });
-    }
+      const avgGain = totalGain / signals.length;
+      const winRate = ((wins / signals.length) * 100).toFixed(1);
 
-    private async runSignalBacktest(args: {
-        code: string;
-        signal_type: string;
-        start_date?: string;
-        end_date?: string;
-        hold_days?: number;
-    }): Promise<string> {
-        const { code, signal_type, hold_days = 5 } = args;
-
-        try {
-            const klineResult = await executeStockTool('get_kline_data', {
-                code,
-                period: 'day',
-                limit: 120,
-            });
-
-            const signals: { date: string; gain: number }[] = [];
-            let totalGain = 0;
-            let wins = 0;
-
-            const lines = klineResult.split('\n');
-            for (let i = 0; i < lines.length - hold_days; i++) {
-                const line = lines[i];
-                if (line.includes('收') && Math.random() > 0.7) {
-                    const gain = (Math.random() - 0.4) * 20;
-                    signals.push({
-                        date: `Day ${i}`,
-                        gain: Math.round(gain * 100) / 100,
-                    });
-                    totalGain += gain;
-                    if (gain > 0) wins++;
-                }
-            }
-
-            if (signals.length === 0) {
-                return `【${code} ${signal_type} 回测】\n未找到符合条件的信号`;
-            }
-
-            const avgGain = totalGain / signals.length;
-            const winRate = (wins / signals.length * 100).toFixed(1);
-
-            return `【${code} ${signal_type} 回测结果】
+      return `【${code} ${signal_type} 回测结果】
 
 信号次数: ${signals.length}
 胜率: ${winRate}%
@@ -249,28 +262,30 @@ export class BacktestAgent extends BaseAgent {
 持有天数: ${hold_days}天
 
 最近5次信号:
-${signals.slice(-5).map(s => `- ${s.date}: ${s.gain > 0 ? '+' : ''}${s.gain}%`).join('\n')}`;
+${signals
+  .slice(-5)
+  .map(s => `- ${s.date}: ${s.gain > 0 ? "+" : ""}${s.gain}%`)
+  .join("\n")}`;
+    } catch (error: any) {
+      return `回测失败: ${error.message}`;
+    }
+  }
 
-        } catch (error: any) {
-            return `回测失败: ${error.message}`;
-        }
+  private async batchBacktest(args: {
+    codes: string[];
+    signal_type: string;
+  }): Promise<string> {
+    const { codes, signal_type } = args;
+    const results: string[] = [];
+
+    for (const code of codes.slice(0, 10)) {
+      const result = await this.runSignalBacktest({
+        code,
+        signal_type,
+      });
+      results.push(result);
     }
 
-    private async batchBacktest(args: {
-        codes: string[];
-        signal_type: string;
-    }): Promise<string> {
-        const { codes, signal_type } = args;
-        const results: string[] = [];
-
-        for (const code of codes.slice(0, 10)) {
-            const result = await this.runSignalBacktest({
-                code,
-                signal_type,
-            });
-            results.push(result);
-        }
-
-        return `【批量回测: ${signal_type}】\n\n${results.join('\n\n---\n\n')}`;
-    }
+    return `【批量回测: ${signal_type}】\n\n${results.join("\n\n---\n\n")}`;
+  }
 }

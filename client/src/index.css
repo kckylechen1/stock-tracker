@@ -87,9 +87,9 @@
 }
 
 .dark {
-  --primary: oklch(0.65 0.20 250);
+  --primary: oklch(0.65 0.2 250);
   --primary-foreground: oklch(0.98 0 0);
-  --sidebar-primary: oklch(0.65 0.20 250);
+  --sidebar-primary: oklch(0.65 0.2 250);
   --sidebar-primary-foreground: oklch(0.98 0 0);
 
   /* 腾讯自选股风格深色背景 */
@@ -99,33 +99,33 @@
   --card-foreground: oklch(0.92 0.01 90);
   --popover: oklch(0.18 0.01 260);
   --popover-foreground: oklch(0.92 0.01 90);
-  --secondary: oklch(0.20 0.01 260);
+  --secondary: oklch(0.2 0.01 260);
   --secondary-foreground: oklch(0.75 0.01 90);
   --muted: oklch(0.22 0.01 260);
-  --muted-foreground: oklch(0.60 0.01 260);
+  --muted-foreground: oklch(0.6 0.01 260);
   --accent: oklch(0.22 0.01 260);
   --accent-foreground: oklch(0.95 0.01 90);
   --destructive: oklch(0.65 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
   --border: oklch(0.25 0.01 260);
-  --input: oklch(0.20 0.01 260);
-  --ring: oklch(0.65 0.20 250);
-  --chart-1: oklch(0.70 0.20 250);
+  --input: oklch(0.2 0.01 260);
+  --ring: oklch(0.65 0.2 250);
+  --chart-1: oklch(0.7 0.2 250);
   --chart-2: oklch(0.65 0.18 200);
-  --chart-3: oklch(0.60 0.15 150);
+  --chart-3: oklch(0.6 0.15 150);
   --chart-4: oklch(0.55 0.12 100);
-  --chart-5: oklch(0.50 0.10 50);
+  --chart-5: oklch(0.5 0.1 50);
   --sidebar: oklch(0.14 0.01 260);
   --sidebar-foreground: oklch(0.92 0.01 90);
-  --sidebar-accent: oklch(0.20 0.01 260);
+  --sidebar-accent: oklch(0.2 0.01 260);
   --sidebar-accent-foreground: oklch(0.95 0.01 90);
   --sidebar-border: oklch(0.25 0.01 260);
-  --sidebar-ring: oklch(0.65 0.20 250);
+  --sidebar-ring: oklch(0.65 0.2 250);
 
   /* 股票颜色 - 深色主题：涨红跌绿（腾讯自选股风格） */
   --stock-up: oklch(0.65 0.22 25);
-  --stock-down: oklch(0.60 0.18 145);
-  --stock-neutral: oklch(0.60 0.01 260);
+  --stock-down: oklch(0.6 0.18 145);
+  --stock-neutral: oklch(0.6 0.01 260);
 }
 
 @layer base {
@@ -135,15 +135,18 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+      "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+      sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   /* 数字使用等宽字体 SF Mono */
   .tabular-nums {
-    font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
+    font-family:
+      "SF Mono", "Monaco", "Menlo", "Consolas", "Courier New", monospace;
     font-variant-numeric: tabular-nums;
   }
 
@@ -161,7 +164,6 @@
 }
 
 @layer components {
-
   /**
    * Custom container utility that centers content and adds responsive padding.
    *
@@ -210,7 +212,6 @@
 
 /* AI 助手三个点加载动画 */
 @keyframes typing-dot {
-
   0%,
   100% {
     opacity: 0.3;

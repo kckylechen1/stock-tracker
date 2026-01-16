@@ -85,17 +85,13 @@
       "compositePrimaryKeys": {
         "analysisCache_id": {
           "name": "analysisCache_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "analysisCache_stockCode_unique": {
           "name": "analysisCache_stockCode_unique",
-          "columns": [
-            "stockCode"
-          ]
+          "columns": ["stockCode"]
         }
       },
       "checkConstraint": {}
@@ -187,9 +183,7 @@
       "compositePrimaryKeys": {
         "klines_id": {
           "name": "klines_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -249,17 +243,13 @@
       "compositePrimaryKeys": {
         "stocks_id": {
           "name": "stocks_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "stocks_code_unique": {
           "name": "stocks_code_unique",
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "checkConstraint": {}
@@ -341,17 +331,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_openId_unique": {
           "name": "users_openId_unique",
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "checkConstraint": {}
@@ -409,9 +395,7 @@
       "compositePrimaryKeys": {
         "watchlist_id": {
           "name": "watchlist_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},

@@ -29,11 +29,13 @@ HTTP Response Format:
 | date | string | ✗ | 查询日期(YYYYMMDD)，默认为今天 | 20260108 |
 
 **示例请求**：
+
 ```bash
 GET /api/gauge/daily?code=600519&date=20260108
 ```
 
 **成功响应(200)**：
+
 ```json
 {
   "code": 0,
@@ -68,7 +70,7 @@ GET /api/gauge/daily?code=600519&date=20260108
       },
       "volatility": {
         "score": 30,
-        "weight": 0.20,
+        "weight": 0.2,
         "indicators": {
           "cci": -25.3,
           "boll_upper": 2380,
@@ -78,7 +80,7 @@ GET /api/gauge/daily?code=600519&date=20260108
       },
       "volume": {
         "score": 55,
-        "weight": 0.30,
+        "weight": 0.3,
         "indicators": {
           "obv": 12000000,
           "vr": 1.15,
@@ -97,6 +99,7 @@ GET /api/gauge/daily?code=600519&date=20260108
 ```
 
 **错误响应(400/404/500)**：
+
 ```json
 {
   "code": 400,
@@ -121,6 +124,7 @@ GET /api/gauge/daily?code=600519&date=20260108
 | date | string | ✗ | 查询日期，默认为本周最后一个交易日 |
 
 **示例请求**：
+
 ```bash
 GET /api/gauge/weekly?code=600519
 ```
@@ -142,11 +146,13 @@ GET /api/gauge/weekly?code=600519
 | date | string | ✗ | 查询日期 |
 
 **示例请求**：
+
 ```bash
 GET /api/gauge/compare?code=600519&date=20260108
 ```
 
 **成功响应(200)**：
+
 ```json
 {
   "code": 0,
@@ -197,6 +203,7 @@ GET /api/gauge/compare?code=600519&date=20260108
 **功能**：对指定标的进行历史回测，验证Gauge策略的有效性
 
 **请求体**：
+
 ```json
 {
   "code": "600519",
@@ -207,8 +214,8 @@ GET /api/gauge/compare?code=600519&date=20260108
   "weights": {
     "trend": 0.25,
     "momentum": 0.25,
-    "volatility": 0.20,
-    "volume": 0.30
+    "volatility": 0.2,
+    "volume": 0.3
   }
 }
 ```
@@ -224,6 +231,7 @@ GET /api/gauge/compare?code=600519&date=20260108
 | weights | object | ✗ | 自定义权重 | 使用默认权重 |
 
 **成功响应(200)**：
+
 ```json
 {
   "code": 0,
@@ -258,6 +266,7 @@ GET /api/gauge/compare?code=600519&date=20260108
 ```
 
 **性能指标说明**：
+
 - **total_return**: 总收益率 (e.g., 1.45 = 145%)
 - **annual_return**: 年化收益率
 - **max_drawdown**: 最大回撤比例（负数）
@@ -277,6 +286,7 @@ GET /api/gauge/compare?code=600519&date=20260108
 **功能**：自动搜索最优权重组合，最大化某个目标函数
 
 **请求体**：
+
 ```json
 {
   "code": "600519",
@@ -286,10 +296,10 @@ GET /api/gauge/compare?code=600519&date=20260108
   "optimization_method": "grid_search",
   "max_iterations": 100,
   "constraints": {
-    "trend": [0.15, 0.40],
-    "momentum": [0.15, 0.40],
-    "volatility": [0.10, 0.30],
-    "volume": [0.20, 0.50]
+    "trend": [0.15, 0.4],
+    "momentum": [0.15, 0.4],
+    "volatility": [0.1, 0.3],
+    "volume": [0.2, 0.5]
   }
 }
 ```
@@ -306,6 +316,7 @@ GET /api/gauge/compare?code=600519&date=20260108
 | constraints | object | ✗ | 权重约束范围 | - |
 
 **成功响应(200)**：
+
 ```json
 {
   "code": 0,
@@ -352,6 +363,7 @@ GET /api/gauge/compare?code=600519&date=20260108
 **功能**：批量查询多个标的的日线Gauge评分（减少HTTP往返）
 
 **请求体**：
+
 ```json
 {
   "codes": ["600519", "601988", "600000"],
@@ -360,6 +372,7 @@ GET /api/gauge/compare?code=600519&date=20260108
 ```
 
 **成功响应(200)**：
+
 ```json
 {
   "code": 0,
@@ -397,6 +410,7 @@ GET /api/gauge/compare?code=600519&date=20260108
 **功能**：检查服务是否正常运行
 
 **响应(200)**：
+
 ```json
 {
   "status": "healthy",
@@ -411,30 +425,30 @@ GET /api/gauge/compare?code=600519&date=20260108
 
 ## HTTP状态码
 
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 请求成功 |
-| 400 | 参数错误（如无效股票代码、日期格式错误） |
-| 404 | 资源不存在（如股票代码不存在或指定日期无数据） |
-| 429 | 请求过于频繁（限流） |
-| 500 | 服务器错误（AKShare连接失败、计算异常） |
+| 状态码 | 说明                                           |
+| ------ | ---------------------------------------------- |
+| 200    | 请求成功                                       |
+| 400    | 参数错误（如无效股票代码、日期格式错误）       |
+| 404    | 资源不存在（如股票代码不存在或指定日期无数据） |
+| 429    | 请求过于频繁（限流）                           |
+| 500    | 服务器错误（AKShare连接失败、计算异常）        |
 
 ---
 
 ## 错误代码映射
 
-| 错误码 | 说明 | HTTP状态 |
-|--------|------|---------|
-| 0 | 成功 | 200 |
-| 400001 | 无效股票代码 | 400 |
-| 400002 | 无效日期格式 | 400 |
-| 400003 | 权重配置错误 | 400 |
-| 404001 | 股票数据不存在 | 404 |
-| 404002 | 指定日期无数据 | 404 |
-| 429001 | API请求限流 | 429 |
-| 500001 | AKShare连接失败 | 500 |
-| 500002 | 指标计算异常 | 500 |
-| 500003 | 回测引擎异常 | 500 |
+| 错误码 | 说明            | HTTP状态 |
+| ------ | --------------- | -------- |
+| 0      | 成功            | 200      |
+| 400001 | 无效股票代码    | 400      |
+| 400002 | 无效日期格式    | 400      |
+| 400003 | 权重配置错误    | 400      |
+| 404001 | 股票数据不存在  | 404      |
+| 404002 | 指定日期无数据  | 404      |
+| 429001 | API请求限流     | 429      |
+| 500001 | AKShare连接失败 | 500      |
+| 500002 | 指标计算异常    | 500      |
+| 500003 | 回测引擎异常    | 500      |
 
 ---
 
@@ -444,31 +458,31 @@ GET /api/gauge/compare?code=600519&date=20260108
 
 ```javascript
 // 获取日线评分
-fetch('/api/gauge/daily?code=600519&date=20260108')
+fetch("/api/gauge/daily?code=600519&date=20260108")
   .then(r => r.json())
   .then(data => {
     if (data.code === 0) {
-      console.log('Signal:', data.data.signal);
-      console.log('Score:', data.data.score);
+      console.log("Signal:", data.data.signal);
+      console.log("Score:", data.data.score);
     } else {
-      console.error('Error:', data.message);
+      console.error("Error:", data.message);
     }
   });
 
 // 回测
-fetch('/api/backtest', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+fetch("/api/backtest", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    code: '600519',
-    start_date: '2023-01-01',
-    end_date: '2025-12-31'
-  })
+    code: "600519",
+    start_date: "2023-01-01",
+    end_date: "2025-12-31",
+  }),
 })
-.then(r => r.json())
-.then(data => {
-  console.log('Total Return:', data.data.performance.total_return);
-});
+  .then(r => r.json())
+  .then(data => {
+    console.log("Total Return:", data.data.performance.total_return);
+  });
 ```
 
 ### LLM提示词集成
@@ -486,13 +500,13 @@ fetch('/api/backtest', {
 
 ## 性能与限制
 
-| 指标 | 限制 |
-|-----|------|
-| 单次请求超时 | 30秒 |
-| 批量查询最多代码数 | 100个 |
-| 日线/周线缓存时效 | 1小时 |
-| 回测数据范围 | 2年以内（更长数据可联系管理员） |
-| QPS（每秒请求数） | 100（超过触发限流） |
+| 指标               | 限制                            |
+| ------------------ | ------------------------------- |
+| 单次请求超时       | 30秒                            |
+| 批量查询最多代码数 | 100个                           |
+| 日线/周线缓存时效  | 1小时                           |
+| 回测数据范围       | 2年以内（更长数据可联系管理员） |
+| QPS（每秒请求数）  | 100（超过触发限流）             |
 
 ---
 
@@ -503,4 +517,3 @@ fetch('/api/backtest', {
 - **Swagger UI**: `http://localhost:6888/docs`
 - **ReDoc**: `http://localhost:6888/redoc`
 - **OpenAPI JSON**: `http://localhost:6888/openapi.json`
-

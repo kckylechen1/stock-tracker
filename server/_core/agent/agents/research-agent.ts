@@ -1,6 +1,6 @@
 /**
  * ResearchAgent - 研究报告专用 Agent
- * 
+ *
  * 擅长：
  * - 多源数据收集
  * - 研究报告生成
@@ -8,9 +8,9 @@
  * - 热点追踪
  */
 
-import { BaseAgent } from '../base-agent';
-import { executeStockTool, stockTools } from '../../stockTools';
-import type { ToolDefinition } from '../types';
+import { BaseAgent } from "../base-agent";
+import { executeStockTool, stockTools } from "../../stockTools";
+import type { ToolDefinition } from "../types";
 
 const RESEARCH_SYSTEM_PROMPT = `你是一个专业的A股研究员，擅长收集多源数据并生成深度研究报告。
 
@@ -76,46 +76,46 @@ const RESEARCH_SYSTEM_PROMPT = `你是一个专业的A股研究员，擅长收�
 `;
 
 const RESEARCH_TOOLS: ToolDefinition[] = stockTools.filter(t =>
-    [
-        'get_stock_quote',
-        'get_kline_data',
-        'get_fund_flow',
-        'get_fund_flow_history',
-        'get_fund_flow_rank',
-        'get_longhu_bang',
-        'get_market_news',
-        'analyze_stock_technical',
-        'get_market_fund_flow',
-        'get_current_datetime',
-        'search_stock',
-        'get_concept_board',
-        'get_zt_pool',
-    ].includes(t.function.name)
+  [
+    "get_stock_quote",
+    "get_kline_data",
+    "get_fund_flow",
+    "get_fund_flow_history",
+    "get_fund_flow_rank",
+    "get_longhu_bang",
+    "get_market_news",
+    "analyze_stock_technical",
+    "get_market_fund_flow",
+    "get_current_datetime",
+    "search_stock",
+    "get_concept_board",
+    "get_zt_pool",
+  ].includes(t.function.name)
 ) as ToolDefinition[];
 
 export class ResearchAgent extends BaseAgent {
-    constructor() {
-        super({
-            name: 'ResearchAgent',
-            description: '研究报告专家',
-            systemPrompt: RESEARCH_SYSTEM_PROMPT,
-            tools: RESEARCH_TOOLS,
-            maxIterations: 12,
-            maxTokens: 8000,
-            temperature: 0.4,
-            parallelToolCalls: true,
-        });
+  constructor() {
+    super({
+      name: "ResearchAgent",
+      description: "研究报告专家",
+      systemPrompt: RESEARCH_SYSTEM_PROMPT,
+      tools: RESEARCH_TOOLS,
+      maxIterations: 12,
+      maxTokens: 8000,
+      temperature: 0.4,
+      parallelToolCalls: true,
+    });
 
-        this.registerResearchTools();
+    this.registerResearchTools();
+  }
+
+  private registerResearchTools(): void {
+    const toolNames = RESEARCH_TOOLS.map(t => t.function.name);
+
+    for (const name of toolNames) {
+      this.registerTool(name, async args => {
+        return executeStockTool(name, args);
+      });
     }
-
-    private registerResearchTools(): void {
-        const toolNames = RESEARCH_TOOLS.map(t => t.function.name);
-
-        for (const name of toolNames) {
-            this.registerTool(name, async (args) => {
-                return executeStockTool(name, args);
-            });
-        }
-    }
+  }
 }

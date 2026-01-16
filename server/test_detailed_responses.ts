@@ -2,25 +2,25 @@
  * AI Agent详细回答内容测试 - 展示模型回答质量
  */
 
-import { createSmartAgent } from './_core/agent';
-import * as fs from 'fs';
+import { createSmartAgent } from "./_core/agent";
+import * as fs from "fs";
 
 // 测试配置
 const DETAIL_TEST_CONFIG = {
   testStocks: [
-    { code: '002594', name: '比亚迪' },
-    { code: '600519', name: '茅台' },
-    { code: '300750', name: '宁德时代' }
+    { code: "002594", name: "比亚迪" },
+    { code: "600519", name: "茅台" },
+    { code: "300750", name: "宁德时代" },
   ],
-  testDate: '2025-09-15',
-  outputFile: './ai_agent_detailed_responses.md'
+  testDate: "2025-09-15",
+  outputFile: "./ai_agent_detailed_responses.md",
 };
 
 // 测试结果接口
 interface DetailedTestResult {
   stockCode: string;
   stockName: string;
-  model: 'grok' | 'glm';
+  model: "grok" | "glm";
   query: string;
   response: string;
   executionTime: number;
@@ -29,16 +29,22 @@ interface DetailedTestResult {
 }
 
 // 获取详细AI回答
-async function getDetailedResponse(stockCode: string, stockName: string, model: 'grok' | 'glm'): Promise<DetailedTestResult> {
+async function getDetailedResponse(
+  stockCode: string,
+  stockName: string,
+  model: "grok" | "glm"
+): Promise<DetailedTestResult> {
   const startTime = Date.now();
 
   try {
-    console.log(`🤖 测试 ${stockName}(${stockCode}) - ${model.toUpperCase()}模型...`);
+    console.log(
+      `🤖 测试 ${stockName}(${stockCode}) - ${model.toUpperCase()}模型...`
+    );
 
     const agent = createSmartAgent({
       stockCode,
       preferredModel: model,
-      testMode: true
+      testMode: true,
     });
 
     const query = `请对 ${stockCode}(${stockName})进行详细的技术分析，给出买入/持有/卖出的投资建议，并详细说明理由。当前时间是${DETAIL_TEST_CONFIG.testDate}。请详细分析技术指标、资金流向和市场走势。`;
@@ -55,9 +61,8 @@ async function getDetailedResponse(stockCode: string, stockName: string, model: 
       response: result.response,
       executionTime: Date.now() - startTime,
       toolCalls: result.toolCalls || [],
-      success: true
+      success: true,
     };
-
   } catch (error) {
     console.log(`❌ ${stockName} 失败: ${error.message}`);
 
@@ -65,18 +70,18 @@ async function getDetailedResponse(stockCode: string, stockName: string, model: 
       stockCode,
       stockName,
       model,
-      query: '',
-      response: '',
+      query: "",
+      response: "",
       executionTime: Date.now() - startTime,
       toolCalls: [],
-      success: false
+      success: false,
     };
   }
 }
 
 // 主函数
 async function main() {
-  console.log('📝 AI Agent详细回答内容测试 - 展示模型回答质量\n');
+  console.log("📝 AI Agent详细回答内容测试 - 展示模型回答质量\n");
 
   const allResults: DetailedTestResult[] = [];
 
@@ -85,14 +90,22 @@ async function main() {
     console.log(`\n🏢 开始测试股票: ${stock.name}(${stock.code})`);
 
     // Grok模型
-    const grokResult = await getDetailedResponse(stock.code, stock.name, 'grok');
+    const grokResult = await getDetailedResponse(
+      stock.code,
+      stock.name,
+      "grok"
+    );
     allResults.push(grokResult);
 
     // 等待5秒
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // GLM模型
-    const glmResult = await getDetailedResponse(stock.code, stock.name, 'deepseek');
+    const glmResult = await getDetailedResponse(
+      stock.code,
+      stock.name,
+      "deepseek"
+    );
     allResults.push(glmResult);
 
     // 等待5秒
@@ -101,11 +114,11 @@ async function main() {
 
   // 生成详细报告
   const report = generateDetailedReport(allResults);
-  fs.writeFileSync(DETAIL_TEST_CONFIG.outputFile, report, 'utf8');
+  fs.writeFileSync(DETAIL_TEST_CONFIG.outputFile, report, "utf8");
 
   console.log(`\n💾 详细回答报告已保存: ${DETAIL_TEST_CONFIG.outputFile}`);
-  console.log('\n🎯 报告包含了每个模型对每只股票的完整AI回答内容');
-  console.log('你可以查看回答质量、分析深度和建议合理性');
+  console.log("\n🎯 报告包含了每个模型对每只股票的完整AI回答内容");
+  console.log("你可以查看回答质量、分析深度和建议合理性");
 }
 
 // 生成详细报告
@@ -133,7 +146,7 @@ function generateDetailedReport(results: DetailedTestResult[]): string {
         report += `### ${result.model.toUpperCase()}模型回答\n\n`;
         report += `**查询**: ${result.query}\n\n`;
         report += `**执行时间**: ${result.executionTime}ms\n\n`;
-        report += `**工具调用**: ${result.toolCalls.join(', ')}\n\n`;
+        report += `**工具调用**: ${result.toolCalls.join(", ")}\n\n`;
         report += `**AI回答**:\n\n${result.response}\n\n`;
         report += `---\n\n`;
       } else {
@@ -164,15 +177,17 @@ function generateDetailedReport(results: DetailedTestResult[]): string {
 
   // 为每个股票的回答评分
   DETAIL_TEST_CONFIG.testStocks.forEach(stock => {
-    const stockResults = results.filter(r => r.stockCode === stock.code && r.success);
+    const stockResults = results.filter(
+      r => r.stockCode === stock.code && r.success
+    );
 
     let grokScore = 0;
     let glmScore = 0;
-    let grokFeatures = '';
-    let glmFeatures = '';
+    let grokFeatures = "";
+    let glmFeatures = "";
 
     stockResults.forEach(result => {
-      if (result.model === 'grok') {
+      if (result.model === "grok") {
         grokScore = evaluateResponseQuality(result.response);
         grokFeatures = getResponseFeatures(result.response);
       } else {
@@ -181,9 +196,10 @@ function generateDetailedReport(results: DetailedTestResult[]): string {
       }
     });
 
-    const winner = grokScore > glmScore ? 'Grok' : grokScore < glmScore ? 'GLM' : '平手';
+    const winner =
+      grokScore > glmScore ? "Grok" : grokScore < glmScore ? "GLM" : "平手";
 
-    report += `| ${stock.name} | ${grokScore}/5 | ${glmScore}/5 | ${winner} | ${winner === 'Grok' ? grokFeatures : glmFeatures} |\n`;
+    report += `| ${stock.name} | ${grokScore}/5 | ${glmScore}/5 | ${winner} | ${winner === "Grok" ? grokFeatures : glmFeatures} |\n`;
   });
 
   report += `
@@ -202,22 +218,38 @@ function evaluateResponseQuality(response: string): number {
   let score = 3; // 基础分
 
   // 信息完整性 (+1分)
-  if (response.includes('技术') && response.includes('资金') && response.includes('建议')) {
+  if (
+    response.includes("技术") &&
+    response.includes("资金") &&
+    response.includes("建议")
+  ) {
     score += 1;
   }
 
   // 逻辑严谨性 (+1分)
-  if (response.includes('因为') || response.includes('由于') || response.includes('数据')) {
+  if (
+    response.includes("因为") ||
+    response.includes("由于") ||
+    response.includes("数据")
+  ) {
     score += 1;
   }
 
   // 实用性 (+1分)
-  if (response.includes('价') || response.includes('仓位') || response.includes('止损')) {
+  if (
+    response.includes("价") ||
+    response.includes("仓位") ||
+    response.includes("止损")
+  ) {
     score += 1;
   }
 
   // 专业性 (+1分)
-  if (response.includes('MACD') || response.includes('RSI') || response.includes('均线')) {
+  if (
+    response.includes("MACD") ||
+    response.includes("RSI") ||
+    response.includes("均线")
+  ) {
     score += 1;
   }
 
@@ -228,12 +260,15 @@ function evaluateResponseQuality(response: string): number {
 function getResponseFeatures(response: string): string {
   const features: string[] = [];
 
-  if (response.length > 1000) features.push('详细');
-  if (response.includes('具体') || response.includes('明确')) features.push('具体');
-  if (response.includes('风险') || response.includes('注意')) features.push('谨慎');
-  if (response.includes('数据') || response.includes('指标')) features.push('数据驱动');
+  if (response.length > 1000) features.push("详细");
+  if (response.includes("具体") || response.includes("明确"))
+    features.push("具体");
+  if (response.includes("风险") || response.includes("注意"))
+    features.push("谨慎");
+  if (response.includes("数据") || response.includes("指标"))
+    features.push("数据驱动");
 
-  return features.join(', ') || '标准回答';
+  return features.join(", ") || "标准回答";
 }
 
 // 运行测试

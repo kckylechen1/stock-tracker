@@ -58,7 +58,11 @@ describeNetwork("stocks.getKline", () => {
     const caller = appRouter.createCaller(ctx);
 
     // 获取K线数据
-    const klineData = await caller.stocks.getKline({ code: "002594", period: "day", limit: 10 });
+    const klineData = await caller.stocks.getKline({
+      code: "002594",
+      period: "day",
+      limit: 10,
+    });
 
     expect(Array.isArray(klineData)).toBe(true);
     if (klineData.length > 0) {
@@ -94,7 +98,7 @@ describe("watchlist", () => {
     expect(testItem).toBeDefined();
     if (testItem) {
       expect(testItem.note).toBe("测试股票");
-      
+
       // 清理测试数据
       await caller.watchlist.remove({ id: testItem.id });
     }
@@ -114,7 +118,7 @@ describe("analysis.getAnalysis", () => {
     expect(analysis).toHaveProperty("sentimentScore");
     expect(analysis).toHaveProperty("capitalScore");
     expect(analysis).toHaveProperty("summary");
-    
+
     expect(typeof analysis.technicalScore).toBe("number");
     expect(Array.isArray(analysis.technicalSignals)).toBe(true);
     expect(typeof analysis.summary).toBe("string");

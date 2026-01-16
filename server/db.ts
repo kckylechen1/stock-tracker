@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -56,8 +56,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      values.role = "admin";
+      updateSet.role = "admin";
     }
 
     if (!values.lastSignedIn) {
@@ -84,7 +84,11 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
@@ -94,27 +98,38 @@ export async function getUserByOpenId(openId: string) {
 export async function getStockByCode(code: string) {
   const db = await getDb();
   if (!db) return undefined;
-  
-  const { stocks } = await import('../drizzle/schema');
-  const result = await db.select().from(stocks).where(eq(stocks.code, code)).limit(1);
+
+  const { stocks } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(stocks)
+    .where(eq(stocks.code, code))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function upsertStock(stock: { code: string; name: string; market: string }) {
+export async function upsertStock(stock: {
+  code: string;
+  name: string;
+  market: string;
+}) {
   const db = await getDb();
   if (!db) return;
-  
-  const { stocks } = await import('../drizzle/schema');
-  await db.insert(stocks).values(stock).onDuplicateKeyUpdate({
-    set: { name: stock.name, market: stock.market },
-  });
+
+  const { stocks } = await import("../drizzle/schema");
+  await db
+    .insert(stocks)
+    .values(stock)
+    .onDuplicateKeyUpdate({
+      set: { name: stock.name, market: stock.market },
+    });
 }
 
 export async function getAllStocks() {
   const db = await getDb();
   if (!db) return [];
-  
-  const { stocks } = await import('../drizzle/schema');
+
+  const { stocks } = await import("../drizzle/schema");
   return await db.select().from(stocks);
 }
 
@@ -123,22 +138,27 @@ export async function getAllStocks() {
 export async function getWatchlist() {
   const db = await getDb();
   if (!db) return [];
-  
-  const { watchlist } = await import('../drizzle/schema');
+
+  const { watchlist } = await import("../drizzle/schema");
   return await db.select().from(watchlist);
 }
 
-export async function addToWatchlist(data: { stockCode: string; targetPrice?: string; note?: string; source?: string }) {
+export async function addToWatchlist(data: {
+  stockCode: string;
+  targetPrice?: string;
+  note?: string;
+  source?: string;
+}) {
   const db = await getDb();
   if (!db) return;
-  
-  const { watchlist } = await import('../drizzle/schema');
-  
+
+  const { watchlist } = await import("../drizzle/schema");
+
   // 构建插入数据，只包含非 undefined 的字段
   const insertData: any = {
     stockCode: data.stockCode,
   };
-  
+
   if (data.targetPrice !== undefined) {
     insertData.targetPrice = data.targetPrice;
   }
@@ -148,38 +168,47 @@ export async function addToWatchlist(data: { stockCode: string; targetPrice?: st
   if (data.source !== undefined) {
     insertData.source = data.source;
   }
-  
+
   await db.insert(watchlist).values(insertData);
 }
 
 export async function removeFromWatchlist(id: number) {
   const db = await getDb();
   if (!db) return;
-  
-  const { watchlist } = await import('../drizzle/schema');
-  const { eq } = await import('drizzle-orm');
+
+  const { watchlist } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
   await db.delete(watchlist).where(eq(watchlist.id, id));
 }
 
-export async function updateWatchlistItem(id: number, data: { targetPrice?: string; note?: string }) {
+export async function updateWatchlistItem(
+  id: number,
+  data: { targetPrice?: string; note?: string }
+) {
   const db = await getDb();
   if (!db) return;
-  
-  const { watchlist } = await import('../drizzle/schema');
-  const { eq } = await import('drizzle-orm');
+
+  const { watchlist } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
   await db.update(watchlist).set(data).where(eq(watchlist.id, id));
 }
 
 // K线数据查询
 
-export async function getKlineData(stockCode: string, period: string, limit: number = 100) {
+export async function getKlineData(
+  stockCode: string,
+  period: string,
+  limit: number = 100
+) {
   const db = await getDb();
   if (!db) return [];
-  
-  const { klines } = await import('../drizzle/schema');
-  const { eq, and, desc } = await import('drizzle-orm');
-  
-  return await db.select().from(klines)
+
+  const { klines } = await import("../drizzle/schema");
+  const { eq, and, desc } = await import("drizzle-orm");
+
+  return await db
+    .select()
+    .from(klines)
     .where(and(eq(klines.stockCode, stockCode), eq(klines.period, period)))
     .orderBy(desc(klines.tradeDate))
     .limit(limit);
@@ -188,9 +217,9 @@ export async function getKlineData(stockCode: string, period: string, limit: num
 export async function saveKlineData(data: any[]) {
   const db = await getDb();
   if (!db || data.length === 0) return;
-  
-  const { klines } = await import('../drizzle/schema');
-  
+
+  const { klines } = await import("../drizzle/schema");
+
   // 批量插入，如果存在则忽略
   for (const item of data) {
     try {
@@ -206,18 +235,25 @@ export async function saveKlineData(data: any[]) {
 export async function getAnalysisCache(stockCode: string) {
   const db = await getDb();
   if (!db) return undefined;
-  
-  const { analysisCache } = await import('../drizzle/schema');
-  const result = await db.select().from(analysisCache).where(eq(analysisCache.stockCode, stockCode)).limit(1);
+
+  const { analysisCache } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(analysisCache)
+    .where(eq(analysisCache.stockCode, stockCode))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
 export async function saveAnalysisCache(stockCode: string, data: any) {
   const db = await getDb();
   if (!db) return;
-  
-  const { analysisCache } = await import('../drizzle/schema');
-  await db.insert(analysisCache).values({ stockCode, ...data }).onDuplicateKeyUpdate({
-    set: data,
-  });
+
+  const { analysisCache } = await import("../drizzle/schema");
+  await db
+    .insert(analysisCache)
+    .values({ stockCode, ...data })
+    .onDuplicateKeyUpdate({
+      set: data,
+    });
 }

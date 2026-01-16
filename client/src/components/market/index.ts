@@ -1,2 +1,2 @@
-export { MarketSentimentPanel } from './MarketSentimentPanel';
-export { TopStocksPanel } from './TopStocksPanel';
+export { MarketSentimentPanel } from "./MarketSentimentPanel";
+export { TopStocksPanel } from "./TopStocksPanel";

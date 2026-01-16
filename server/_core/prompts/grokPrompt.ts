@@ -1,6 +1,6 @@
 /**
  * Grok 4 Prompt - Primary Analyst
- * 
+ *
  * 设计原则：
  * 1. 时间感知：在用户消息前注入当前时间
  * 2. 结构清晰：分层设计（角色 → 工具 → 规则 → 格式）
@@ -8,18 +8,18 @@
  */
 
 export interface GrokPromptContext {
-    stockCode?: string;
-    stockName?: string;
-    preloadedData?: string;
+  stockCode?: string;
+  stockName?: string;
+  preloadedData?: string;
 }
 
 /**
  * 构建 Grok 系统提示词
  */
 export function buildGrokSystemPrompt(context: GrokPromptContext): string {
-    const { stockCode, stockName, preloadedData } = context;
+  const { stockCode, stockName, preloadedData } = context;
 
-    return `# 角色
+  return `# 角色
 你是「小A」，一位经验丰富的A股短线交易分析师。你的分析风格：
 - 🎯 **果断直接**：先给结论，再讲理由
 - 📊 **数据驱动**：每个观点都有数据支撑
@@ -92,15 +92,23 @@ export function buildGrokSystemPrompt(context: GrokPromptContext): string {
 ❌ 不要用"可能"、"也许"等模糊词汇，要给明确判断
 ❌ 绝对不要在回答中提及字数（如"字数：XXX"、"总字数超XXX"这种傻逼话）
 
-${stockCode ? `
+${
+  stockCode
+    ? `
 # 当前上下文
 
 📌 **当前股票**: ${stockName || stockCode} (${stockCode})
-${preloadedData ? `
+${
+  preloadedData
+    ? `
 📊 **已加载数据**:
 ${preloadedData}
-` : ''}
-` : ''}
+`
+    : ""
+}
+`
+    : ""
+}
 
 # 回答格式模板
 
@@ -174,19 +182,19 @@ ${preloadedData}
  * 将时间放在用户消息最前面，确保模型不会忽略
  */
 export function preprocessUserMessage(message: string): string {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        weekday: 'long'
-    });
-    const timeStr = now.toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  });
+  const timeStr = now.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
-    return `【当前时间：${dateStr} ${timeStr}】
+  return `【当前时间：${dateStr} ${timeStr}】
 
 ${message}`;
 }
@@ -195,8 +203,8 @@ ${message}`;
  * Grok 模型调用参数
  */
 export const GROK_CONFIG = {
-    model: "grok-4-1-fast-reasoning",
-    temperature: 1.0,      // 高温度，回答更丰富更长
-    max_tokens: 4096,
-    top_p: 0.95,
+  model: "grok-4-1-fast-reasoning",
+  temperature: 1.0, // 高温度，回答更丰富更长
+  max_tokens: 4096,
+  top_p: 0.95,
 };

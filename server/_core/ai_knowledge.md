@@ -9,6 +9,7 @@
 ## 📊 A股实时行情数据
 
 ### 1. 沪深京 A 股实时行情
+
 **AKShare 接口**: `stock_zh_a_spot_em()`
 **本项目接口**: `eastmoney.getStockQuote(code)`
 **数据来源**: 东方财富网
@@ -40,16 +41,18 @@
 | 年初至今涨跌幅 | 年初至今涨跌幅 |
 
 ### 2. 分市场实时行情
-| AKShare 接口 | 本项目接口 | 说明 |
-|-------------|-----------|------|
-| `stock_sh_a_spot_em()` | - | 沪 A 股实时行情 |
-| `stock_sz_a_spot_em()` | - | 深 A 股实时行情 |
-| `stock_bj_a_spot_em()` | - | 京 A 股实时行情 |
-| `stock_cy_a_spot_em()` | - | 创业板实时行情 |
-| `stock_kc_a_spot_em()` | - | 科创板实时行情 |
-| `stock_new_a_spot_em()` | - | 新股实时行情 |
+
+| AKShare 接口            | 本项目接口 | 说明            |
+| ----------------------- | ---------- | --------------- |
+| `stock_sh_a_spot_em()`  | -          | 沪 A 股实时行情 |
+| `stock_sz_a_spot_em()`  | -          | 深 A 股实时行情 |
+| `stock_bj_a_spot_em()`  | -          | 京 A 股实时行情 |
+| `stock_cy_a_spot_em()`  | -          | 创业板实时行情  |
+| `stock_kc_a_spot_em()`  | -          | 科创板实时行情  |
+| `stock_new_a_spot_em()` | -          | 新股实时行情    |
 
 ### 3. 个股详细行情（雪球数据源）
+
 **AKShare 接口**: `stock_individual_spot_xq(symbol)`
 **输入参数**: symbol 如 "SH600000"
 
@@ -90,11 +93,13 @@
 ## 💰 资金流向数据
 
 ### 1. 个股资金流向
+
 **AKShare 接口**: `stock_individual_fund_flow(stock, market)`
 **本项目接口**: `fundflow.getStockFundFlow(code)`
 **数据来源**: 东方财富网
 
 **输入参数**:
+
 - stock: 股票代码，如 "600094"
 - market: 市场，"sh" 或 "sz"
 
@@ -116,13 +121,15 @@
 | 小单净流入-净占比 | 小单净流入占比(%) |
 
 **资金分类说明**:
+
 - **超大单**: 单笔成交 > 100万元
 - **大单**: 20万 < 单笔成交 ≤ 100万元
-- **中单**: 4万 < 单笔成交 ≤ 20万元  
+- **中单**: 4万 < 单笔成交 ≤ 20万元
 - **小单**: 单笔成交 ≤ 4万元
 - **主力**: 超大单 + 大单
 
 ### 2. 个股资金流排名
+
 **AKShare 接口**: `stock_individual_fund_flow_rank(indicator)`
 **本项目接口**: `fundflow.getFundFlowRank(type, limit)`
 
@@ -135,17 +142,21 @@
 | "10日" | 10日累计资金流排名 |
 
 ### 3. 大盘资金流向
+
 **AKShare 接口**: `stock_market_fund_flow()`
 **本项目接口**: `fundflow.getMarketFundFlow()`
 
 **返回字段**:
+
 - 日期、上证收盘价、上证涨跌幅
 - 主力/超大单/大单/中单/小单 净流入净额及净占比
 
 ### 4. 板块资金流排名
+
 **AKShare 接口**: `stock_sector_fund_flow_rank(indicator, sector_type)`
 
 **sector_type 参数**:
+
 - "行业资金流" - 行业板块
 - "概念资金流" - 概念板块
 - "地域资金流" - 地域板块
@@ -155,6 +166,7 @@
 ## 📈 历史行情数据（K线）
 
 ### 1. 日K线数据
+
 **AKShare 接口**: `stock_zh_a_hist(symbol, period, start_date, end_date, adjust)`
 **本项目接口**: `eastmoney.getKlineData(code, period, count)`
 
@@ -188,6 +200,7 @@
 | 换手率 | 换手率(%) |
 
 ### 2. 分时数据
+
 **AKShare 接口**: `stock_zh_a_hist_min_em(symbol, period, start_date, end_date, adjust)`
 
 **period 参数**:
@@ -204,20 +217,28 @@
 ## 🔥 热门数据
 
 ### 1. 涨停池
+
 **AKShare 接口**: `stock_zt_pool_em(date)`
+
 - 获取当日涨停股票列表
 - 包含连板数、涨停时间、封单额等
 
 ### 2. 跌停池
+
 **AKShare 接口**: `stock_zt_pool_dtgc_em(date)`
+
 - 获取当日跌停股票列表
 
 ### 3. 股票热度排行
+
 **AKShare 接口**: `stock_hot_rank_em()`
+
 - 东方财富热度排行
 
 ### 4. 龙虎榜
+
 **AKShare 接口**: `stock_lhb_detail_em(symbol, date, flag)`
+
 - 获取龙虎榜营业部详情
 
 ---
@@ -225,57 +246,64 @@
 ## 📋 本项目已实现的 AI 工具
 
 ### ⭐ 核心分析工具（最重要 - 优先使用）
-| 工具名称 | 功能 | 使用场景 |
-|---------|------|---------|
-| `comprehensive_analysis` | ⭐ **多维度综合分析** | ⚠️ 当用户问"走势怎么样"、"分析一下"、"能买/卖吗"时**首选调用此工具** |
-| `get_guba_hot_rank` | **股吧人气排名** | 用户问"人气/关注度/情绪"、分析短线题材股时调用 |
-| `get_market_status` | **大盘环境判断** | 分析前或用户问"大盘怎么样"时调用 |
-| `get_current_datetime` | **获取当前日期时间** | 当用户问"今天"、"现在"时**必须先调用** |
-| `analyze_stock_technical` | **日K技术分析** | 单独需要技术面详情时 |
-| `analyze_minute_patterns` | **5分钟形态识别** | 用户问"什么时候进场"、"有没有买点"时 |
+
+| 工具名称                  | 功能                  | 使用场景                                                             |
+| ------------------------- | --------------------- | -------------------------------------------------------------------- |
+| `comprehensive_analysis`  | ⭐ **多维度综合分析** | ⚠️ 当用户问"走势怎么样"、"分析一下"、"能买/卖吗"时**首选调用此工具** |
+| `get_guba_hot_rank`       | **股吧人气排名**      | 用户问"人气/关注度/情绪"、分析短线题材股时调用                       |
+| `get_market_status`       | **大盘环境判断**      | 分析前或用户问"大盘怎么样"时调用                                     |
+| `get_current_datetime`    | **获取当前日期时间**  | 当用户问"今天"、"现在"时**必须先调用**                               |
+| `analyze_stock_technical` | **日K技术分析**       | 单独需要技术面详情时                                                 |
+| `analyze_minute_patterns` | **5分钟形态识别**     | 用户问"什么时候进场"、"有没有买点"时                                 |
 
 ### 📈 股吧人气使用规则
+
 - **人气100外→前50 + 主力流入** → 埋伏信号
 - **人气前30 + 放量突破 + 没走弱** → 可加仓
 - **人气前10 + 连续不涨/缩量** → 情绪见顶，考虑减仓
 - **人气前20 + 资金流出 + 技术弱** → 回避，可能诱多
 
 ### 🧠 交易记忆工具
-| 工具名称 | 功能 | 使用场景 |
-|---------|------|---------|
-| `get_trading_memory` | 获取用户持仓、历史交易、教训 | 分析前先了解用户历史 |
-| `add_trading_lesson` | 添加用户的交易教训 | 用户分享失败经验时记录 |
+
+| 工具名称             | 功能                         | 使用场景               |
+| -------------------- | ---------------------------- | ---------------------- |
+| `get_trading_memory` | 获取用户持仓、历史交易、教训 | 分析前先了解用户历史   |
+| `add_trading_lesson` | 添加用户的交易教训           | 用户分享失败经验时记录 |
 
 ### 📊 数据查询工具
-| 工具名称 | 功能 | 对应 API |
-|---------|------|---------|
-| `search_stock` | 搜索股票代码 | `eastmoney.searchStock()` |
-| `get_stock_quote` | 获取实时行情 | `eastmoney.getStockQuote()` |
-| `get_kline_data` | 获取K线数据 | `eastmoney.getKlineData()` |
-| `get_fund_flow` | 今日资金流向 | `fundflow.getStockFundFlow()` |
+
+| 工具名称                | 功能         | 对应 API                             |
+| ----------------------- | ------------ | ------------------------------------ |
+| `search_stock`          | 搜索股票代码 | `eastmoney.searchStock()`            |
+| `get_stock_quote`       | 获取实时行情 | `eastmoney.getStockQuote()`          |
+| `get_kline_data`        | 获取K线数据  | `eastmoney.getKlineData()`           |
+| `get_fund_flow`         | 今日资金流向 | `fundflow.getStockFundFlow()`        |
 | `get_fund_flow_history` | 历史资金流向 | `fundflow.getStockFundFlowHistory()` |
-| `get_fund_flow_rank` | 资金流排行榜 | `fundflow.getFundFlowRank()` |
-| `get_market_fund_flow` | 大盘资金流向 | `fundflow.getMarketFundFlow()` |
-| `get_longhu_bang` | 龙虎榜数据 | `akshare.getLongHuBangDetail()` |
-| `get_market_news` | 财经资讯 | `akshare.getMarketNews()` |
+| `get_fund_flow_rank`    | 资金流排行榜 | `fundflow.getFundFlowRank()`         |
+| `get_market_fund_flow`  | 大盘资金流向 | `fundflow.getMarketFundFlow()`       |
+| `get_longhu_bang`       | 龙虎榜数据   | `akshare.getLongHuBangDetail()`      |
+| `get_market_news`       | 财经资讯     | `akshare.getMarketNews()`            |
 
 ---
 
 ## 🎯 AI 决策指南
 
 ### ⚠️ 最重要规则
+
 1. **当用户问"走势/分析一下/能买吗/能卖吗"时，首选调用 `comprehensive_analysis`**
    - 此工具会自动返回：技术面 + 资金面 + 大盘环境 + 综合建议
 2. **当用户提到"今天"、"现在"时，必须先调用 `get_current_datetime` 获取准确日期**
 3. **当用户问"什么时候进场"、"有没有买点"时，调用 `analyze_minute_patterns`**
 
 ### 何时直接使用记忆（不调用工具）
+
 ✅ 用户问当前股票的价格、涨跌
 ✅ 用户问当前股票的今日资金流向
 ✅ 用户问当前股票的市值、PE、PB
 ✅ 用户问当前股票的成交量、换手率
 
 ### 何时调用工具
+
 🔧 用户问**走势/分析**（最常见）→ `comprehensive_analysis` ⭐首选
 🔧 用户问**大盘怎么样** → `get_market_status`
 🔧 用户需要**进场点位** → `analyze_minute_patterns`
@@ -288,23 +316,23 @@
 
 ## 📝 常用股票代码速查
 
-| 股票名称 | 代码 | 板块 |
-|---------|------|------|
-| 贵州茅台 | 600519 | 白酒 |
-| 比亚迪 | 002594 | 新能源车 |
-| 宁德时代 | 300750 | 锂电池 |
-| 中国平安 | 601318 | 保险 |
-| 招商银行 | 600036 | 银行 |
-| 工商银行 | 601398 | 银行 |
-| 中芯国际 | 688981 | 半导体 |
-| 隆基绿能 | 601012 | 光伏 |
-| 药明康德 | 603259 | 医药 |
-| 中国中免 | 601888 | 免税 |
-| 东方财富 | 300059 | 券商 |
-| 海康威视 | 002415 | 安防 |
-| 五粮液 | 000858 | 白酒 |
-| 恒瑞医药 | 600276 | 医药 |
-| 中信证券 | 600030 | 券商 |
+| 股票名称 | 代码   | 板块     |
+| -------- | ------ | -------- |
+| 贵州茅台 | 600519 | 白酒     |
+| 比亚迪   | 002594 | 新能源车 |
+| 宁德时代 | 300750 | 锂电池   |
+| 中国平安 | 601318 | 保险     |
+| 招商银行 | 600036 | 银行     |
+| 工商银行 | 601398 | 银行     |
+| 中芯国际 | 688981 | 半导体   |
+| 隆基绿能 | 601012 | 光伏     |
+| 药明康德 | 603259 | 医药     |
+| 中国中免 | 601888 | 免税     |
+| 东方财富 | 300059 | 券商     |
+| 海康威视 | 002415 | 安防     |
+| 五粮液   | 000858 | 白酒     |
+| 恒瑞医药 | 600276 | 医药     |
+| 中信证券 | 600030 | 券商     |
 
 ---
 
@@ -313,7 +341,7 @@
 1. **数据来源**: 东方财富免费 API (同 AKShare 底层数据源)
 2. **更新频率**: 盘中实时更新，收盘后每日更新
 3. **交易时间**: A股 9:30-11:30, 13:00-15:00
-4. **涨跌限制**: 
+4. **涨跌限制**:
    - 主板: ±10%
    - 科创板/创业板: ±20%
    - ST股票: ±5%

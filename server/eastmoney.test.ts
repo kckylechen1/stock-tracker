@@ -94,11 +94,11 @@ describe("Eastmoney API", () => {
     } as any);
 
     const results = await eastmoney.searchStock("茅台");
-    
+
     expect(results).toBeDefined();
     expect(Array.isArray(results)).toBe(true);
     expect(results.length).toBeGreaterThan(0);
-    
+
     // 应该包含贵州茅台
     const maotai = results.find((stock: any) => stock.code === "600519");
     expect(maotai).toBeDefined();
@@ -118,11 +118,11 @@ describe("Eastmoney API", () => {
     } as any);
 
     const klines = await eastmoney.getKlineData("600519", "day");
-    
+
     expect(klines).toBeDefined();
     expect(Array.isArray(klines)).toBe(true);
     expect(klines.length).toBeGreaterThan(0);
-    
+
     // 检查数据结构
     const firstKline = klines[0];
     expect(firstKline).toHaveProperty("date");

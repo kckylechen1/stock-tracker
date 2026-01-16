@@ -19,7 +19,12 @@ export type FileContent = {
   type: "file_url";
   file_url: {
     url: string;
-    mime_type?: "audio/mpeg" | "audio/wav" | "application/pdf" | "audio/mp4" | "video/mp4";
+    mime_type?:
+      | "audio/mpeg"
+      | "audio/wav"
+      | "application/pdf"
+      | "audio/mp4"
+      | "video/mp4";
   };
 };
 
@@ -283,7 +288,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   // 根据是否开启深度思考选择模型
   const model = useThinking
-    ? "deepseek-ai/DeepSeek-R1"  // 深度思考模式用 R1
+    ? "deepseek-ai/DeepSeek-R1" // 深度思考模式用 R1
     : "deepseek-ai/DeepSeek-V3"; // 普通模式用 V3
 
   const payload: Record<string, unknown> = {

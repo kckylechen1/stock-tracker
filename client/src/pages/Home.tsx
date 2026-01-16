@@ -2,9 +2,30 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Search, Plus, Trash2, X, PanelRightOpen, PanelRightClose, MessageCircle, ChevronLeft, TrendingUp, Activity, Lightbulb } from "lucide-react";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Search,
+  Plus,
+  Trash2,
+  X,
+  PanelRightOpen,
+  PanelRightClose,
+  MessageCircle,
+  ChevronLeft,
+  TrendingUp,
+  Activity,
+  Lightbulb,
+} from "lucide-react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useIsLargeScreen, useIsMobileScreen } from "@/hooks";
@@ -19,7 +40,7 @@ function StockTab({
   code,
   isSelected,
   onSelect,
-  onClose
+  onClose,
 }: {
   code: string;
   isSelected: boolean;
@@ -36,10 +57,11 @@ function StockTab({
   return (
     <div
       onClick={onSelect}
-      className={`group relative flex items-center justify-center min-w-[120px] px-6 h-full border-r border-border cursor-pointer transition-colors shrink-0 ${isSelected
-        ? 'bg-background text-foreground border-b-2 border-b-primary'
-        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-        }`}
+      className={`group relative flex items-center justify-center min-w-[120px] px-6 h-full border-r border-border cursor-pointer transition-colors shrink-0 ${
+        isSelected
+          ? "bg-background text-foreground border-b-2 border-b-primary"
+          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+      }`}
     >
       <span className="text-sm truncate max-w-[100px] text-center">{name}</span>
       <button
@@ -57,14 +79,19 @@ export default function Home() {
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
 
   // 股票列表显示模式: 'percent' | 'amount' | '5day'
-  const [displayMode, setDisplayMode] = useState<'percent' | 'amount' | '5day'>('percent');
+  const [displayMode, setDisplayMode] = useState<"percent" | "amount" | "5day">(
+    "percent"
+  );
 
   // 响应式屏幕检测
   const isLargeScreen = useIsLargeScreen();
   const isMobile = useIsMobileScreen();
 
   // 拖拽删除状态
-  const [draggingStock, setDraggingStock] = useState<{ code: string, id: number } | null>(null);
+  const [draggingStock, setDraggingStock] = useState<{
+    code: string;
+    id: number;
+  } | null>(null);
   const [isOverTrash, setIsOverTrash] = useState(false);
 
   // 已打开的股票标签列表 (只存储 code)
@@ -85,7 +112,7 @@ export default function Home() {
   // 键盘快捷键：⌘+I 切换 AI 面板
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+      if ((e.metaKey || e.ctrlKey) && e.key === "i") {
         e.preventDefault();
         if (isRightPanelCollapsed) {
           rightPanelRef.current?.expand();
@@ -94,12 +121,16 @@ export default function Home() {
         }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isRightPanelCollapsed]);
 
   // 获取观察池列表
-  const { data: watchlist, isLoading, refetch } = trpc.watchlist.list.useQuery();
+  const {
+    data: watchlist,
+    isLoading,
+    refetch,
+  } = trpc.watchlist.list.useQuery();
 
   // 搜索股票 - 使用query
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -119,13 +150,14 @@ export default function Home() {
   }, [searchKeyword]);
 
   // 使用tRPC query进行搜索
-  const { data: searchData, isFetching: isSearching } = trpc.stocks.search.useQuery(
-    { keyword: debouncedKeyword },
-    {
-      enabled: debouncedKeyword.length > 0,
-      staleTime: 30000,
-    }
-  );
+  const { data: searchData, isFetching: isSearching } =
+    trpc.stocks.search.useQuery(
+      { keyword: debouncedKeyword },
+      {
+        enabled: debouncedKeyword.length > 0,
+        staleTime: 30000,
+      }
+    );
 
   // 当搜索数据变化时更新结果
   useEffect(() => {
@@ -136,7 +168,7 @@ export default function Home() {
 
   // 添加到观察池
   const addMutation = trpc.watchlist.add.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       if (data.success) {
         refetch();
         setSearchResults([]);
@@ -154,7 +186,9 @@ export default function Home() {
     onSuccess: () => {
       refetch();
       if (selectedStock) {
-        const stillExists = watchlist?.some(item => item.stockCode === selectedStock);
+        const stillExists = watchlist?.some(
+          item => item.stockCode === selectedStock
+        );
         if (!stillExists) {
           setSelectedStock(null);
         }
@@ -176,39 +210,45 @@ export default function Home() {
   // 切换显示模式
   const handleToggleDisplayMode = () => {
     setDisplayMode(prev =>
-      prev === 'percent' ? 'amount' : prev === 'amount' ? '5day' : 'percent'
+      prev === "percent" ? "amount" : prev === "amount" ? "5day" : "percent"
     );
   };
 
   // 选择股票并添加到标签页
-  const handleSelectStock = useCallback((code: string) => {
-    setSelectedStock(code);
+  const handleSelectStock = useCallback(
+    (code: string) => {
+      setSelectedStock(code);
 
-    // 检查是否已经在标签页中
-    if (!openedTabs.includes(code)) {
-      setOpenedTabs(prev => [...prev, code]);
-    }
-  }, [openedTabs]);
+      // 检查是否已经在标签页中
+      if (!openedTabs.includes(code)) {
+        setOpenedTabs(prev => [...prev, code]);
+      }
+    },
+    [openedTabs]
+  );
 
   // 关闭标签页
-  const handleCloseTab = useCallback((code: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleCloseTab = useCallback(
+    (code: string, e: React.MouseEvent) => {
+      e.stopPropagation();
 
-    setOpenedTabs(prev => {
-      const newTabs = prev.filter(tab => tab !== code);
+      setOpenedTabs(prev => {
+        const newTabs = prev.filter(tab => tab !== code);
 
-      // 如果关闭的是当前选中的标签，切换到最后一个标签
-      if (selectedStock === code) {
-        if (newTabs.length > 0) {
-          setSelectedStock(newTabs[newTabs.length - 1]);
-        } else {
-          setSelectedStock(null);
+        // 如果关闭的是当前选中的标签，切换到最后一个标签
+        if (selectedStock === code) {
+          if (newTabs.length > 0) {
+            setSelectedStock(newTabs[newTabs.length - 1]);
+          } else {
+            setSelectedStock(null);
+          }
         }
-      }
 
-      return newTabs;
-    });
-  }, [selectedStock]);
+        return newTabs;
+      });
+    },
+    [selectedStock]
+  );
 
   // 切换标签页
   const handleSwitchTab = useCallback((code: string) => {
@@ -224,7 +264,11 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <span className="font-semibold text-foreground">自选股</span>
             <span className="text-xs text-muted-foreground">
-              {displayMode === 'percent' ? '涨跌幅' : displayMode === 'amount' ? '涨跌额' : '5日涨幅'}
+              {displayMode === "percent"
+                ? "涨跌幅"
+                : displayMode === "amount"
+                  ? "涨跌额"
+                  : "5日涨幅"}
             </span>
           </div>
           <ThemeToggle />
@@ -237,8 +281,8 @@ export default function Home() {
             <Input
               placeholder="搜索股票代码/名称"
               value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              onKeyDown={(e) => {
+              onChange={e => setSearchKeyword(e.target.value)}
+              onKeyDown={e => {
                 if (e.key === "Enter" && searchResults.length > 0) {
                   handleAddToWatchlist(searchResults[0].code);
                 }
@@ -250,7 +294,7 @@ export default function Home() {
           {/* 搜索结果 */}
           {searchResults.length > 0 && (
             <div className="mt-2 bg-popover border border-border rounded-lg overflow-hidden">
-              {searchResults.slice(0, 5).map((result) => (
+              {searchResults.slice(0, 5).map(result => (
                 <div
                   key={result.code}
                   className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer"
@@ -258,7 +302,9 @@ export default function Home() {
                 >
                   <div>
                     <div className="font-medium text-sm">{result.name}</div>
-                    <div className="text-xs text-muted-foreground">{result.code}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {result.code}
+                    </div>
                   </div>
                   <Plus className="h-4 w-4 text-muted-foreground" />
                 </div>
@@ -267,18 +313,20 @@ export default function Home() {
           )}
         </div>
 
-
-
         {/* 观察池列表 */}
         <div className="flex-1 overflow-auto">
           {isLoading ? (
-            <div className="p-4 text-center text-muted-foreground">加载中...</div>
+            <div className="p-4 text-center text-muted-foreground">
+              加载中...
+            </div>
           ) : watchlist && watchlist.length > 0 ? (
-            watchlist.map((item) => (
+            watchlist.map(item => (
               <div
                 key={item.id}
                 draggable
-                onDragStart={() => setDraggingStock({ code: item.stockCode, id: item.id })}
+                onDragStart={() =>
+                  setDraggingStock({ code: item.stockCode, id: item.id })
+                }
                 onDragEnd={() => {
                   if (isOverTrash && draggingStock) {
                     handleDeleteFromWatchlist(draggingStock.id);
@@ -286,14 +334,14 @@ export default function Home() {
                   setDraggingStock(null);
                   setIsOverTrash(false);
                 }}
-                className={`cursor-grab active:cursor-grabbing ${draggingStock?.code === item.stockCode ? 'opacity-50' : ''}`}
+                className={`cursor-grab active:cursor-grabbing ${draggingStock?.code === item.stockCode ? "opacity-50" : ""}`}
               >
                 <StockListItem
                   item={item}
                   isSelected={selectedStock === item.stockCode}
                   isEditMode={false}
                   onClick={() => handleSelectStock(item.stockCode)}
-                  onDelete={() => { }}
+                  onDelete={() => {}}
                   displayMode={displayMode}
                   onToggleDisplayMode={handleToggleDisplayMode}
                 />
@@ -311,7 +359,7 @@ export default function Home() {
 
         {/* 底部垃圾桶区域 */}
         <div
-          onDragOver={(e) => {
+          onDragOver={e => {
             e.preventDefault();
             setIsOverTrash(true);
           }}
@@ -323,17 +371,20 @@ export default function Home() {
             setDraggingStock(null);
             setIsOverTrash(false);
           }}
-          className={`p-4 border-t border-border flex items-center justify-center gap-2 transition-all duration-200 ${draggingStock
-            ? isOverTrash
-              ? 'bg-destructive/30 text-destructive scale-105'
-              : 'bg-destructive/10 text-destructive/70'
-            : 'bg-transparent text-muted-foreground/30'
-            }`}
+          className={`p-4 border-t border-border flex items-center justify-center gap-2 transition-all duration-200 ${
+            draggingStock
+              ? isOverTrash
+                ? "bg-destructive/30 text-destructive scale-105"
+                : "bg-destructive/10 text-destructive/70"
+              : "bg-transparent text-muted-foreground/30"
+          }`}
         >
-          <Trash2 className={`transition-transform duration-200 ${isOverTrash ? 'h-8 w-8' : 'h-5 w-5'}`} />
+          <Trash2
+            className={`transition-transform duration-200 ${isOverTrash ? "h-8 w-8" : "h-5 w-5"}`}
+          />
           {draggingStock && (
             <span className="text-sm font-medium">
-              {isOverTrash ? '松开删除' : '拖到此处删除'}
+              {isOverTrash ? "松开删除" : "拖到此处删除"}
             </span>
           )}
         </div>
@@ -348,13 +399,13 @@ export default function Home() {
               {/* 标签栏 */}
               {openedTabs.length > 0 && (
                 <div className="h-9 border-b border-border flex items-center bg-card/50 overflow-x-auto">
-                  {openedTabs.map((tabCode) => (
+                  {openedTabs.map(tabCode => (
                     <StockTab
                       key={tabCode}
                       code={tabCode}
                       isSelected={selectedStock === tabCode}
                       onSelect={() => handleSwitchTab(tabCode)}
-                      onClose={(e) => handleCloseTab(tabCode, e)}
+                      onClose={e => handleCloseTab(tabCode, e)}
                     />
                   ))}
                 </div>
@@ -363,7 +414,9 @@ export default function Home() {
               {/* 上半部分：K线图 + 筹码分布 + 技术指标 三栏显示 (占 65%) */}
               <div className="flex-[65] min-h-0 flex">
                 {/* K线图 - 在普通屏占满宽度，在宽屏(>=1600px)时占55% */}
-                <div className={`flex-1 min-w-[400px] 2xl:flex-[55] relative ${showSidePanels ? 'hidden 2xl:block' : ''}`}>
+                <div
+                  className={`flex-1 min-w-[400px] 2xl:flex-[55] relative ${showSidePanels ? "hidden 2xl:block" : ""}`}
+                >
                   {selectedStock ? (
                     <StockDetailPanel stockCode={selectedStock} />
                   ) : (
@@ -393,13 +446,20 @@ export default function Home() {
                   </button>
                 </div>
 
-
-
                 {/* 市场情绪 - Accordion 可折叠面板 */}
-                <div className={`${showSidePanels ? 'flex' : 'hidden'} 2xl:flex flex-[15] min-w-[160px] border-l border-border flex-col bg-card/30`}>
-                  <Accordion type="multiple" defaultValue={[]} className="flex-1 overflow-auto">
+                <div
+                  className={`${showSidePanels ? "flex" : "hidden"} 2xl:flex flex-[15] min-w-[160px] border-l border-border flex-col bg-card/30`}
+                >
+                  <Accordion
+                    type="multiple"
+                    defaultValue={[]}
+                    className="flex-1 overflow-auto"
+                  >
                     {/* 市场情绪 */}
-                    <AccordionItem value="sentiment" className="border-b border-border/50">
+                    <AccordionItem
+                      value="sentiment"
+                      className="border-b border-border/50"
+                    >
                       <AccordionTrigger className="px-3 py-2.5 text-sm font-semibold hover:no-underline hover:bg-accent/50">
                         <div className="flex items-center gap-2">
                           <Activity className="h-4 w-4 text-primary" />
@@ -407,30 +467,40 @@ export default function Home() {
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <MarketSentimentPanel selectedStock={selectedStock ?? undefined} />
+                        <MarketSentimentPanel
+                          selectedStock={selectedStock ?? undefined}
+                        />
                       </AccordionContent>
                     </AccordionItem>
 
                     {/* 热门股票排行榜 */}
-                    <AccordionItem value="topstocks" className="border-b border-border/50">
+                    <AccordionItem
+                      value="topstocks"
+                      className="border-b border-border/50"
+                    >
                       <AccordionTrigger className="px-3 py-2.5 text-sm font-semibold hover:no-underline hover:bg-accent/50">
                         <div className="flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4 text-green-500" />
+                          <TrendingUp className="h-4 w-4 text-orange-500" />
                           热门排行
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <TopStocksPanel onSelectStock={(code) => {
-                          setSelectedStock(code);
-                          if (!openedTabs.includes(code)) {
-                            setOpenedTabs([...openedTabs, code]);
-                          }
-                        }} />
+                        <TopStocksPanel
+                          onSelectStock={code => {
+                            setSelectedStock(code);
+                            if (!openedTabs.includes(code)) {
+                              setOpenedTabs([...openedTabs, code]);
+                            }
+                          }}
+                        />
                       </AccordionContent>
                     </AccordionItem>
 
                     {/* 操作建议 */}
-                    <AccordionItem value="suggestion" className="border-b border-border/50">
+                    <AccordionItem
+                      value="suggestion"
+                      className="border-b border-border/50"
+                    >
                       <AccordionTrigger className="px-3 py-2.5 text-sm font-semibold hover:no-underline hover:bg-accent/50">
                         <div className="flex items-center gap-2">
                           <Lightbulb className="h-4 w-4 text-yellow-500" />
@@ -453,7 +523,9 @@ export default function Home() {
                       className="w-full text-xs opacity-60 hover:opacity-100"
                       onClick={() => {
                         // 触发收起所有 accordion
-                        const accordionItems = document.querySelectorAll('[data-state="open"]');
+                        const accordionItems = document.querySelectorAll(
+                          '[data-state="open"]'
+                        );
                         accordionItems.forEach(item => {
                           (item as HTMLElement).click?.();
                         });
@@ -488,34 +560,54 @@ export default function Home() {
                       <div className="p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-accent/30 cursor-pointer transition-colors">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground line-clamp-2">新闻资讯功能即将上线...</p>
-                            <p className="text-xs text-muted-foreground mt-1">实时获取股票相关新闻、公告和研报</p>
+                            <p className="text-sm font-medium text-foreground line-clamp-2">
+                              新闻资讯功能即将上线...
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              实时获取股票相关新闻、公告和研报
+                            </p>
                           </div>
-                          <span className="text-xs text-muted-foreground shrink-0">即将推出</span>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            即将推出
+                          </span>
                         </div>
                       </div>
                       <div className="p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-accent/30 cursor-pointer transition-colors">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground line-clamp-2">趋势分析功能即将上线...</p>
-                            <p className="text-xs text-muted-foreground mt-1">技术指标、形态识别和趋势预测</p>
+                            <p className="text-sm font-medium text-foreground line-clamp-2">
+                              趋势分析功能即将上线...
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              技术指标、形态识别和趋势预测
+                            </p>
                           </div>
-                          <span className="text-xs text-muted-foreground shrink-0">即将推出</span>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            即将推出
+                          </span>
                         </div>
                       </div>
                       <div className="p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-accent/30 cursor-pointer transition-colors">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground line-clamp-2">情绪分析功能即将上线...</p>
-                            <p className="text-xs text-muted-foreground mt-1">市场情绪、资金流向和舆情监控</p>
+                            <p className="text-sm font-medium text-foreground line-clamp-2">
+                              情绪分析功能即将上线...
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              市场情绪、资金流向和舆情监控
+                            </p>
                           </div>
-                          <span className="text-xs text-muted-foreground shrink-0">即将推出</span>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            即将推出
+                          </span>
                         </div>
                       </div>
                     </div>
                   ) : (
                     <div className="h-full flex items-center justify-center">
-                      <p className="text-sm text-muted-foreground">请先选择股票查看相关资讯</p>
+                      <p className="text-sm text-muted-foreground">
+                        请先选择股票查看相关资讯
+                      </p>
                     </div>
                   )}
                 </div>
@@ -525,7 +617,10 @@ export default function Home() {
         </ResizablePanel>
 
         {/* 可拖拽分隔条 */}
-        <ResizableHandle withHandle className={isRightPanelCollapsed ? 'hidden' : ''} />
+        <ResizableHandle
+          withHandle
+          className={isRightPanelCollapsed ? "hidden" : ""}
+        />
 
         {/* 右侧 AI 聊天面板 - 可折叠 */}
         <ResizablePanel
@@ -537,7 +632,7 @@ export default function Home() {
           collapsedSize={0}
           onCollapse={() => setIsRightPanelCollapsed(true)}
           onExpand={() => setIsRightPanelCollapsed(false)}
-          className={isRightPanelCollapsed ? 'hidden' : ''}
+          className={isRightPanelCollapsed ? "hidden" : ""}
         >
           {/* 展开状态 - 完整的 AI 聊天面板 */}
           <div className="h-full min-w-[280px] flex flex-col border-l border-border bg-background overflow-hidden">
@@ -557,10 +652,16 @@ export default function Home() {
             className="group flex items-center gap-2 px-5 py-3 bg-card/90 backdrop-blur-md border border-border/60 rounded-full shadow-lg hover:shadow-xl hover:border-primary/40 hover:bg-card transition-all duration-200 cursor-pointer"
           >
             <MessageCircle className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">向 AI 助手提问...</span>
+            <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+              向 AI 助手提问...
+            </span>
             <div className="flex items-center gap-1 ml-2 text-xs text-muted-foreground/60">
-              <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono">⌘</kbd>
-              <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono">I</kbd>
+              <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono">
+                ⌘
+              </kbd>
+              <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono">
+                I
+              </kbd>
             </div>
           </button>
         </div>

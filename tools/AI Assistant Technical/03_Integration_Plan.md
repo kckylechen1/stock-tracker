@@ -33,6 +33,7 @@ product-summary.md              nlp-strategy-design.md          nlp-strategy-dev
 ### 融合点1: AI聊天系统 ↔ NLP策略引擎
 
 #### product-summary的定义
+
 ```
 功能1: 聊天界面
 - 与AI对话讨论股票
@@ -41,6 +42,7 @@ product-summary.md              nlp-strategy-design.md          nlp-strategy-dev
 ```
 
 #### nlp-strategy-design的补充
+
 ```
 在聊天中增加"策略意图识别"能力：
 - 普通问答：「比亚迪怎么看?」→ 一般QA Prompt
@@ -49,6 +51,7 @@ product-summary.md              nlp-strategy-design.md          nlp-strategy-dev
 ```
 
 #### 集成方案
+
 ```
 技术实现：
 1. 聊天消息到达 Mattermost
@@ -79,6 +82,7 @@ product-summary.md              nlp-strategy-design.md          nlp-strategy-dev
 ### 融合点2: Skill体系的统一设计
 
 #### product-summary的Skill定义
+
 ```
 3个内置Skill:
 - 龙头补涨监控（Builtin）
@@ -89,6 +93,7 @@ product-summary.md              nlp-strategy-design.md          nlp-strategy-dev
 ```
 
 #### nlp-strategy-design的Skill理论
+
 ```
 Skill是"已沉淀的可复用策略"：
 - 来源：用户真实使用 + 回测验证
@@ -103,6 +108,7 @@ Skill是"已沉淀的可复用策略"：
 ```
 
 #### 集成方案
+
 ```
 数据库设计：
 
@@ -212,14 +218,14 @@ Step 4: 前端展示（聊天面板中）
     [查看K线] [加入观察池] [为什么选这个]
  2️⃣ 紫光展锐 - 评分0.84 ⭐⭐
     ...
- 
+
  💡 这个条件很不错，建议保存为Skill以后复用吗？"
 
 Step 5: 用户交互
 選項1：点击"加入观察池"
   → 直接添加到观察池
   → 设置目标价、提醒条件
-  
+
 選項2：点击"为什么选这个"
   → 展示详细解释
   "中芯国际被选中的原因：
@@ -227,7 +233,7 @@ Step 5: 用户交互
    💰 资金面: 主力净流入3000万 ✓
    📈 其他指标: 量比1.2, 换手率2.1%
    整体评分: 0.89/1.00"
-  
+
 選項3：点击"保存为Skill"
   → 系统建议: "保存为【半导体主力买入监控】?"
   → 用户确认
@@ -248,7 +254,7 @@ Step 7: 记忆沉淀
   - 解析的因子组合（"板块过滤+资金过滤"）
   - 执行结果
   - 用户后续操作（买入/卖出）
-  
+
 定期分析：
   "您最近30天最常用的因子组合是：
    1. 板块过滤 (使用15次)
@@ -445,7 +451,7 @@ Step 7: 记忆沉淀
 
 ```
 【Phase 1: 基础框架】(第1-2周)
-├─ Week 1: 
+├─ Week 1:
 │  ├─ Prompt开发（意图识别+解析）
 │  ├─ 数据库表设计 (核心13个表)
 │  ├─ API路由基础 (tRPC定义)
@@ -504,14 +510,14 @@ strategy: {
   // 解析自然语言并执行扫描
   parseAndScan: .mutation({
     input: z.object({ userPrompt: z.string() }),
-    output: { 
-      intent, 
-      confidence, 
-      strategy_config, 
-      results 
+    output: {
+      intent,
+      confidence,
+      strategy_config,
+      results
     }
   }),
-  
+
   // 仅解析不执行
   parse: .query({
     input: z.object({ userPrompt: z.string() }),
@@ -566,7 +572,7 @@ chat: {
 ### 7.1 Docker Compose 配置
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   # 聊天系统（product-summary）
   mattermost:
@@ -626,25 +632,25 @@ volumes:
 
 ```javascript
 // Skill自动执行（node-cron）
-cron.schedule('0 14 * * 1-5', async () => {
+cron.schedule("0 14 * * 1-5", async () => {
   // 每个交易日下午2点
-  const skills = await db.skills.findMany({ 
-    enabled: true 
+  const skills = await db.skills.findMany({
+    enabled: true,
   });
-  
+
   for (const skill of skills) {
     await skillExecutor.run(skill.id);
   }
 });
 
 // 每日数据更新
-cron.schedule('0 3 * * *', async () => {
+cron.schedule("0 3 * * *", async () => {
   // 每晚3点更新历史数据
   await dataUpdater.updateHistoricalData();
 });
 
 // 定期回测更新
-cron.schedule('0 2 * * 0', async () => {
+cron.schedule("0 2 * * 0", async () => {
   // 每周日凌晨2点
   const skills = await db.skills.findMany();
   for (const skill of skills) {
@@ -657,19 +663,20 @@ cron.schedule('0 2 * * 0', async () => {
 
 ## 8. 风险评估和缓解方案
 
-| 风险 | 概率 | 影响 | 缓解方案 |
-|-----|------|------|---------|
-| LLM解析不准 | 中 | 高 | 增加结构化验证+用户确认环节 |
-| 扫描性能慢 | 低 | 中 | 增量计算+Redis缓存热因子 |
-| 板块数据缺失 | 低 | 中 | MVP降低优先级，先做价量因子 |
-| 并发问题 | 中 | 中 | 使用消息队列缓冲+分布式锁 |
-| 数据一致性 | 低 | 高 | 完整事务+定期数据验证 |
+| 风险         | 概率 | 影响 | 缓解方案                    |
+| ------------ | ---- | ---- | --------------------------- |
+| LLM解析不准  | 中   | 高   | 增加结构化验证+用户确认环节 |
+| 扫描性能慢   | 低   | 中   | 增量计算+Redis缓存热因子    |
+| 板块数据缺失 | 低   | 中   | MVP降低优先级，先做价量因子 |
+| 并发问题     | 中   | 中   | 使用消息队列缓冲+分布式锁   |
+| 数据一致性   | 低   | 高   | 完整事务+定期数据验证       |
 
 ---
 
 ## 9. 集成验收清单
 
 ### Phase 1验收
+
 - [ ] 聊天系统Webhook正常工作
 - [ ] 能识别意图（CREATE vs RUN vs QA）
 - [ ] 能生成strategy_config JSON
@@ -677,17 +684,20 @@ cron.schedule('0 2 * * 0', async () => {
 - [ ] 前端能展示结果
 
 ### Phase 2验收
+
 - [ ] Skill能保存和加载
 - [ ] Skill能手动执行
 - [ ] Skill管理面板正常
 - [ ] skill_runs记录完整
 
 ### Phase 3验收
+
 - [ ] 资金因子正确计算
 - [ ] 板块过滤正常工作
 - [ ] 综合评分合理
 
 ### Phase 4验收
+
 - [ ] 回测能在1分钟内完成
 - [ ] 回测结果准确
 - [ ] 记忆系统能提取关键信息
@@ -698,17 +708,20 @@ cron.schedule('0 2 * * 0', async () => {
 ## 10. 下一步行动
 
 ### 本周（1月8-12日）
+
 1. [ ] 技术方案评审
 2. [ ] 数据库初始化脚本
 3. [ ] Prompt初版测试
 4. [ ] 开发环境搭建
 
 ### 下周（1月15-19日）
+
 1. [ ] Phase 1实现和测试
 2. [ ] 内部测试版本发布
 3. [ ] 用户反馈收集
 
 ### 第三周（1月22-26日）
+
 1. [ ] Phase 2-3实现
 2. [ ] 完整功能集成
 3. [ ] 性能优化

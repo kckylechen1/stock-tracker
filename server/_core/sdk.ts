@@ -201,7 +201,7 @@ class SDKServer {
     cookieValue: string | undefined | null
   ): Promise<{ openId: string; appId: string; name: string } | null> {
     if (!cookieValue) {
-      console.warn("[Auth] Missing session cookie");
+      // 静默返回 null，避免在未配置 OAuth 时反复刷屏
       return null;
     }
 

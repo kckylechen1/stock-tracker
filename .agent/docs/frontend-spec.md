@@ -2,7 +2,7 @@
 
 **文档版本**: v1.0  
 **创建日期**: 2026-01-05  
-**用途**: 指导AI Agent（Cursor、v0.dev、Claude等）进行前端开发  
+**用途**: 指导AI Agent（Cursor、v0.dev、Claude等）进行前端开发
 
 ---
 
@@ -30,6 +30,7 @@
 一个**个人交易笔记 + 股票追踪 + OCR识别 + AI多维度分析 + K线图展示**的工作台。
 
 用户可以：
+
 - 📝 写交易笔记（支持Markdown）
 - 📷 上传截图自动识别股票代码
 - 📊 追踪关注的股票（实时价格、涨跌幅）
@@ -43,7 +44,7 @@
 ✅ **3个AI Agent**：技术分析、情绪分析、资金分析  
 ✅ **专业图表**：TradingView Lightweight Charts K线图  
 ✅ **极简UI**：卡片化设计、信息分层、响应式  
-✅ **高性能**：React优化、数据缓存、虚拟滚动  
+✅ **高性能**：React优化、数据缓存、虚拟滚动
 
 ### 用户价值
 
@@ -275,7 +276,7 @@ npm install date-fns lucide-react
 ```typescript
 interface StockChartProps {
   code: string;
-  period: 'day' | 'week' | 'month';
+  period: "day" | "week" | "month";
   onPeriodChange?: (period: string) => void;
 }
 ```
@@ -287,22 +288,22 @@ const chartOptions = {
   width: containerWidth,
   height: 400,
   layout: {
-    background: { color: '#ffffff' },
-    textColor: '#333333',
+    background: { color: "#ffffff" },
+    textColor: "#333333",
   },
   grid: {
-    vertLines: { color: '#f0f0f0' },
-    horzLines: { color: '#f0f0f0' },
+    vertLines: { color: "#f0f0f0" },
+    horzLines: { color: "#f0f0f0" },
   },
 };
 
 // A股：涨绿跌红
 const candlestickOptions = {
-  upColor: '#22c55e',
-  downColor: '#ef4444',
+  upColor: "#22c55e",
+  downColor: "#ef4444",
   borderVisible: false,
-  wickUpColor: '#22c55e',
-  wickDownColor: '#ef4444',
+  wickUpColor: "#22c55e",
+  wickDownColor: "#ef4444",
 };
 ```
 
@@ -344,23 +345,23 @@ Response:
 ```typescript
 interface AgentAnalysis {
   technical: {
-    score: number;           // 0-100
-    signals: string[];       // ["突破60日均线", "MACD金叉"]
+    score: number; // 0-100
+    signals: string[]; // ["突破60日均线", "MACD金叉"]
   };
   sentiment: {
     score: number;
-    heatRank: number;        // 雪球排名
+    heatRank: number; // 雪球排名
     discussionCount: number;
-    bullishRatio: number;    // 看多比例
+    bullishRatio: number; // 看多比例
   };
   capital: {
     score: number;
-    netInflow: number;       // 主力净流入（元）
-    northbound: string;      // "持续买入"
-    turnoverRate: number;    // 换手率
+    netInflow: number; // 主力净流入（元）
+    northbound: string; // "持续买入"
+    turnoverRate: number; // 换手率
   };
-  summary: string;           // 综合建议
-  updatedAt: string;         // 更新时间
+  summary: string; // 综合建议
+  updatedAt: string; // 更新时间
 }
 ```
 
@@ -405,21 +406,21 @@ caption: 12px                // 说明文字
 ```css
 .stock-card {
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
   border-left: 4px solid transparent;
 }
 
 .stock-card.up {
-  border-left-color: #22C55E;
+  border-left-color: #22c55e;
 }
 
 .stock-card.down {
-  border-left-color: #EF4444;
+  border-left-color: #ef4444;
 }
 
 .stock-card:hover {
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
 ```
@@ -427,6 +428,7 @@ caption: 12px                // 说明文字
 ### 动画效果
 
 使用 Framer Motion：
+
 - 页面切换：淡入淡出
 - 卡片加载：从下往上滑入
 - 删除操作：向右滑出
@@ -442,38 +444,38 @@ caption: 12px                // 说明文字
 // 股票数据
 interface Stock {
   id: string;
-  code: string;              // 6位股票代码
-  name: string;              // 股票名称
-  market: 'SH' | 'SZ';
-  price: number;             // 当前价格
-  changeAmount: number;      // 涨跌额
-  changePercent: number;     // 涨跌幅
-  open: number;              // 开盘价
-  high: number;              // 最高价
-  low: number;               // 最低价
-  volume: number;            // 成交量（手）
-  amount: number;            // 成交额（元）
-  turnoverRate: number;      // 换手率
-  addedAt: string;           // 添加时间
-  source: 'manual' | 'ocr' | 'note';
-  note?: string;             // 用户备注
-  group: 'watching' | 'holding' | 'sold';
+  code: string; // 6位股票代码
+  name: string; // 股票名称
+  market: "SH" | "SZ";
+  price: number; // 当前价格
+  changeAmount: number; // 涨跌额
+  changePercent: number; // 涨跌幅
+  open: number; // 开盘价
+  high: number; // 最高价
+  low: number; // 最低价
+  volume: number; // 成交量（手）
+  amount: number; // 成交额（元）
+  turnoverRate: number; // 换手率
+  addedAt: string; // 添加时间
+  source: "manual" | "ocr" | "note";
+  note?: string; // 用户备注
+  group: "watching" | "holding" | "sold";
 }
 
 // 笔记数据
 interface Note {
   id: string;
-  content: string;           // Markdown内容
+  content: string; // Markdown内容
   createdAt: string;
   updatedAt: string;
-  images?: string[];         // 图片URL
+  images?: string[]; // 图片URL
   mentionedStocks: string[]; // 提及的股票代码
   tags?: string[];
 }
 
 // K线数据
 interface Kline {
-  time: string;              // 'YYYY-MM-DD'
+  time: string; // 'YYYY-MM-DD'
   open: number;
   high: number;
   low: number;
@@ -512,7 +514,7 @@ interface StockStore {
   stocks: Stock[];
   selectedStock: Stock | null;
   loading: boolean;
-  
+
   addStock: (stock: Stock) => void;
   removeStock: (id: string) => void;
   updateStock: (id: string, data: Partial<Stock>) => void;
@@ -525,7 +527,7 @@ interface StockStore {
 interface NoteStore {
   notes: Note[];
   currentNote: Note | null;
-  
+
   createNote: (content: string) => Promise<void>;
   updateNote: (id: string, content: string) => void;
   deleteNote: (id: string) => void;
@@ -792,11 +794,13 @@ xl: 1280px  // 桌面
 ### 移动端适配（<768px）
 
 **布局调整**：
+
 - 左右双栏 → 单栏
 - Notes和Tracker用Tab切换
 - 底部固定操作栏
 
 **交互调整**：
+
 - 触摸手势（滑动删除）
 - K线图双指缩放
 - 下拉刷新
@@ -884,14 +888,14 @@ export function formatTime(date: string): string {
 
 ```javascript
 try {
-  const res = await axios.get('/api/stocks/002594');
+  const res = await axios.get("/api/stocks/002594");
 } catch (error) {
   if (error.response?.status === 404) {
-    toast.error('股票不存在');
+    toast.error("股票不存在");
   } else if (error.response?.status === 500) {
-    toast.error('服务器错误');
+    toast.error("服务器错误");
   } else {
-    toast.error('网络错误');
+    toast.error("网络错误");
   }
 }
 ```
@@ -913,11 +917,12 @@ try {
 ✅ **3个AI Agent** - 技术面、情绪面、资金面分析  
 ✅ **TradingView K线图** - 专业图表展示  
 ✅ **极简UI** - 卡片化、信息分层、响应式  
-✅ **高性能** - React优化、数据缓存  
+✅ **高性能** - React优化、数据缓存
 
 ### 开发进度 (2026-01-06)
 
 **已完成**：
+
 - ✅ 三栏布局（自选股320px + 中间区域 + AI助手620px）
 - ✅ 股票标签页（多股票快速切换）
 - ✅ K线图集成（分时/日K/周K/月K）
@@ -927,6 +932,7 @@ try {
 - ✅ 筹码分布面板（占位）
 
 **待实现**：
+
 - 📍 筹码分布功能对接API
 - 📍 资金指标对接真实API
 - 📍 市场情绪指标对接
@@ -944,6 +950,7 @@ try {
 ### 输出期望
 
 **AI Agent应该生成**：
+
 - ✅ 完整的项目文件结构
 - ✅ 核心组件代码（带注释）
 - ✅ API调用封装

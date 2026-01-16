@@ -53,65 +53,62 @@ const SYSTEM_PROMPT = `你是"小A"，一个专业的A股分析师AI助手。
 4. 不要说废话套话`;
 
 // 测试模型
-const MODELS = [
-    "deepseek-ai/DeepSeek-V3",
-    "Qwen/Qwen2.5-72B-Instruct"
-];
+const MODELS = ["deepseek-ai/DeepSeek-V3", "Qwen/Qwen2.5-72B-Instruct"];
 
 async function testModel(model: string): Promise<string> {
-    const startTime = Date.now();
+  const startTime = Date.now();
 
-    const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${API_KEY}`,
-        },
-        body: JSON.stringify({
-            model,
-            messages: [
-                { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: TEST_QUESTION }
-            ],
-            max_tokens: 2000,
-            temperature: 0.7,
-        }),
-    });
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${API_KEY}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: TEST_QUESTION },
+      ],
+      max_tokens: 2000,
+      temperature: 0.7,
+    }),
+  });
 
-    const data = await response.json();
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  const data = await response.json();
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    if (data.error) {
-        return `❌ 错误: ${data.error.message}`;
-    }
+  if (data.error) {
+    return `❌ 错误: ${data.error.message}`;
+  }
 
-    const content = data.choices?.[0]?.message?.content || "无内容";
-    return `⏱️ 耗时: ${elapsed}s\n\n${content}`;
+  const content = data.choices?.[0]?.message?.content || "无内容";
+  return `⏱️ 耗时: ${elapsed}s\n\n${content}`;
 }
 
 async function main() {
-    console.log("=".repeat(60));
-    console.log("🔬 模型对比测试");
-    console.log("=".repeat(60));
-    console.log("\n📝 测试问题摘要:");
-    console.log("用户今天买了新易盛亏了，问早上有没有信号，应该止损还是持有？\n");
+  console.log("=".repeat(60));
+  console.log("🔬 模型对比测试");
+  console.log("=".repeat(60));
+  console.log("\n📝 测试问题摘要:");
+  console.log("用户今天买了新易盛亏了，问早上有没有信号，应该止损还是持有？\n");
 
-    for (const model of MODELS) {
-        console.log("\n" + "─".repeat(60));
-        console.log(`🤖 模型: ${model}`);
-        console.log("─".repeat(60));
+  for (const model of MODELS) {
+    console.log("\n" + "─".repeat(60));
+    console.log(`🤖 模型: ${model}`);
+    console.log("─".repeat(60));
 
-        try {
-            const result = await testModel(model);
-            console.log(result);
-        } catch (error: any) {
-            console.log(`❌ 请求失败: ${error.message}`);
-        }
+    try {
+      const result = await testModel(model);
+      console.log(result);
+    } catch (error: any) {
+      console.log(`❌ 请求失败: ${error.message}`);
     }
+  }
 
-    console.log("\n" + "=".repeat(60));
-    console.log("📊 对比完成，请评判哪个回答更好！");
-    console.log("=".repeat(60));
+  console.log("\n" + "=".repeat(60));
+  console.log("📊 对比完成，请评判哪个回答更好！");
+  console.log("=".repeat(60));
 }
 
 main();

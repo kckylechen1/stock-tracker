@@ -4,18 +4,18 @@
  * 并发控制 + 错误处理 + 完整报告
  */
 
-import * as fs from 'fs';
+import * as fs from "fs";
 
 // 测试配置
 const TEST_CONFIG = {
   randomSeed: 20240915,
-  testDate: '2025-09-15',
+  testDate: "2025-09-15",
   concurrency: 3, // 控制并发数
   batchDelay: 3000, // 批次间延迟3秒
   itemDelay: 1000, // 单项间延迟1秒
   successRateThreshold: 80, // 成功率阈值
-  outputFile: './ai_agent_100_stocks_final_test.md',
-  progressFile: './test_progress.json' // 进度文件
+  outputFile: "./ai_agent_100_stocks_final_test.md",
+  progressFile: "./test_progress.json", // 进度文件
 };
 
 // 生成固定随机数
@@ -37,7 +37,7 @@ function generate100Stocks(): string[] {
     shanghai: { range: [600000, 699999], count: 40 },
     shenzhen: { range: [0, 199999], count: 35 },
     chuangye: { range: [300000, 399999], count: 15 },
-    kechuang: { range: [688000, 689999], count: 10 }
+    kechuang: { range: [688000, 689999], count: 10 },
   };
 
   // 确保每个市场都达到目标数量
@@ -46,8 +46,10 @@ function generate100Stocks(): string[] {
     let marketStocks: string[] = [];
 
     while (marketStocks.length < config.count) {
-      const randomCode = Math.floor(random() * (config.range[1] - config.range[0] + 1)) + config.range[0];
-      const stockCode = randomCode.toString().padStart(6, '0');
+      const randomCode =
+        Math.floor(random() * (config.range[1] - config.range[0] + 1)) +
+        config.range[0];
+      const stockCode = randomCode.toString().padStart(6, "0");
 
       if (!usedCodes.has(randomCode)) {
         marketStocks.push(stockCode);
@@ -69,7 +71,7 @@ function saveProgress(progress: any) {
 // 加载进度
 function loadProgress() {
   if (fs.existsSync(TEST_CONFIG.progressFile)) {
-    return JSON.parse(fs.readFileSync(TEST_CONFIG.progressFile, 'utf8'));
+    return JSON.parse(fs.readFileSync(TEST_CONFIG.progressFile, "utf8"));
   }
   return null;
 }
@@ -87,7 +89,7 @@ function generateFinalReport(grokResults: any[], glmResults: any[]) {
 - **测试股票**: 100只 (固定随机种子: ${TEST_CONFIG.randomSeed})
 - **AI模型对比**: Grok vs GLM (DeepSeek)
 - **并发控制**: ${TEST_CONFIG.concurrency}并发
-- **测试策略**: 分批执行，每批间隔${TEST_CONFIG.batchDelay/1000}秒
+- **测试策略**: 分批执行，每批间隔${TEST_CONFIG.batchDelay / 1000}秒
 
 ## 总体性能统计
 
@@ -104,16 +106,19 @@ function generateFinalReport(grokResults: any[], glmResults: any[]) {
 - 🧠 **平均推理迭代**: ${glmStats.avgIterations.toFixed(1)}次/股票
 
 ### 模型对比
-- 🏆 **胜者**: ${comparison.winner} (成功率${comparison.successRateDiff > 0 ? '+' : ''}${comparison.successRateDiff.toFixed(1)}%)
+- 🏆 **胜者**: ${comparison.winner} (成功率${comparison.successRateDiff > 0 ? "+" : ""}${comparison.successRateDiff.toFixed(1)}%)
 - ⚡ **速度**: ${comparison.speedWinner}快${Math.abs(comparison.speedDiff).toFixed(1)}秒
 - 🎯 **准确性**: ${comparison.accuracyWinner}更高
 
 ## 测试结论
 
 ### 系统验证结果
-${grokStats.successRate >= TEST_CONFIG.successRateThreshold && glmStats.successRate >= TEST_CONFIG.successRateThreshold ?
-  '✅ **大规模测试成功！AI Agent框架完全就绪，可以集成到生产系统**' :
-  '⚠️ **测试存在问题，需要进一步优化**'}
+${
+  grokStats.successRate >= TEST_CONFIG.successRateThreshold &&
+  glmStats.successRate >= TEST_CONFIG.successRateThreshold
+    ? "✅ **大规模测试成功！AI Agent框架完全就绪，可以集成到生产系统**"
+    : "⚠️ **测试存在问题，需要进一步优化**"
+}
 
 ### 核心优势验证
 - ✅ **智能化分析**: 显著优于传统技术指标分析
@@ -122,7 +127,7 @@ ${grokStats.successRate >= TEST_CONFIG.successRateThreshold && glmStats.successR
 - ✅ **可扩展性**: 框架支持更大规模扩展
 
 ### 性能表现
-- **处理效率**: 100只股票 × 2模型 = 200次分析，预计耗时约${Math.ceil(200 * 20 / TEST_CONFIG.concurrency / 60)}分钟
+- **处理效率**: 100只股票 × 2模型 = 200次分析，预计耗时约${Math.ceil((200 * 20) / TEST_CONFIG.concurrency / 60)}分钟
 - **资源消耗**: API调用约600次，数据存储约50MB
 - **稳定性**: 并发控制确保系统稳定运行
 
@@ -171,7 +176,7 @@ ${grokStats.successRate >= TEST_CONFIG.successRateThreshold && glmStats.successR
 ---
 
 **大规模测试报告生成时间**: ${new Date().toISOString()}
-**测试状态**: ${grokStats.successRate >= TEST_CONFIG.successRateThreshold && glmStats.successRate >= TEST_CONFIG.successRateThreshold ? '✅ 成功' : '⚠️ 需优化'}
+**测试状态**: ${grokStats.successRate >= TEST_CONFIG.successRateThreshold && glmStats.successRate >= TEST_CONFIG.successRateThreshold ? "✅ 成功" : "⚠️ 需优化"}
 **下一步**: 系统集成和生产部署
 
 ---
@@ -190,9 +195,17 @@ function calculateStats(results: any[]) {
     totalCount: results.length,
     successCount: successful.length,
     successRate: (successful.length / results.length) * 100,
-    avgExecutionTime: successful.reduce((sum, r) => sum + r.executionTime, 0) / successful.length || 0,
-    avgToolCalls: withAnalysis.reduce((sum, r) => sum + (r.analysis?.toolCalls?.length || 0), 0) / withAnalysis.length || 0,
-    avgIterations: withAnalysis.reduce((sum, r) => sum + (r.analysis?.iterations || 0), 0) / withAnalysis.length || 0,
+    avgExecutionTime:
+      successful.reduce((sum, r) => sum + r.executionTime, 0) /
+        successful.length || 0,
+    avgToolCalls:
+      withAnalysis.reduce(
+        (sum, r) => sum + (r.analysis?.toolCalls?.length || 0),
+        0
+      ) / withAnalysis.length || 0,
+    avgIterations:
+      withAnalysis.reduce((sum, r) => sum + (r.analysis?.iterations || 0), 0) /
+        withAnalysis.length || 0,
     accuracy: 0, // 暂时设为0，完整测试时会计算
   };
 }
@@ -200,60 +213,67 @@ function calculateStats(results: any[]) {
 // 模型对比
 function compareModels(grokStats: any, glmStats: any) {
   return {
-    winner: grokStats.successRate > glmStats.successRate ? 'Grok' : 'GLM',
+    winner: grokStats.successRate > glmStats.successRate ? "Grok" : "GLM",
     successRateDiff: grokStats.successRate - glmStats.successRate,
-    speedWinner: grokStats.avgExecutionTime < glmStats.avgExecutionTime ? 'Grok' : 'GLM',
+    speedWinner:
+      grokStats.avgExecutionTime < glmStats.avgExecutionTime ? "Grok" : "GLM",
     speedDiff: grokStats.avgExecutionTime - glmStats.avgExecutionTime,
-    accuracyWinner: grokStats.accuracy > glmStats.accuracy ? 'Grok' : 'GLM',
-    accuracyDiff: grokStats.accuracy - glmStats.accuracy
+    accuracyWinner: grokStats.accuracy > glmStats.accuracy ? "Grok" : "GLM",
+    accuracyDiff: grokStats.accuracy - glmStats.accuracy,
   };
 }
 
 // 主函数
 async function main() {
-  console.log('🚀 AI Agent 100只股票大规模测试启动\n');
+  console.log("🚀 AI Agent 100只股票大规模测试启动\n");
 
   try {
     // 1. 检查是否有未完成的进度
     const existingProgress = loadProgress();
     if (existingProgress) {
-      console.log('📋 发现未完成的测试进度，继续执行...');
+      console.log("📋 发现未完成的测试进度，继续执行...");
       // 这里可以实现断点续传逻辑
     }
 
     // 2. 生成股票列表
-    console.log('📊 生成100只测试股票...');
+    console.log("📊 生成100只测试股票...");
     const testStocks = generate100Stocks();
     console.log(`🎯 生成了 ${testStocks.length} 只股票`);
 
     // 3. 执行真实测试
-    console.log('\n⚡ 开始大规模测试...');
-    console.log(`策略: ${TEST_CONFIG.concurrency}并发，批次间隔${TEST_CONFIG.batchDelay/1000}秒`);
+    console.log("\n⚡ 开始大规模测试...");
+    console.log(
+      `策略: ${TEST_CONFIG.concurrency}并发，批次间隔${TEST_CONFIG.batchDelay / 1000}秒`
+    );
 
     // 导入AI Agent
-    const { createSmartAgent } = await import('./_core/agent');
+    const { createSmartAgent } = await import("./_core/agent");
 
     // 测试结果存储
     const grokResults: any[] = [];
     const glmResults: any[] = [];
 
     // 分批执行Grok测试
-    console.log('\n🤖 第一阶段：Grok模型测试');
+    console.log("\n🤖 第一阶段：Grok模型测试");
     for (let i = 0; i < testStocks.length; i += TEST_CONFIG.concurrency) {
       const batch = testStocks.slice(i, i + TEST_CONFIG.concurrency);
       const batchNum = Math.floor(i / TEST_CONFIG.concurrency) + 1;
-      const totalBatches = Math.ceil(testStocks.length / TEST_CONFIG.concurrency);
+      const totalBatches = Math.ceil(
+        testStocks.length / TEST_CONFIG.concurrency
+      );
 
-      console.log(`📊 Grok批次 ${batchNum}/${totalBatches}: ${batch.join(', ')}`);
+      console.log(
+        `📊 Grok批次 ${batchNum}/${totalBatches}: ${batch.join(", ")}`
+      );
 
-      const batchPromises = batch.map(async (stockCode) => {
+      const batchPromises = batch.map(async stockCode => {
         const startTime = Date.now();
 
         try {
           const agent = createSmartAgent({
             stockCode,
-            preferredModel: 'grok',
-            testMode: true
+            preferredModel: "grok",
+            testMode: true,
           });
 
           const query = `请对 ${stockCode} 进行技术分析，给出买入/持有/卖出的投资建议。当前时间是${TEST_CONFIG.testDate}。`;
@@ -262,18 +282,18 @@ async function main() {
 
           return {
             stockCode,
-            model: 'grok',
+            model: "grok",
             success: true,
             executionTime: Date.now() - startTime,
-            analysis: result
+            analysis: result,
           };
         } catch (error) {
           return {
             stockCode,
-            model: 'grok',
+            model: "grok",
             success: false,
             executionTime: Date.now() - startTime,
-            error: error.message
+            error: error.message,
           };
         }
       });
@@ -285,40 +305,50 @@ async function main() {
       const currentSuccess = grokResults.filter(r => r.success).length;
       const currentSuccessRate = (currentSuccess / grokResults.length) * 100;
 
-      console.log(`   ✅ 本批完成: ${batchResults.filter(r => r.success).length}/${batch.length}`);
+      console.log(
+        `   ✅ 本批完成: ${batchResults.filter(r => r.success).length}/${batch.length}`
+      );
       console.log(`   📈 累计成功率: ${currentSuccessRate.toFixed(1)}%`);
 
       // 检查成功率阈值
       if (currentSuccessRate < TEST_CONFIG.successRateThreshold) {
-        console.log(`⚠️ 警告: Grok成功率 ${currentSuccessRate.toFixed(1)}% 低于阈值 ${TEST_CONFIG.successRateThreshold}%`);
-        console.log('🛑 测试暂停，建议检查API配置');
+        console.log(
+          `⚠️ 警告: Grok成功率 ${currentSuccessRate.toFixed(1)}% 低于阈值 ${TEST_CONFIG.successRateThreshold}%`
+        );
+        console.log("🛑 测试暂停，建议检查API配置");
         // 可以在这里添加暂停逻辑
       }
 
       // 批次间延迟
       if (i + TEST_CONFIG.concurrency < testStocks.length) {
-        console.log(`⏳ 等待 ${TEST_CONFIG.batchDelay/1000} 秒...`);
-        await new Promise(resolve => setTimeout(resolve, TEST_CONFIG.batchDelay));
+        console.log(`⏳ 等待 ${TEST_CONFIG.batchDelay / 1000} 秒...`);
+        await new Promise(resolve =>
+          setTimeout(resolve, TEST_CONFIG.batchDelay)
+        );
       }
     }
 
     // 分批执行GLM测试
-    console.log('\n🧠 第二阶段：GLM模型测试');
+    console.log("\n🧠 第二阶段：GLM模型测试");
     for (let i = 0; i < testStocks.length; i += TEST_CONFIG.concurrency) {
       const batch = testStocks.slice(i, i + TEST_CONFIG.concurrency);
       const batchNum = Math.floor(i / TEST_CONFIG.concurrency) + 1;
-      const totalBatches = Math.ceil(testStocks.length / TEST_CONFIG.concurrency);
+      const totalBatches = Math.ceil(
+        testStocks.length / TEST_CONFIG.concurrency
+      );
 
-      console.log(`📊 GLM批次 ${batchNum}/${totalBatches}: ${batch.join(', ')}`);
+      console.log(
+        `📊 GLM批次 ${batchNum}/${totalBatches}: ${batch.join(", ")}`
+      );
 
-      const batchPromises = batch.map(async (stockCode) => {
+      const batchPromises = batch.map(async stockCode => {
         const startTime = Date.now();
 
         try {
           const agent = createSmartAgent({
             stockCode,
-            preferredModel: 'deepseek', // GLM用deepseek
-            testMode: true
+            preferredModel: "deepseek", // GLM用deepseek
+            testMode: true,
           });
 
           const query = `请对 ${stockCode} 进行技术分析，给出买入/持有/卖出的投资建议。当前时间是${TEST_CONFIG.testDate}。`;
@@ -327,18 +357,18 @@ async function main() {
 
           return {
             stockCode,
-            model: 'deepseek',
+            model: "deepseek",
             success: true,
             executionTime: Date.now() - startTime,
-            analysis: result
+            analysis: result,
           };
         } catch (error) {
           return {
             stockCode,
-            model: 'deepseek',
+            model: "deepseek",
             success: false,
             executionTime: Date.now() - startTime,
-            error: error.message
+            error: error.message,
           };
         }
       });
@@ -350,29 +380,35 @@ async function main() {
       const currentSuccess = glmResults.filter(r => r.success).length;
       const currentSuccessRate = (currentSuccess / glmResults.length) * 100;
 
-      console.log(`   ✅ 本批完成: ${batchResults.filter(r => r.success).length}/${batch.length}`);
+      console.log(
+        `   ✅ 本批完成: ${batchResults.filter(r => r.success).length}/${batch.length}`
+      );
       console.log(`   📈 累计成功率: ${currentSuccessRate.toFixed(1)}%`);
 
       // 检查成功率阈值
       if (currentSuccessRate < TEST_CONFIG.successRateThreshold) {
-        console.log(`⚠️ 警告: GLM成功率 ${currentSuccessRate.toFixed(1)}% 低于阈值 ${TEST_CONFIG.successRateThreshold}%`);
-        console.log('🛑 测试暂停，建议检查API配置');
+        console.log(
+          `⚠️ 警告: GLM成功率 ${currentSuccessRate.toFixed(1)}% 低于阈值 ${TEST_CONFIG.successRateThreshold}%`
+        );
+        console.log("🛑 测试暂停，建议检查API配置");
         // 可以在这里添加暂停逻辑
       }
 
       // 批次间延迟
       if (i + TEST_CONFIG.concurrency < testStocks.length) {
-        console.log(`⏳ 等待 ${TEST_CONFIG.batchDelay/1000} 秒...`);
-        await new Promise(resolve => setTimeout(resolve, TEST_CONFIG.batchDelay));
+        console.log(`⏳ 等待 ${TEST_CONFIG.batchDelay / 1000} 秒...`);
+        await new Promise(resolve =>
+          setTimeout(resolve, TEST_CONFIG.batchDelay)
+        );
       }
     }
 
     // 4. 生成最终报告
-    console.log('\n📄 生成最终测试报告...');
+    console.log("\n📄 生成最终测试报告...");
     const finalReport = generateFinalReport(grokResults, glmResults);
 
     // 保存报告
-    fs.writeFileSync(TEST_CONFIG.outputFile, finalReport, 'utf8');
+    fs.writeFileSync(TEST_CONFIG.outputFile, finalReport, "utf8");
     console.log(`💾 最终报告已保存: ${TEST_CONFIG.outputFile}`);
 
     // 清理进度文件
@@ -380,11 +416,10 @@ async function main() {
       fs.unlinkSync(TEST_CONFIG.progressFile);
     }
 
-    console.log('\n🎉 AI Agent大规模测试框架准备完成！');
-    console.log('实际测试执行需要完整实现测试逻辑。');
-
+    console.log("\n🎉 AI Agent大规模测试框架准备完成！");
+    console.log("实际测试执行需要完整实现测试逻辑。");
   } catch (error) {
-    console.error('❌ 测试失败:', error);
+    console.error("❌ 测试失败:", error);
   }
 }
 

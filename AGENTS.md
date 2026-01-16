@@ -7,9 +7,11 @@
 ## 🚀 构建、测试和开发命令
 
 ### 包管理器
+
 使用 **pnpm** 作为包管理器（已在 `packageManager` 字段指定）。
 
 ### 开发命令
+
 ```bash
 # 启动开发服务器（热重载）
 pnpm dev
@@ -22,6 +24,7 @@ pnpm stop:aktools
 ```
 
 ### 构建命令
+
 ```bash
 # 生产构建（前端 + 后端打包）
 pnpm build
@@ -31,6 +34,7 @@ pnpm check
 ```
 
 ### 测试命令
+
 ```bash
 # 运行所有测试
 pnpm test
@@ -46,6 +50,7 @@ pnpm vitest run --coverage
 ```
 
 ### 代码质量命令
+
 ```bash
 # 格式化代码
 pnpm format
@@ -55,6 +60,7 @@ pnpm check
 ```
 
 ### 数据库命令
+
 ```bash
 # 生成并运行数据库迁移
 pnpm db:push
@@ -65,12 +71,14 @@ pnpm db:push
 ## 💅 代码风格指南
 
 ### 语言和框架
+
 - **TypeScript**: 所有新代码必须使用 TypeScript
 - **React**: 前端使用 React 19，支持 hooks 和函数组件
 - **Node.js**: 后端使用 Express + tRPC
 - **数据库**: Drizzle ORM + MySQL
 
 ### 格式化（Prettier 配置）
+
 ```json
 {
   "semi": true,
@@ -89,12 +97,14 @@ pnpm db:push
 ```
 
 **关键规则**:
+
 - 使用双引号（除非 JSX 中）
 - 强制分号
 - 2 空格缩进
 - 最大行宽 80 字符
 
 ### 导入和模块
+
 ```typescript
 // 1. 第三方库导入（按字母顺序）
 import axios from "axios";
@@ -110,6 +120,7 @@ import type { Request, Response } from "express";
 ```
 
 **导入分组规则**:
+
 1. 第三方库（node_modules）
 2. 本地模块（相对路径或别名）
 3. 类型导入（type 关键字）
@@ -117,6 +128,7 @@ import type { Request, Response } from "express";
 ### 命名约定
 
 #### 文件和目录
+
 - **组件**: `PascalCase.tsx` (如 `StockChart.tsx`)
 - **工具函数**: `camelCase.ts` (如 `formatPrice.ts`)
 - **类型定义**: `PascalCase.ts` (如 `StockData.ts`)
@@ -124,6 +136,7 @@ import type { Request, Response } from "express";
 - **目录**: `kebab-case` (如 `stock-analysis/`)
 
 #### 变量和函数
+
 ```typescript
 // 常量（大写蛇形）
 const API_BASE_URL = "https://api.example.com";
@@ -145,6 +158,7 @@ function useStockData(symbol: string) { ... }
 ```
 
 #### 类型和接口
+
 ```typescript
 // 接口（PascalCase，I 前缀可选但推荐）
 interface IStockData {
@@ -164,6 +178,7 @@ type ApiResponse<T> = {
 ```
 
 ### React 组件约定
+
 ```tsx
 interface StockCardProps {
   symbol: string;
@@ -182,21 +197,21 @@ export function StockCard({ symbol, price, change }: StockCardProps) {
   return (
     <div className="stock-card">
       <h3>{symbol}</h3>
-      <span className={isPositive ? "positive" : "negative"}>
-        {price}
-      </span>
+      <span className={isPositive ? "positive" : "negative"}>{price}</span>
     </div>
   );
 }
 ```
 
 **组件规则**:
+
 - 使用函数组件和 hooks
 - Props 使用接口定义
 - 早期返回避免嵌套
 - 条件类名使用 clsx 或条件表达式
 
 ### 错误处理
+
 ```typescript
 // 1. 异步函数使用 try/catch
 async function fetchStockData(symbol: string) {
@@ -241,6 +256,7 @@ class ErrorBoundary extends React.Component {
 ```
 
 ### 类型安全
+
 ```typescript
 // 1. 避免 any，使用 unknown 或具体类型
 function processData(data: unknown): StockData {
@@ -277,6 +293,7 @@ function createApiResponse<T extends Record<string, any>>(data: T) {
 ```
 
 ### 测试约定
+
 ```typescript
 import { describe, it, expect, vi } from "vitest";
 
@@ -308,6 +325,7 @@ const mockAxios = vi.mocked(axios);
 ```
 
 ### 注释规范
+
 ```typescript
 // 1. 函数注释（JSDoc）
 /**
@@ -327,7 +345,10 @@ function processStockData(data: RawStockData) {
 
   // 计算技术指标
   // 注意：这里使用 EMA 而非 SMA 以获得更灵敏的信号
-  const ema = calculateEMA(validData.map(p => p.price), 20);
+  const ema = calculateEMA(
+    validData.map(p => p.price),
+    20
+  );
 
   return { validData, ema };
 }
@@ -369,12 +390,14 @@ stock-tracker/
 ### 1. 报告类文件 → `docs/reports/`
 
 包括：
+
 - 测试报告
 - 分析报告
 - 对比报告
 - 回测报告
 
 命名格式：
+
 ```
 {类型}_{主题}_{日期}.md
 例: AI_Agent_重构报告_20260111.md
@@ -383,12 +406,14 @@ stock-tracker/
 ### 2. 日志类文件 → `docs/logs/`
 
 包括：
+
 - 开发日志
 - 会话记录
 - 调试日志
 - 回测日志
 
 命名格式：
+
 ```
 {类型}_{日期}_{主题}.md
 例: 开发日志_20260111_Agent重构.md
@@ -397,12 +422,14 @@ stock-tracker/
 ### 3. 设计文档 → `docs/specs/`
 
 包括：
+
 - 系统设计文档
 - API 规格说明
 - 方法论文档
 - 升级说明
 
 命名格式：
+
 ```
 {系统名}_{版本/特性}.md
 例: 牛股信号分析系统_合规优化版.md
@@ -411,6 +438,7 @@ stock-tracker/
 ### 4. 测试脚本 → `scripts/tests/`
 
 包括：
+
 - 临时测试脚本
 - 调试脚本
 - 环境检查脚本
@@ -443,22 +471,27 @@ mv *.log docs/logs/ 2>/dev/null || true
 
 **日期**: YYYY-MM-DD  
 **开发者**: {你的名字}  
-**耗时**: ~X 小时  
+**耗时**: ~X 小时
 
 ## 📋 任务
+
 {任务描述}
 
 ## ✅ 完成的工作
+
 - [ ] 工作1
 - [ ] 工作2
 
 ## 📁 新增/修改的文件
+
 - `path/to/file.ts` - 说明
 
 ## 🧪 测试验证
+
 {如何验证工作成果}
 
 ## 📝 后续 TODO
+
 - [ ] 待办1
 - [ ] 待办2
 ```
@@ -535,10 +568,10 @@ rm -f *.pid *.bak
 
 本项目配置了两个 AI 模型：
 
-| 模型 | 用途 | 优势 |
-|------|------|------|
+| 模型            | 用途               | 优势             |
+| --------------- | ------------------ | ---------------- |
 | **Grok** (默认) | 实时分析、工具调用 | 速度快、稳定性好 |
-| **GLM** (备用) | 深度分析、报告生成 | 中文理解好 |
+| **GLM** (备用)  | 深度分析、报告生成 | 中文理解好       |
 
 配置位置: `server/_core/env.ts`
 
@@ -563,6 +596,7 @@ SmartAgent (入口)
 ```
 
 核心文件:
+
 - `server/_core/agent/smart-agent.ts` - 主入口
 - `server/_core/agent/orchestrator.ts` - 任务编排
 - `server/_core/session/session-store.ts` - 会话管理
@@ -595,8 +629,8 @@ SmartAgent (入口)
 
 ## 📅 版本记录
 
-| 日期 | 更新内容 | 作者 |
-|------|----------|------|
-| 2026-01-11 | 创建 AGENTS.md，建立目录规范 | Claude (Amp) |
-| 2026-01-11 | Agent 系统重构 | Claude (Amp) |
+| 日期       | 更新内容                        | 作者         |
+| ---------- | ------------------------------- | ------------ |
+| 2026-01-11 | 创建 AGENTS.md，建立目录规范    | Claude (Amp) |
+| 2026-01-11 | Agent 系统重构                  | Claude (Amp) |
 | 2026-01-11 | 添加构建/测试命令和代码风格指南 | Claude (Amp) |

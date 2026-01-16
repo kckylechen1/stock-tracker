@@ -14,6 +14,7 @@ docs/文档类型        # 文档更新
 ```
 
 **示例**：
+
 - `feature/ai-chat-streaming`
 - `fix/market-sentiment-loading`
 - `refactor/akshare-integration`
@@ -31,6 +32,7 @@ chore: 构建/配置相关
 ```
 
 **示例**：
+
 - `feat: 添加拖拽删除自选股功能`
 - `fix: 修复AI聊天流式响应中断`
 - `refactor: 重构市场情绪数据获取逻辑`
@@ -38,15 +40,18 @@ chore: 构建/配置相关
 ## 3. 文件命名
 
 ### React 组件
+
 - PascalCase: `StockListItem.tsx`, `AIChatPanel.tsx`
 - 组件放在对应功能目录下
 
 ### TypeScript 模块
+
 - camelCase: `eastmoney.ts`, `akshare.ts`
 - 工具函数: `xxxUtils.ts`
 - 类型定义: `types.ts` 或 `xxx.types.ts`
 
 ### 目录结构
+
 ```
 client/src/
 ├── components/
@@ -76,12 +81,14 @@ debug-guide.md                # 调试指南
 ## 5. 变量命名
 
 ### JavaScript/TypeScript
+
 - 变量/函数: camelCase (`stockCode`, `getMarketData`)
 - 常量: UPPER_SNAKE_CASE (`API_BASE_URL`, `MAX_RETRY_COUNT`)
 - 类/接口: PascalCase (`StockQuote`, `MarketSentiment`)
 - 布尔值: 使用 is/has/can 前缀 (`isLoading`, `hasError`)
 
 ### CSS 类名
+
 - 使用 Tailwind 时遵循 Tailwind 规范
 - 自定义类使用 kebab-case (`stock-list-item`, `ai-chat-panel`)
 

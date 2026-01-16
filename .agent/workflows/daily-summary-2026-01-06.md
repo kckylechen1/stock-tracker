@@ -5,6 +5,7 @@ description: 2026-01-06 工作日总结 - Stock Tracker UI 布局优化与资金
 # 📅 2026-01-06 工作日总结
 
 ## 🎯 今日目标
+
 优化 Stock Tracker 应用的 UI 布局，完善股票详情展示和资金指标。
 
 ---
@@ -14,6 +15,7 @@ description: 2026-01-06 工作日总结 - Stock Tracker UI 布局优化与资金
 ### 1. 主页面布局重构 (`Home.tsx`)
 
 **最终布局结构：**
+
 ```
 ┌─────────────┬────────────────┬──────────┬──────────┬─────────────┐
 │             │                │          │ 市场情绪 │             │
@@ -26,6 +28,7 @@ description: 2026-01-06 工作日总结 - Stock Tracker UI 布局优化与资金
 ```
 
 **布局组成：**
+
 - **左侧自选股列表**：固定宽度 320px
 - **中间区域**（flex-1 自适应）：
   - 上半部分 (65%)：K线图 + 筹码分布 + 市场情绪（三栏：60%/20%/20%）
@@ -47,6 +50,7 @@ description: 2026-01-06 工作日总结 - Stock Tracker UI 布局优化与资金
 ### 4. 股票详情面板优化 (`StockDetailPanel.tsx`)
 
 **交易数据行（新增资金指标）：**
+
 - 今开、昨收、最高、最低、成交量、成交额、换手率、市盈率、总市值、流通市值
 - **新增**：今日资金、主力净流入、资金排名、5日换手、量比
 
@@ -55,6 +59,7 @@ description: 2026-01-06 工作日总结 - Stock Tracker UI 布局优化与资金
 ### 5. 市场情绪面板（全市场宏观指标）
 
 **显示指标：**
+
 - 🎯 恐惧贪婪指数（带可视化进度条）
 - 🔥 市场温度（偏热/正常/偏冷）
 - 📊 今日涨跌（上涨/下跌家数及比例条）
@@ -74,18 +79,19 @@ description: 2026-01-06 工作日总结 - Stock Tracker UI 布局优化与资金
 
 ## 📁 主要修改的文件
 
-| 文件 | 修改内容 |
-|------|----------|
-| `client/src/pages/Home.tsx` | 完整布局重构、标签页功能、市场情绪面板 |
+| 文件                                               | 修改内容                               |
+| -------------------------------------------------- | -------------------------------------- |
+| `client/src/pages/Home.tsx`                        | 完整布局重构、标签页功能、市场情绪面板 |
 | `client/src/components/stock/StockDetailPanel.tsx` | 移除斐波那契、添加资金指标到交易数据行 |
-| `client/src/components/ai/AIChatPanel.tsx` | 添加思考时间计算逻辑 |
-| `client/src/components/AIChatBox.tsx` | 添加思考时间显示 UI |
+| `client/src/components/ai/AIChatPanel.tsx`         | 添加思考时间计算逻辑                   |
+| `client/src/components/AIChatBox.tsx`              | 添加思考时间显示 UI                    |
 
 ---
 
 ## 🔮 明日待办 / 后续规划
 
 ### 高优先级
+
 1. **筹码分布功能实现**
    - 对接筹码分布数据 API
    - 实现筹码分布可视化图表
@@ -101,6 +107,7 @@ description: 2026-01-06 工作日总结 - Stock Tracker UI 布局优化与资金
    - 北向资金、融资余额数据
 
 ### 中优先级
+
 4. **新闻资讯功能**
    - 对接股票新闻 API
    - 实现新闻列表展示
@@ -114,6 +121,7 @@ description: 2026-01-06 工作日总结 - Stock Tracker UI 布局优化与资金
    - 市场情绪监控
 
 ### 低优先级
+
 7. **界面微调**
    - 响应式布局优化
    - 移动端适配
@@ -123,6 +131,7 @@ description: 2026-01-06 工作日总结 - Stock Tracker UI 布局优化与资金
 ## 📌 技术备忘
 
 ### 当前技术栈
+
 - **前端**：React + TypeScript + Vite
 - **UI**：Tailwind CSS + shadcn/ui
 - **图表**：Lightweight Charts
@@ -130,12 +139,14 @@ description: 2026-01-06 工作日总结 - Stock Tracker UI 布局优化与资金
 - **AI**：流式聊天（支持 thinking 模式）
 
 ### 关键组件路径
+
 - 主页：`client/src/pages/Home.tsx`
 - 股票详情：`client/src/components/stock/StockDetailPanel.tsx`
 - AI 面板：`client/src/components/ai/AIChatPanel.tsx`
 - AI 聊天框：`client/src/components/AIChatBox.tsx`
 
 ### 启动命令
+
 ```bash
 cd /Users/kckylechen/Desktop/Stock\ Tracker/stock-tracker
 npm run dev
@@ -152,4 +163,4 @@ npm run dev
 
 ---
 
-*最后更新：2026-01-06 23:08*
+_最后更新：2026-01-06 23:08_

@@ -2,7 +2,23 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles, ArrowUp, Brain, Globe, Paperclip, Mic, Copy, ThumbsUp, ThumbsDown, RotateCcw, Zap, Square } from "lucide-react";
+import {
+  Loader2,
+  Send,
+  User,
+  Sparkles,
+  ArrowUp,
+  Brain,
+  Globe,
+  Paperclip,
+  Mic,
+  Copy,
+  ThumbsUp,
+  ThumbsDown,
+  RotateCcw,
+  Zap,
+  Square,
+} from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Streamdown } from "streamdown";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,17 +48,32 @@ const TypingIndicator = () => (
     <motion.div
       className="w-1.5 h-1.5 rounded-full bg-primary/70"
       animate={{ opacity: [0.4, 1, 0.4] }}
-      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0 }}
+      transition={{
+        duration: 1.2,
+        repeat: Infinity,
+        ease: "easeInOut",
+        delay: 0,
+      }}
     />
     <motion.div
       className="w-1.5 h-1.5 rounded-full bg-primary/70"
       animate={{ opacity: [0.4, 1, 0.4] }}
-      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+      transition={{
+        duration: 1.2,
+        repeat: Infinity,
+        ease: "easeInOut",
+        delay: 0.2,
+      }}
     />
     <motion.div
       className="w-1.5 h-1.5 rounded-full bg-primary/70"
       animate={{ opacity: [0.4, 1, 0.4] }}
-      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+      transition={{
+        duration: 1.2,
+        repeat: Infinity,
+        ease: "easeInOut",
+        delay: 0.4,
+      }}
     />
   </div>
 );
@@ -60,9 +91,17 @@ const AIAvatar = ({ isThinking = false }: { isThinking?: boolean }) => (
   <div className="relative">
     <motion.div
       className="size-9 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/20 backdrop-blur-sm"
-      animate={isThinking ? {
-        boxShadow: ["0 0 0 0 rgba(var(--primary), 0)", "0 0 20px 4px rgba(var(--primary), 0.3)", "0 0 0 0 rgba(var(--primary), 0)"]
-      } : {}}
+      animate={
+        isThinking
+          ? {
+              boxShadow: [
+                "0 0 0 0 rgba(var(--primary), 0)",
+                "0 0 20px 4px rgba(var(--primary), 0.3)",
+                "0 0 0 0 rgba(var(--primary), 0)",
+              ],
+            }
+          : {}
+      }
       transition={{ duration: 2, repeat: isThinking ? Infinity : 0 }}
     >
       <Zap className="size-4 text-primary" />
@@ -83,7 +122,11 @@ const UserAvatar = () => (
   </div>
 );
 
-const EmptyState = ({ message, prompts, onPromptClick }: {
+const EmptyState = ({
+  message,
+  prompts,
+  onPromptClick,
+}: {
   message: string;
   prompts?: string[];
   onPromptClick: (prompt: string) => void;
@@ -111,7 +154,11 @@ const EmptyState = ({ message, prompts, onPromptClick }: {
       <motion.div
         className="relative size-16 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center border border-primary/30 backdrop-blur-sm"
         animate={{
-          boxShadow: ["0 0 30px 0 rgba(var(--primary), 0.1)", "0 0 50px 10px rgba(var(--primary), 0.2)", "0 0 30px 0 rgba(var(--primary), 0.1)"]
+          boxShadow: [
+            "0 0 30px 0 rgba(var(--primary), 0.1)",
+            "0 0 50px 10px rgba(var(--primary), 0.2)",
+            "0 0 30px 0 rgba(var(--primary), 0.1)",
+          ],
         }}
         transition={{ duration: 3, repeat: Infinity }}
       >
@@ -172,13 +219,16 @@ export function AIChatBox({
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [feedbackIndex, setFeedbackIndex] = useState<{ index: number; type: 'up' | 'down' } | null>(null);
+  const [feedbackIndex, setFeedbackIndex] = useState<{
+    index: number;
+    type: "up" | "down";
+  } | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const displayMessages = messages.filter((msg) => msg.role !== "system");
+  const displayMessages = messages.filter(msg => msg.role !== "system");
 
   const [minHeightForLastMessage, setMinHeightForLastMessage] = useState(0);
 
@@ -188,7 +238,8 @@ export function AIChatBox({
       const inputHeight = inputAreaRef.current.offsetHeight;
       const scrollAreaHeight = containerHeight - inputHeight;
       const userMessageReservedHeight = 56;
-      const calculatedHeight = scrollAreaHeight - 32 - userMessageReservedHeight;
+      const calculatedHeight =
+        scrollAreaHeight - 32 - userMessageReservedHeight;
       setMinHeightForLastMessage(Math.max(0, calculatedHeight));
     }
   }, []);
@@ -202,14 +253,14 @@ export function AIChatBox({
 
   const scrollToBottom = () => {
     const viewport = scrollAreaRef.current?.querySelector(
-      '[data-radix-scroll-area-viewport]'
+      "[data-radix-scroll-area-viewport]"
     ) as HTMLDivElement;
 
     if (viewport) {
       requestAnimationFrame(() => {
         viewport.scrollTo({
           top: viewport.scrollHeight,
-          behavior: 'smooth'
+          behavior: "smooth",
         });
       });
     }
@@ -224,7 +275,7 @@ export function AIChatBox({
     setInput("");
 
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
     }
 
     scrollToBottom();
@@ -265,8 +316,13 @@ export function AIChatBox({
               <AnimatePresence>
                 {displayMessages.map((message, index) => {
                   const isLastMessage = index === displayMessages.length - 1;
-                  const isAssistantThinking = isLoading && isLastMessage && message.role === "assistant" && !message.content;
-                  const shouldApplyMinHeight = index === displayMessages.length - 1;
+                  const isAssistantThinking =
+                    isLoading &&
+                    isLastMessage &&
+                    message.role === "assistant" &&
+                    !message.content;
+                  const shouldApplyMinHeight =
+                    index === displayMessages.length - 1;
 
                   return (
                     <motion.div
@@ -291,16 +347,18 @@ export function AIChatBox({
                       )}
 
                       <div className="flex flex-col max-w-[80%] min-w-0 overflow-hidden">
-                        {message.role === "assistant" && message.thinkingTime && message.thinkingTime > 0 && (
-                          <motion.div
-                            className="flex items-center gap-1.5 text-xs text-primary/70 mb-2 ml-1"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                          >
-                            <Brain className="size-3" />
-                            <span>思考了 {message.thinkingTime}s</span>
-                          </motion.div>
-                        )}
+                        {message.role === "assistant" &&
+                          message.thinkingTime &&
+                          message.thinkingTime > 0 && (
+                            <motion.div
+                              className="flex items-center gap-1.5 text-xs text-primary/70 mb-2 ml-1"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                            >
+                              <Brain className="size-3" />
+                              <span>思考了 {message.thinkingTime}s</span>
+                            </motion.div>
+                          )}
                         <div
                           className={cn(
                             "rounded-2xl px-4 py-3 transition-all duration-200",
@@ -317,9 +375,9 @@ export function AIChatBox({
                                 <div className="prose prose-sm dark:prose-invert max-w-none min-w-0 [&_pre]:w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap [&_code]:break-words [&_pre_code]:break-words [&_p]:leading-relaxed">
                                   <Streamdown>{message.content}</Streamdown>
                                   {/* Streaming 时显示闪烁光标 */}
-                                  {isLoading && isLastMessage && message.content && (
-                                    <StreamingCursor />
-                                  )}
+                                  {isLoading &&
+                                    isLastMessage &&
+                                    message.content && <StreamingCursor />}
                                 </div>
                                 {message.content && !isLoading && (
                                   <motion.div
@@ -332,26 +390,48 @@ export function AIChatBox({
                                       icon={Copy}
                                       active={copiedIndex === index}
                                       activeColor="text-emerald-500"
-                                      title={copiedIndex === index ? "已复制!" : "复制"}
+                                      title={
+                                        copiedIndex === index
+                                          ? "已复制!"
+                                          : "复制"
+                                      }
                                       onClick={() => {
-                                        navigator.clipboard.writeText(message.content);
+                                        navigator.clipboard.writeText(
+                                          message.content
+                                        );
                                         setCopiedIndex(index);
-                                        setTimeout(() => setCopiedIndex(null), 2000);
+                                        setTimeout(
+                                          () => setCopiedIndex(null),
+                                          2000
+                                        );
                                       }}
                                     />
                                     <ActionButton
                                       icon={ThumbsUp}
-                                      active={feedbackIndex?.index === index && feedbackIndex?.type === 'up'}
+                                      active={
+                                        feedbackIndex?.index === index &&
+                                        feedbackIndex?.type === "up"
+                                      }
                                       activeColor="text-emerald-500"
                                       title="有帮助"
-                                      onClick={() => setFeedbackIndex({ index, type: 'up' })}
+                                      onClick={() =>
+                                        setFeedbackIndex({ index, type: "up" })
+                                      }
                                     />
                                     <ActionButton
                                       icon={ThumbsDown}
-                                      active={feedbackIndex?.index === index && feedbackIndex?.type === 'down'}
+                                      active={
+                                        feedbackIndex?.index === index &&
+                                        feedbackIndex?.type === "down"
+                                      }
                                       activeColor="text-rose-500"
                                       title="没帮助"
-                                      onClick={() => setFeedbackIndex({ index, type: 'down' })}
+                                      onClick={() =>
+                                        setFeedbackIndex({
+                                          index,
+                                          type: "down",
+                                        })
+                                      }
                                     />
                                     {isLastMessage && onRegenerate && (
                                       <ActionButton
@@ -364,27 +444,35 @@ export function AIChatBox({
                                 )}
 
                                 {/* Follow-up 建议 - 仅在最后一条 AI 回复后显示 */}
-                                {isLastMessage && followUpSuggestions && followUpSuggestions.length > 0 && (
-                                  <motion.div
-                                    className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border/20"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.3 }}
-                                  >
-                                    {followUpSuggestions.slice(0, 3).map((suggestion, idx) => (
-                                      <motion.button
-                                        key={idx}
-                                        onClick={() => onSendMessage(suggestion)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground bg-accent/30 hover:bg-accent/50 hover:text-foreground rounded-lg border border-border/30 hover:border-border/50 transition-all duration-200"
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                      >
-                                        <Sparkles className="size-3 text-primary/60" />
-                                        <span className="truncate max-w-[180px]">{suggestion}</span>
-                                      </motion.button>
-                                    ))}
-                                  </motion.div>
-                                )}
+                                {isLastMessage &&
+                                  followUpSuggestions &&
+                                  followUpSuggestions.length > 0 && (
+                                    <motion.div
+                                      className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border/20"
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: 0.3 }}
+                                    >
+                                      {followUpSuggestions
+                                        .slice(0, 3)
+                                        .map((suggestion, idx) => (
+                                          <motion.button
+                                            key={idx}
+                                            onClick={() =>
+                                              onSendMessage(suggestion)
+                                            }
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground bg-accent/30 hover:bg-accent/50 hover:text-foreground rounded-lg border border-border/30 hover:border-border/50 transition-all duration-200"
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                          >
+                                            <Sparkles className="size-3 text-primary/60" />
+                                            <span className="truncate max-w-[180px]">
+                                              {suggestion}
+                                            </span>
+                                          </motion.button>
+                                        ))}
+                                    </motion.div>
+                                  )}
                               </div>
                             )
                           ) : (
@@ -401,23 +489,25 @@ export function AIChatBox({
                 })}
               </AnimatePresence>
 
-              {isLoading && displayMessages[displayMessages.length - 1]?.role === "user" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-start gap-3"
-                  style={
-                    minHeightForLastMessage > 0
-                      ? { minHeight: `${minHeightForLastMessage}px` }
-                      : undefined
-                  }
-                >
-                  <AIAvatar isThinking />
-                  <div className="bg-muted/50 border border-border/30 rounded-2xl backdrop-blur-sm">
-                    <TypingIndicator />
-                  </div>
-                </motion.div>
-              )}
+              {isLoading &&
+                displayMessages[displayMessages.length - 1]?.role ===
+                  "user" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-start gap-3"
+                    style={
+                      minHeightForLastMessage > 0
+                        ? { minHeight: `${minHeightForLastMessage}px` }
+                        : undefined
+                    }
+                  >
+                    <AIAvatar isThinking />
+                    <div className="bg-muted/50 border border-border/30 rounded-2xl backdrop-blur-sm">
+                      <TypingIndicator />
+                    </div>
+                  </motion.div>
+                )}
             </div>
           </ScrollArea>
         )}
@@ -425,20 +515,17 @@ export function AIChatBox({
 
       {/* Input Area - Modern Glass Style */}
       <div className="p-4 border-t border-border/30 bg-gradient-to-t from-background/80 to-transparent backdrop-blur-sm">
-        <form
-          ref={inputAreaRef}
-          onSubmit={handleSubmit}
-          className="relative"
-        >
+        <form ref={inputAreaRef} onSubmit={handleSubmit} className="relative">
           <div className="relative border border-border/50 rounded-2xl bg-card/80 backdrop-blur-md overflow-hidden transition-all duration-300 focus-within:border-primary/50 focus-within:shadow-lg focus-within:shadow-primary/10">
             <Textarea
               ref={textareaRef}
               value={input}
-              onChange={(e) => {
+              onChange={e => {
                 setInput(e.target.value);
                 if (textareaRef.current) {
-                  textareaRef.current.style.height = 'auto';
-                  textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
+                  textareaRef.current.style.height = "auto";
+                  textareaRef.current.style.height =
+                    Math.min(textareaRef.current.scrollHeight, 200) + "px";
                 }
               }}
               onKeyDown={handleKeyDown}
@@ -467,7 +554,10 @@ export function AIChatBox({
                 {/* 发送/停止按钮 */}
                 {isLoading && onStop ? (
                   // 停止按钮
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <Button
                       type="button"
                       size="icon"
@@ -479,7 +569,10 @@ export function AIChatBox({
                   </motion.div>
                 ) : (
                   // 发送按钮
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <Button
                       type="submit"
                       size="icon"
@@ -509,7 +602,7 @@ const ToolbarButton = ({
   active = false,
   activeColor = "bg-primary/20 text-primary",
   title,
-  onClick
+  onClick,
 }: {
   icon: React.ElementType;
   active?: boolean;
@@ -539,7 +632,7 @@ const ActionButton = ({
   active = false,
   activeColor = "text-primary",
   title,
-  onClick
+  onClick,
 }: {
   icon: React.ElementType;
   active?: boolean;
@@ -552,7 +645,9 @@ const ActionButton = ({
     onClick={onClick}
     className={cn(
       "p-2 rounded-lg transition-all duration-200",
-      active ? activeColor : "text-muted-foreground/70 hover:text-foreground hover:bg-accent/30"
+      active
+        ? activeColor
+        : "text-muted-foreground/70 hover:text-foreground hover:bg-accent/30"
     )}
     title={title}
     whileHover={{ scale: 1.15 }}

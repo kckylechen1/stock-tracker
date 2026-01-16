@@ -3,6 +3,7 @@
 ## 概述
 
 这个系统实现了类似 Perplexity 的 **结构化推理流程**，让 AI 助手能够：
+
 1. 记住用户的持仓和操作历史
 2. 主动调用 API 获取实时数据
 3. 结合历史经验给出建议
@@ -91,15 +92,15 @@
 
 ```typescript
 interface Position {
-    symbol: string;       // 股票代码
-    name: string;         // 股票名称
-    cost: number;         // 成本价
-    shares: number;       // 持仓数量
-    buy_date: string;     // 买入日期
-    buy_reason: string;   // 买入理由
-    stock_type: string;   // 'value' | 'momentum' | 'hot_money'
-    target_price?: number; // 目标价
-    stop_loss?: number;   // 止损价
+  symbol: string; // 股票代码
+  name: string; // 股票名称
+  cost: number; // 成本价
+  shares: number; // 持仓数量
+  buy_date: string; // 买入日期
+  buy_reason: string; // 买入理由
+  stock_type: string; // 'value' | 'momentum' | 'hot_money'
+  target_price?: number; // 目标价
+  stop_loss?: number; // 止损价
 }
 ```
 
@@ -107,19 +108,20 @@ interface Position {
 
 ```typescript
 interface Trade {
-    symbol: string;
-    action: 'buy' | 'sell';
-    price: number;
-    shares: number;
-    date: string;
-    reason: string;
-    technical_signals: {  // 交易时的技术信号
-        rsi: number;
-        macd: string;
-        volume: string;
-    };
-    outcome?: 'good' | 'bad' | 'neutral';  // 事后评价
-    lessons_learned?: string;              // 经验教训
+  symbol: string;
+  action: "buy" | "sell";
+  price: number;
+  shares: number;
+  date: string;
+  reason: string;
+  technical_signals: {
+    // 交易时的技术信号
+    rsi: number;
+    macd: string;
+    volume: string;
+  };
+  outcome?: "good" | "bad" | "neutral"; // 事后评价
+  lessons_learned?: string; // 经验教训
 }
 ```
 
@@ -127,12 +129,12 @@ interface Trade {
 
 ```typescript
 interface TradingLesson {
-    date: string;
-    symbol: string;       // 具体股票或 '*'（通用）
-    lesson: string;       // 教训内容
-    signal_pattern: string;  // 触发信号模式
-    action_to_avoid: string; // 应该避免的行为
-    recommended_action: string; // 推荐的行为
+  date: string;
+  symbol: string; // 具体股票或 '*'（通用）
+  lesson: string; // 教训内容
+  signal_pattern: string; // 触发信号模式
+  action_to_avoid: string; // 应该避免的行为
+  recommended_action: string; // 推荐的行为
 }
 ```
 
@@ -140,50 +142,59 @@ interface TradingLesson {
 
 ```typescript
 interface UserProfile {
-    risk_tolerance: 'low' | 'medium' | 'high';
-    holding_period: 'short' | 'medium' | 'long';
-    preferred_indicators: string[];
-    avoid_patterns: string[];   // 避免的模式
-    success_patterns: string[]; // 成功的模式
+  risk_tolerance: "low" | "medium" | "high";
+  holding_period: "short" | "medium" | "long";
+  preferred_indicators: string[];
+  avoid_patterns: string[]; // 避免的模式
+  success_patterns: string[]; // 成功的模式
 }
 ```
 
 ## 记忆系统工作流程
 
 ### 1. 加载记忆
+
 每次对话开始时，从文件加载用户的记忆：
+
 ```typescript
-const memory = loadTradingMemory('trading_memory.json');
+const memory = loadTradingMemory("trading_memory.json");
 ```
 
 ### 2. 注入上下文
+
 将记忆转换为系统提示词的一部分：
+
 ```typescript
 const userContext = generateUserContext(memory, currentSymbol);
-const systemPrompt = TRADING_ASSISTANT_SYSTEM_PROMPT + '\n' + userContext;
+const systemPrompt = TRADING_ASSISTANT_SYSTEM_PROMPT + "\n" + userContext;
 ```
 
 ### 3. 更新记忆
+
 当用户确认交易或反馈时，更新记忆：
+
 ```typescript
 memory.addTrade(newTrade);
 memory.addLesson(newLesson);
-memory.save('trading_memory.json');
+memory.save("trading_memory.json");
 ```
 
 ## 关键设计决策
 
 ### 1. 为什么用文件而不是数据库？
+
 - 简单：不需要额外的数据库服务
 - 便携：记忆文件可以备份和迁移
 - 可读：JSON 格式便于调试
 
 ### 2. 为什么用 System Prompt 而不是 RAG？
+
 - 上下文短：交易记忆通常不会超过几十条
 - 延迟低：不需要额外的向量搜索
 - 可控：所有上下文都是结构化的
 
 ### 3. 如何避免 Hallucination？
+
 - 强制工具调用：在给建议前必须获取实时数据
 - 结构化输出：固定的输出格式减少自由发挥
 - 历史验证：建议必须与历史教训一致
@@ -193,8 +204,9 @@ memory.save('trading_memory.json');
 ### 用户问：蓝思科技现在可以卖吗？
 
 **AI 内部思考过程**:
+
 ```
-Thought: 
+Thought:
 1. 用户持有蓝思科技，成本25.5元，1000股
 2. 上次在RSI<30时卖出导致卖飞10%
 3. 需要获取当前行情和技术指标
@@ -209,27 +221,33 @@ Thought: 根据历史教训，不建议在超卖区清仓
 ```
 
 **AI 输出**:
+
 ```markdown
 ### 📊 实时数据
-| 指标 | 数值 | 信号 |
-|------|------|------|
-| 当前价格 | 26.50元 | 涨+3.12% |
-| RSI(14) | 28 | ⚠️ 超卖区 |
-| MACD | DIF<DEA | 死叉 |
-| 主力资金 | +2.1亿 | 🟢 流入 |
+
+| 指标     | 数值    | 信号      |
+| -------- | ------- | --------- |
+| 当前价格 | 26.50元 | 涨+3.12%  |
+| RSI(14)  | 28      | ⚠️ 超卖区 |
+| MACD     | DIF<DEA | 死叉      |
+| 主力资金 | +2.1亿  | 🟢 流入   |
 
 ### 📈 技术分析
+
 - **当前状态**: RSI处于超卖区，但有企稳迹象
 - **支撑位**: 25.00元
 - **压力位**: 28.50元
 
 ### 📚 历史经验 ⚠️
+
 根据你的历史记录，你在2026-01-08曾在RSI=25时清仓，错过了第二天10%的反弹。
 当前RSI=28，与上次情况类似。
 
 ### 💡 操作建议
+
 **建议**: 持有观望，不建议现在清仓
-**理由**: 
+**理由**:
+
 1. RSI=28处于超卖区，技术上有反弹需求
 2. 主力资金今日净流入2.1亿，说明有资金抄底
 3. 你的成本价25.5元，当前价格26.5元，有小幅盈利

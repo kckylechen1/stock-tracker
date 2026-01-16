@@ -1,6 +1,6 @@
 /**
  * AI 交易助手 - Perplexity 风格推理系统提示词
- * 
+ *
  * 设计思路：
  * 1. 建立任务清单 (Planning)
  * 2. 逐步执行任务 (Execution)
@@ -147,69 +147,81 @@ Thought: 用户问的是「蓝思科技是否应该卖」，我需要：
 /**
  * 生成用户上下文（注入到每次对话）
  */
-export function generateUserContext(memory: {
+export function generateUserContext(
+  memory: {
     positions: any[];
     trades: any[];
     lessons: any[];
     profile: any;
-}, currentSymbol?: string): string {
-    const context: string[] = [];
+  },
+  currentSymbol?: string
+): string {
+  const context: string[] = [];
 
-    // 当前持仓
-    if (memory.positions?.length > 0) {
-        context.push("## 用户当前持仓\n");
-        for (const p of memory.positions) {
-            if (!currentSymbol || p.symbol === currentSymbol) {
-                context.push(`- **${p.name}(${p.symbol})**: 成本${p.cost}元, ${p.shares}股`);
-                if (p.buy_reason) context.push(`  - 买入理由: ${p.buy_reason}`);
-                if (p.target_price) context.push(`  - 目标价: ${p.target_price}元`);
-                if (p.stop_loss) context.push(`  - 止损价: ${p.stop_loss}元`);
-                context.push(`  - 类型: ${p.stock_type}`);
-            }
-        }
+  // 当前持仓
+  if (memory.positions?.length > 0) {
+    context.push("## 用户当前持仓\n");
+    for (const p of memory.positions) {
+      if (!currentSymbol || p.symbol === currentSymbol) {
+        context.push(
+          `- **${p.name}(${p.symbol})**: 成本${p.cost}元, ${p.shares}股`
+        );
+        if (p.buy_reason) context.push(`  - 买入理由: ${p.buy_reason}`);
+        if (p.target_price) context.push(`  - 目标价: ${p.target_price}元`);
+        if (p.stop_loss) context.push(`  - 止损价: ${p.stop_loss}元`);
+        context.push(`  - 类型: ${p.stock_type}`);
+      }
     }
+  }
 
-    // 历史交易
-    const relevantTrades = currentSymbol
-        ? memory.trades?.filter((t: any) => t.symbol === currentSymbol)
-        : memory.trades?.slice(-10);
+  // 历史交易
+  const relevantTrades = currentSymbol
+    ? memory.trades?.filter((t: any) => t.symbol === currentSymbol)
+    : memory.trades?.slice(-10);
 
-    if (relevantTrades?.length > 0) {
-        context.push("\n## 该股票历史交易\n");
-        for (const t of relevantTrades.slice(-5)) {
-            const emoji = t.outcome === 'good' ? '✅' : t.outcome === 'bad' ? '❌' : '➖';
-            context.push(`- ${t.date}: ${t.action.toUpperCase()} ${t.price}元 ${t.shares}股 ${emoji}`);
-            if (t.lessons_learned) {
-                context.push(`  - 教训: ${t.lessons_learned}`);
-            }
-        }
+  if (relevantTrades?.length > 0) {
+    context.push("\n## 该股票历史交易\n");
+    for (const t of relevantTrades.slice(-5)) {
+      const emoji =
+        t.outcome === "good" ? "✅" : t.outcome === "bad" ? "❌" : "➖";
+      context.push(
+        `- ${t.date}: ${t.action.toUpperCase()} ${t.price}元 ${t.shares}股 ${emoji}`
+      );
+      if (t.lessons_learned) {
+        context.push(`  - 教训: ${t.lessons_learned}`);
+      }
     }
+  }
 
-    // 历史教训
-    if (memory.lessons?.length > 0) {
-        context.push("\n## 历史经验教训 ⚠️\n");
-        for (const lesson of memory.lessons.slice(-5)) {
-            context.push(`- **[${lesson.date}]** ${lesson.lesson}`);
-            context.push(`  - 触发信号: ${lesson.signal_pattern}`);
-            context.push(`  - ❌ 避免: ${lesson.action_to_avoid}`);
-            context.push(`  - ✅ 推荐: ${lesson.recommended_action}`);
-        }
+  // 历史教训
+  if (memory.lessons?.length > 0) {
+    context.push("\n## 历史经验教训 ⚠️\n");
+    for (const lesson of memory.lessons.slice(-5)) {
+      context.push(`- **[${lesson.date}]** ${lesson.lesson}`);
+      context.push(`  - 触发信号: ${lesson.signal_pattern}`);
+      context.push(`  - ❌ 避免: ${lesson.action_to_avoid}`);
+      context.push(`  - ✅ 推荐: ${lesson.recommended_action}`);
     }
+  }
 
-    // 用户偏好
-    if (memory.profile) {
-        context.push("\n## 用户交易偏好\n");
-        context.push(`- 风险偏好: ${memory.profile.risk_tolerance}`);
-        context.push(`- 持仓周期: ${memory.profile.holding_period}`);
-        if (memory.profile.avoid_patterns?.length) {
-            context.push(`- ❌ 避免模式: ${memory.profile.avoid_patterns.join(', ')}`);
-        }
-        if (memory.profile.success_patterns?.length) {
-            context.push(`- ✅ 成功模式: ${memory.profile.success_patterns.join(', ')}`);
-        }
+  // 用户偏好
+  if (memory.profile) {
+    context.push("\n## 用户交易偏好\n");
+    context.push(`- 风险偏好: ${memory.profile.risk_tolerance}`);
+    context.push(`- 持仓周期: ${memory.profile.holding_period}`);
+    if (memory.profile.avoid_patterns?.length) {
+      context.push(
+        `- ❌ 避免模式: ${memory.profile.avoid_patterns.join(", ")}`
+      );
     }
+    if (memory.profile.success_patterns?.length) {
+      context.push(
+        `- ✅ 成功模式: ${memory.profile.success_patterns.join(", ")}`
+      );
+    }
+  }
 
-    return context.join('\n');
+  return context.join("\n");
 }
 
 export default TRADING_ASSISTANT_SYSTEM_PROMPT;

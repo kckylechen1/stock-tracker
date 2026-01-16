@@ -5,6 +5,7 @@
 这份文件包含了完整的系统设计、接口规范、核心算法。你的任务是用Python生成**可以直接运行的、生产级质量的代码**。
 
 **重要**：
+
 - 代码需要有完整的错误处理和异常捕获
 - 必须包含日志记录（logging）
 - 支持并发请求（asyncio/uvicorn）
@@ -39,11 +40,13 @@ JSON Response
 ### 模块1：配置管理 (`src/config.py`)
 
 **功能**：
+
 - 从 `.env` 文件读取环境变量
 - 定义服务器参数、AKShare参数、缓存参数
 - 支持开发/测试/生产环境切换
 
 **需要的配置项**：
+
 ```python
 # API参数
 AKSHARE_BASE_URL = "http://akshare.akfamily.xyz"
@@ -102,12 +105,14 @@ DEFAULT_WEIGHTS = {
 ### 模块2：数据获取层 (`src/data/akshare_client.py`)
 
 **功能**：
+
 - 包装AKShare HTTP API调用
 - 获取指定股票的日线/周线OHLCV数据
 - 自动重试机制
 - 缓存机制
 
 **接口**：
+
 ```python
 class AKShareClient:
     async def get_stock_daily(
@@ -120,17 +125,18 @@ class AKShareClient:
         返回: DataFrame with columns [date, open, high, low, close, volume]
         """
         pass
-    
+
     async def get_stock_weekly(code: str) -> pd.DataFrame:
         """获取周线数据（从日线数据重采样）"""
         pass
-    
+
     async def get_stock_name(code: str) -> str:
         """获取股票名称"""
         pass
 ```
 
 **实现要点**：
+
 - 使用 `aiohttp` 做异步HTTP请求
 - 实现指数退避重试（Exponential Backoff）
 - 数据验证（检查OHLC逻辑性、成交量>0等）
@@ -139,16 +145,18 @@ class AKShareClient:
 ### 模块3：指标计算器 (`src/indicators/calculator.py`)
 
 **功能**：
+
 - 向量化计算所有技术指标（MACD、RSI、KDJ、BOLL、CCI、ATR、OBV、VR、VMACD）
 - 支持自定义参数
 
 **接口**：
+
 ```python
 class IndicatorCalculator:
     def __init__(self, params: dict):
         """params包含所有参数（如DAILY_PARAMS）"""
         pass
-    
+
     def calc_all(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         计算所有指标，返回添加了以下列的DataFrame：
@@ -159,13 +167,14 @@ class IndicatorCalculator:
         - OBV, OBV_MA10, VR, V_DIF, V_DEA (量能)
         """
         pass
-    
+
     def validate_data(self, df: pd.DataFrame) -> bool:
         """验证输入数据的有效性"""
         pass
 ```
 
 **实现要点**：
+
 - 使用 `pandas.ewm()` 做指数加权平均（效率高）
 - 使用 `numpy.sign()` 判断涨跌
 - 所有计算都应该是向量化的（避免循环）
@@ -174,10 +183,12 @@ class IndicatorCalculator:
 ### 模块4：市场状态检测 (`src/gauge/market_regime.py`)
 
 **功能**：
+
 - 检测当前市场状态（趋势强度、波动率、市值风格等）
 - 根据市场状态返回自适应权重
 
 **接口**：
+
 ```python
 def detect_market_regime(df: pd.DataFrame) -> dict:
     """
@@ -195,7 +206,7 @@ def detect_market_regime(df: pd.DataFrame) -> dict:
 def get_adaptive_weights(market_state: dict) -> dict:
     """
     根据市场状态返回自适应权重，确保各维度权重之和=1
-    
+
     返回:
     {
         'trend': 0.25,
@@ -208,6 +219,7 @@ def get_adaptive_weights(market_state: dict) -> dict:
 ```
 
 **实现要点**：
+
 - 用EMA和ATR判断趋势强度和波动率
 - 用日波幅（high-low）判断市值风格
 - 用成交量MA比值判断成交量状态
@@ -216,16 +228,18 @@ def get_adaptive_weights(market_state: dict) -> dict:
 ### 模块5：Gauge评分器 (`src/gauge/daily.py` 和 `src/gauge/weekly.py`)
 
 **功能**：
+
 - 计算四维度评分（趋势、动量、波动、量能）
 - 计算相关性调整因子（K1、K2、K3）
 - 合并为综合分数和信号
 
 **接口**：
+
 ```python
 class AShareGaugeDaily:
     def __init__(self, params: dict = None, weights: dict = None):
         pass
-    
+
     async def calc_scores(
         self,
         code: str,
@@ -256,19 +270,22 @@ class AShareGaugeDaily:
 ```
 
 **实现要点**：
+
 - 按 `04_Gauge_Scoring.md` 的规则计算各维度分数
 - 计算K1、K2、K3相关性调整因子
-- 最后综合分数 = 0.25*S_trend*K1 + 0.25*S_momentum*K2 + 0.20*S_volatility + 0.30*S_volume*K3
+- 最后综合分数 = 0.25*S_trend*K1 + 0.25*S_momentum*K2 + 0.20*S_volatility + 0.30*S_volume\*K3
 - 分数映射到信号：{>60: Strong Buy, 30-60: Buy, ...}
 - 置信度 = (S_trend>30) + (S_momentum>30) + (S_volatility>30) + (S_volume>30) / 4
 
 ### 模块6：Pydantic数据模型 (`src/api/schemas.py`)
 
 **功能**：
+
 - 定义所有HTTP请求/响应的数据模型
 - 自动验证和序列化
 
 **需要的模型**：
+
 ```python
 class GaugeResponse(BaseModel):
     code: int  # 0=成功，其他=错误
@@ -311,12 +328,14 @@ class BacktestResponse(BaseModel):
 ### 模块7：HTTP路由 (`src/api/routes.py`)
 
 **功能**：
+
 - 定义所有HTTP端点
 - 请求验证
 - 错误处理
 - 响应格式化
 
 **需要的端点**（见 `01_API_Specification.md`）：
+
 ```
 GET /api/gauge/daily
 GET /api/gauge/weekly
@@ -329,6 +348,7 @@ GET /docs
 ```
 
 **实现要点**：
+
 - 所有路由都应该是 `async def`
 - 使用dependency injection (FastAPI的 `Depends`)
 - 统一的错误响应格式
@@ -339,26 +359,31 @@ GET /docs
 ## 实现流程建议
 
 ### 第1步：基础设施
+
 1. 创建 `config.py` - 配置管理
 2. 创建 `logger.py` - 日志工具
 3. 创建 `cache.py` - 缓存工具（可选）
 
 ### 第2步：数据层
+
 4. 创建 `data/akshare_client.py` - AKShare客户端
 5. 添加错误处理和重试机制
 
 ### 第3步：计算层
+
 6. 创建 `indicators/calculator.py` - 指标计算
 7. 创建 `gauge/market_regime.py` - 市场状态检测
 8. 创建 `gauge/daily.py` - 日线Gauge
 9. 创建 `gauge/weekly.py` - 周线Gauge
 
 ### 第4步：HTTP层
+
 10. 创建 `api/schemas.py` - Pydantic模型
 11. 创建 `api/routes.py` - 所有HTTP路由
 12. 创建 `api/exceptions.py` - 异常处理
 
 ### 第5步：主应用
+
 13. 创建 `main.py` - FastAPI app定义和启动
 
 ---
@@ -366,11 +391,13 @@ GET /docs
 ## 关键实现细节
 
 ### 异步处理
+
 - AKShare数据获取应该是异步的（使用 `aiohttp`）
 - 所有HTTP路由都应该是 `async`
 - 使用 `asyncio.gather()` 并行处理多个请求
 
 ### 错误处理
+
 ```python
 try:
     # 调用AKShare
@@ -384,6 +411,7 @@ except Exception as e:
 ```
 
 ### 数据验证
+
 ```python
 # 股票代码格式验证（6位数字）
 if not re.match(r'^\d{6}$', code):
@@ -397,6 +425,7 @@ except ValueError:
 ```
 
 ### 缓存策略
+
 ```python
 # 日线数据缓存1小时
 cache_key = f"gauge_daily_{code}_{date}"
@@ -565,6 +594,7 @@ LOG_LEVEL=INFO
 好的，现在你拥有了一套完整的"设计文档 + 实现指南"。你可以直接把这些MD文件给你的LLM，它会生成完整的生产级代码。
 
 这套文档的优势：
+
 1. **逻辑清晰** - 每个模块的职责明确
 2. **接口详细** - LLM不会瞎编接口
 3. **算法详尽** - 所有公式和规则都写清楚了
@@ -572,10 +602,10 @@ LOG_LEVEL=INFO
 5. **可扩展** - 模块化设计，易于后续修改
 
 你想要我再补充：
+
 - **部署文档**（Docker/云端部署）
 - **回测框架详细说明**
 - **参数优化算法详解**
 - **单元测试示例代码**
 
 其中哪个最急需？或者你现在就可以拿着这些文档去给你的LLM下达任务了？
-

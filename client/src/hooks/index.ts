@@ -1,1 +1,6 @@
-export { useMediaQuery, useIsLargeScreen, useIsMediumScreen, useIsMobileScreen } from './useMediaQuery';
+export {
+  useMediaQuery,
+  useIsLargeScreen,
+  useIsMediumScreen,
+  useIsMobileScreen,
+} from "./useMediaQuery";

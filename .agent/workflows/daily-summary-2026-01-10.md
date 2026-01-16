@@ -7,11 +7,13 @@ description: 2026-01-10 工作日总结 - AKShare 全面集成 + Docker 数据�
 ## 📋 今日完成任务
 
 ### 1. 修复 AI 助手重复显示"正在分析中"问题 ✅
+
 - **问题**: Grok 多轮工具调用时重复输出加载提示
 - **解决**: 添加 `hasShownLoadingMessage` 标记，只在第一次显示
 - **文件**: `server/_core/streamChat.ts`
 
 ### 2. 修复 Docker 数据持久化问题 ✅
+
 - **问题**: MySQL 使用匿名卷，重启后数据丢失
 - **解决**: 创建 `docker-compose.yml`，使用命名卷 `stock_mysql_data`
 - **文件**: `docker-compose.yml`
@@ -19,11 +21,13 @@ description: 2026-01-10 工作日总结 - AKShare 全面集成 + Docker 数据�
 ### 3. AKShare 全面集成 ✅
 
 #### Phase 1: 环境准备
+
 - 创建端口规范文档 (`.agent/docs/port-specification.md`)
 - 统一 AKTools 端口为 8098
 - 创建启动脚本 (`scripts/start-aktools.sh`, `scripts/stop-aktools.sh`)
 
 #### Phase 2: 高频工具封装
+
 - 扩展 `server/akshare.ts`，添加 20+ API 函数:
   - 实时行情: `getStockSpotAll()`, `getStockQuote()`
   - 资金流向: `getStockFundFlow()`, `getFundFlowRank()`, `getMarketFundFlow()`
@@ -44,18 +48,21 @@ description: 2026-01-10 工作日总结 - AKShare 全面集成 + Docker 数据�
   - `call_akshare` - 动态调用任意 AKShare 接口
 
 #### Phase 3: AKShare 知识库
+
 - 创建 `.agent/docs/akshare-api-guide.md`
 - 包含 50+ AKShare 接口文档供 Grok 参考
 
 ### 4. Prompt Engineering V2 ✅
 
 #### 核心改进
+
 - 使用结构化 Prompt 替代内联 prompt
 - 时间注入到用户消息开头（解决日期问题）
 - 温度设置为 1.0（更长更丰富的回答）
 - 添加 AKShare 工具到工具列表
 
 #### 文件变更
+
 - `server/_core/prompts/grokPrompt.ts` - Grok 结构化 prompt
 - `server/_core/prompts/deepseekPrompt.ts` - DeepSeek 备用 prompt
 - `server/_core/prompts/qwenWorkerPrompt.ts` - Qwen 数据工作者
@@ -64,6 +71,7 @@ description: 2026-01-10 工作日总结 - AKShare 全面集成 + Docker 数据�
 - `server/_core/streamChat.ts` - 集成新 prompt 系统
 
 ### 5. 开发流程规范化 ✅
+
 - 更新 `dev-workflow.md`，添加 TODO 清单和组件开发指南要求
 - 创建 `component-guides/` 目录存放组件开发指南
 - 建立每日工作总结模板
@@ -73,6 +81,7 @@ description: 2026-01-10 工作日总结 - AKShare 全面集成 + Docker 数据�
 ## 📁 新增/修改文件
 
 ### 新增文件
+
 ```
 .agent/docs/
 ├── port-specification.md        # 端口规范
@@ -89,6 +98,7 @@ docker-compose.yml               # Docker 服务配置
 ```
 
 ### 修改文件
+
 ```
 server/akshare.ts                # +300 行 API 函数
 server/_core/stockTools.ts       # +200 行工具定义和执行器
@@ -103,11 +113,11 @@ README.md                        # 更新端口配置
 
 ## 📊 端口规范
 
-| 端口 | 服务 | 说明 |
-|------|------|------|
-| 6888-6897 | Stock Tracker | 主服务器 |
-| 3306 | MySQL | 数据库 |
-| **8098** | AKTools | AKShare HTTP API |
+| 端口      | 服务          | 说明             |
+| --------- | ------------- | ---------------- |
+| 6888-6897 | Stock Tracker | 主服务器         |
+| 3306      | MySQL         | 数据库           |
+| **8098**  | AKTools       | AKShare HTTP API |
 
 ---
 
@@ -122,12 +132,14 @@ README.md                        # 更新端口配置
 ## ⚠️ 注意事项
 
 1. AKTools 服务需要手动启动:
+
 ```bash
 cd "/Users/kckylechen/Desktop/Stock Tracker"
 ./pdfenv/bin/python -m aktools -P 8098
 ```
 
 2. 启动服务完整顺序:
+
 ```bash
 docker-compose up -d          # MySQL
 ./scripts/start-aktools.sh    # AKTools (或手动)
@@ -136,4 +148,4 @@ npm run dev                   # 主服务器
 
 ---
 
-*更新时间: 2026-01-10 15:35*
+_更新时间: 2026-01-10 15:35_

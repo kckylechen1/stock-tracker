@@ -7,6 +7,7 @@
 ## 全局函数 (Global Functions)
 
 ### createChart(container, options?)
+
 ```
 功能: 创建图表实例
 参数:
@@ -21,6 +22,7 @@
 ## 系列类型 (Series Types)
 
 ### LineSeries
+
 ```
 添加方法: chart.addSeries(LineSeries, options?)
 配置项: color, lineWidth, lineStyle, lastValueVisible, priceFormat, title
@@ -29,6 +31,7 @@
 ```
 
 ### AreaSeries
+
 ```
 添加方法: chart.addSeries(AreaSeries, options?)
 配置项: lineColor, topColor, bottomColor, lineWidth, lastValueVisible, title
@@ -37,6 +40,7 @@
 ```
 
 ### BarSeries
+
 ```
 添加方法: chart.addSeries(BarSeries, options?)
 配置项: upColor, downColor, openVisible, thinBars, lastValueVisible, title
@@ -45,6 +49,7 @@
 ```
 
 ### CandlestickSeries
+
 ```
 添加方法: chart.addSeries(CandlestickSeries, options?)
 配置项: upColor, downColor, borderVisible, wickUpColor, wickDownColor, lastValueVisible, title
@@ -53,6 +58,7 @@
 ```
 
 ### HistogramSeries
+
 ```
 添加方法: chart.addSeries(HistogramSeries, options?)
 配置项: color, lastValueVisible, priceFormat, title
@@ -61,6 +67,7 @@
 ```
 
 ### BaselineSeries
+
 ```
 添加方法: chart.addSeries(BaselineSeries, options?)
 配置项: baseValue, topLineColor, bottomLineColor, topFillColor1, bottomFillColor1, title
@@ -73,6 +80,7 @@
 ## IChartApi 方法 (Chart API)
 
 ### 系列管理
+
 ```
 addSeries(seriesType, options?) -> ISeriesApi
   创建并添加新系列
@@ -88,6 +96,7 @@ createPane() -> IPaneApi
 ```
 
 ### 轴操作
+
 ```
 timeScale() -> ITimeScaleApi
   获取时间轴对象
@@ -100,6 +109,7 @@ leftPriceScale() -> IPriceScaleApi | undefined
 ```
 
 ### 配置
+
 ```
 applyOptions(options) -> void
   应用图表级配置
@@ -112,6 +122,7 @@ getVisiblePriceScaleId() -> string | undefined
 ```
 
 ### 事件订阅
+
 ```
 subscribeCrosshairMove(handler) -> ISubscription
   交叉线移动事件
@@ -127,6 +138,7 @@ subscribeVisibleRangeChange(handler) -> ISubscription
 ```
 
 ### 交互控制
+
 ```
 handleScroll(delta) -> void
   处理滚动
@@ -142,6 +154,7 @@ unsubscribeAll() -> void
 ```
 
 ### 清理
+
 ```
 remove() -> void
   移除图表并释放资源
@@ -152,6 +165,7 @@ remove() -> void
 ## ISeriesApi 方法 (Series API)
 
 ### 数据管理
+
 ```
 setData(data) -> void
   设置初始数据(替换所有)
@@ -164,6 +178,7 @@ dataByIndex(logicalIndex) -> SeriesDataItemType | undefined
 ```
 
 ### 配置
+
 ```
 applyOptions(options) -> void
   应用系列配置
@@ -173,6 +188,7 @@ priceFormatter() -> IPriceFormatter
 ```
 
 ### 标记与线
+
 ```
 setMarkers(markers) -> void
   设置标记
@@ -191,6 +207,7 @@ priceLines() -> IPriceLine[]
 ```
 
 ### 原始图形(Primitives)
+
 ```
 attachPrimitive(primitive) -> void
   附加原始图形到系列
@@ -200,6 +217,7 @@ detachPrimitive(primitive) -> void
 ```
 
 ### 查询
+
 ```
 pane() -> IPaneApi
   获取所在的窗格
@@ -213,6 +231,7 @@ priceScale() -> IPriceScaleApi
 ## ITimeScaleApi 方法 (Time Scale API)
 
 ### 范围管理
+
 ```
 fitContent() -> void
   自动调整范围以显示所有数据
@@ -231,6 +250,7 @@ scrollToPosition(position, animated?) -> void
 ```
 
 ### 行为配置
+
 ```
 applyOptions(options) -> void
   应用时间轴配置
@@ -240,6 +260,7 @@ options() -> TimeScaleOptions
 ```
 
 ### 事件订阅
+
 ```
 subscribeVisibleTimeRangeChange(handler) -> ISubscription
   订阅可见时间范围变化
@@ -253,6 +274,7 @@ subscribeVisibleLogicalRangeChange(handler) -> ISubscription
 ## IPriceScaleApi 方法 (Price Scale API)
 
 ### 范围管理
+
 ```
 setVisiblePriceRange(range: {minValue, maxValue}) -> void
   设置可见价格范围
@@ -265,6 +287,7 @@ applyOptions(options) -> void
 ```
 
 ### 查询
+
 ```
 width() -> number
   获取价格轴宽度
@@ -278,6 +301,7 @@ mode() -> PriceScaleMode
 ## 数据格式 (Data Formats)
 
 ### 时间格式
+
 ```
 字符串: '2023-01-15' (YYYY-MM-DD)
 业务日期: {year: 2023, month: 1, day: 15}
@@ -285,18 +309,21 @@ mode() -> PriceScaleMode
 ```
 
 ### 单值数据
+
 ```
 LineData: {time, value}
 HistogramData: {time, value, color?}
 ```
 
 ### OHLC数据
+
 ```
 CandlestickData: {time, open, high, low, close}
 BarData: {time, open, high, low, close}
 ```
 
 ### 特殊数据
+
 ```
 WhitespaceData: {time}  // 用于表示数据间隙
 ```
@@ -306,6 +333,7 @@ WhitespaceData: {time}  // 用于表示数据间隙
 ## 配置选项 (Options)
 
 ### ChartOptions
+
 ```
 width?: number (默认600)
 height?: number (默认300)
@@ -325,6 +353,7 @@ localization?: {locale, priceFormatter, timeFormatter}
 ```
 
 ### SeriesOptions(通用)
+
 ```
 lastValueVisible?: boolean
 title?: string
@@ -338,6 +367,7 @@ pane?: number
 ```
 
 ### 线条样式 (LineStyle)
+
 ```
 0 = Solid (实线)
 1 = Dotted (点线)
@@ -347,6 +377,7 @@ pane?: number
 ```
 
 ### 交叉线模式 (CrosshairMode)
+
 ```
 'Normal' = 普通模式
 'Magnet' = 磁性模式(吸附到数据点)
@@ -354,6 +385,7 @@ pane?: number
 ```
 
 ### 价格轴模式 (PriceScaleMode)
+
 ```
 'Normal' = 正常线性
 'Logarithmic' = 对数
@@ -396,6 +428,7 @@ pane?: number
 ## 事件处理 (Events)
 
 ### MouseEventParams
+
 ```
 {
   point?: {x: number, y: number}
@@ -407,6 +440,7 @@ pane?: number
 ```
 
 ### SizeChangeEventParams
+
 ```
 {
   width: number
@@ -415,6 +449,7 @@ pane?: number
 ```
 
 ### TimeRangeChangeParams
+
 ```
 {
   from: number
@@ -423,6 +458,7 @@ pane?: number
 ```
 
 ### LogicalRangeChangeParams
+
 ```
 {
   from: number | null
@@ -435,25 +471,37 @@ pane?: number
 ## 常用操作组合 (Common Patterns)
 
 ### 创建完整的K线图
+
 ```javascript
 const chart = createChart(container);
-const candleSeries = chart.addSeries(CandlestickSeries, {upColor: '#26a69a', downColor: '#ef5350'});
-const volumeSeries = chart.addSeries(HistogramSeries, {color: '#26a69a'});
+const candleSeries = chart.addSeries(CandlestickSeries, {
+  upColor: "#26a69a",
+  downColor: "#ef5350",
+});
+const volumeSeries = chart.addSeries(HistogramSeries, { color: "#26a69a" });
 candleSeries.setData(candleData);
 volumeSeries.setData(volumeData);
 chart.timeScale().fitContent();
 ```
 
 ### 实时数据更新
+
 ```javascript
-socket.on('tick', (tick) => {
-  candleSeries.update({time: tick.time, open: tick.o, high: tick.h, low: tick.l, close: tick.c});
+socket.on("tick", tick => {
+  candleSeries.update({
+    time: tick.time,
+    open: tick.o,
+    high: tick.h,
+    low: tick.l,
+    close: tick.c,
+  });
 });
 ```
 
 ### 跟踪交叉线
+
 ```javascript
-chart.subscribeCrosshairMove((param) => {
+chart.subscribeCrosshairMove(param => {
   if (param.time) {
     updateLegend(param.time, param.seriesPrices);
   }
@@ -461,16 +509,20 @@ chart.subscribeCrosshairMove((param) => {
 ```
 
 ### 订阅时间范围变化
+
 ```javascript
-chart.timeScale().subscribeVisibleTimeRangeChange((range) => {
+chart.timeScale().subscribeVisibleTimeRangeChange(range => {
   if (range) loadMoreData(range.from, range.to);
 });
 ```
 
 ### 添加标记和价格线
+
 ```javascript
-series.setMarkers([{time: '2023-01-05', position: 'aboveBar', color: '#f0ad4e'}]);
-series.createPriceLine({price: 150, color: '#FF0000', title: 'Target'});
+series.setMarkers([
+  { time: "2023-01-05", position: "aboveBar", color: "#f0ad4e" },
+]);
+series.createPriceLine({ price: 150, color: "#FF0000", title: "Target" });
 ```
 
 ---
@@ -488,13 +540,13 @@ series.createPriceLine({price: 150, color: '#FF0000', title: 'Target'});
 
 ## 错误排查 (Troubleshooting)
 
-| 问题 | 原因 | 解决方案 |
-|------|------|--------|
-| 图表为空 | 容器无尺寸或数据为空 | 设置container尺寸，检查数据格式 |
-| 数据不显示 | time格式错误 | 使用'YYYY-MM-DD'格式 |
-| 性能差 | setData()调用过频繁 | 改用update() |
-| 内存泄漏 | 未取消订阅 | 调用unsubscribe()和chart.remove() |
-| 事件未触发 | 未正确订阅 | 检查订阅参数和事件名称 |
+| 问题       | 原因                 | 解决方案                          |
+| ---------- | -------------------- | --------------------------------- |
+| 图表为空   | 容器无尺寸或数据为空 | 设置container尺寸，检查数据格式   |
+| 数据不显示 | time格式错误         | 使用'YYYY-MM-DD'格式              |
+| 性能差     | setData()调用过频繁  | 改用update()                      |
+| 内存泄漏   | 未取消订阅           | 调用unsubscribe()和chart.remove() |
+| 事件未触发 | 未正确订阅           | 检查订阅参数和事件名称            |
 
 ---
 

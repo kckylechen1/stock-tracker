@@ -1,33 +1,33 @@
 /**
  * Grok AI 客户端
  * 使用 xAI 的 Grok-4 作为前端对话模型
- * 
+ *
  * 架构：Grok（聪明）+ Qwen3（便宜的工具调用）
  */
 
-import { ENV } from './env';
+import { ENV } from "./env";
 
 // ==================== 类型定义 ====================
 
 export interface ChatMessage {
-    role: 'system' | 'user' | 'assistant';
-    content: string;
+  role: "system" | "user" | "assistant";
+  content: string;
 }
 
 export interface GrokResponse {
-    id: string;
-    choices: Array<{
-        message: {
-            role: string;
-            content: string;
-        };
-        finish_reason: string;
-    }>;
-    usage: {
-        prompt_tokens: number;
-        completion_tokens: number;
-        total_tokens: number;
+  id: string;
+  choices: Array<{
+    message: {
+      role: string;
+      content: string;
     };
+    finish_reason: string;
+  }>;
+  usage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
 }
 
 // ==================== Grok 客户端 ====================
@@ -36,128 +36,128 @@ export interface GrokResponse {
  * 调用 Grok API
  */
 async function callGrokAPI(
-    messages: ChatMessage[],
-    stream: boolean = false
+  messages: ChatMessage[],
+  stream: boolean = false
 ): Promise<Response> {
-    const apiKey = ENV.grokApiKey;
-    
-    const hasNonAscii = /[^\x00-\x7F]/.test(apiKey);
-    if (hasNonAscii) {
-        console.error('[Grok] API Key contains non-ASCII characters!');
-        console.error('[Grok] First 20 chars:', apiKey.substring(0, 20));
-        throw new Error('Grok API Key 包含非 ASCII 字符，请检查 .env 文件');
-    }
+  const apiKey = ENV.grokApiKey;
 
-    const response = await fetch(`${ENV.grokApiUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-            model: ENV.grokModel,
-            messages,
-            stream,
-            temperature: 0.7,
-            max_tokens: 4000,
-        }),
-    });
+  const hasNonAscii = /[^\x00-\x7F]/.test(apiKey);
+  if (hasNonAscii) {
+    console.error("[Grok] API Key contains non-ASCII characters!");
+    console.error("[Grok] First 20 chars:", apiKey.substring(0, 20));
+    throw new Error("Grok API Key 包含非 ASCII 字符，请检查 .env 文件");
+  }
 
-    if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Grok API Error: ${response.status} - ${error}`);
-    }
+  const response = await fetch(`${ENV.grokApiUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: ENV.grokModel,
+      messages,
+      stream,
+      temperature: 0.7,
+      max_tokens: 4000,
+    }),
+  });
 
-    return response;
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Grok API Error: ${response.status} - ${error}`);
+  }
+
+  return response;
 }
 
 /**
  * Grok 对话（非流式）
  */
 export async function chatWithGrok(
-    messages: ChatMessage[],
-    stockData?: string
+  messages: ChatMessage[],
+  stockData?: string
 ): Promise<string> {
-    // 构建系统提示
-    const systemPrompt = buildSystemPrompt(stockData);
+  // 构建系统提示
+  const systemPrompt = buildSystemPrompt(stockData);
 
-    const fullMessages: ChatMessage[] = [
-        { role: 'system', content: systemPrompt },
-        ...messages
-    ];
+  const fullMessages: ChatMessage[] = [
+    { role: "system", content: systemPrompt },
+    ...messages,
+  ];
 
-    const response = await callGrokAPI(fullMessages, false);
-    const data: GrokResponse = await response.json();
+  const response = await callGrokAPI(fullMessages, false);
+  const data: GrokResponse = await response.json();
 
-    return data.choices[0]?.message?.content || '';
+  return data.choices[0]?.message?.content || "";
 }
 
 /**
  * Grok 流式对话
  */
 export async function* streamChatWithGrok(
-    messages: ChatMessage[],
-    stockData?: string
+  messages: ChatMessage[],
+  stockData?: string
 ): AsyncGenerator<string> {
-    const systemPrompt = buildSystemPrompt(stockData);
+  const systemPrompt = buildSystemPrompt(stockData);
 
-    const fullMessages: ChatMessage[] = [
-        { role: 'system', content: systemPrompt },
-        ...messages
-    ];
+  const fullMessages: ChatMessage[] = [
+    { role: "system", content: systemPrompt },
+    ...messages,
+  ];
 
-    const response = await callGrokAPI(fullMessages, true);
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
+  const response = await callGrokAPI(fullMessages, true);
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
 
-    if (!reader) {
-        throw new Error('No response body');
-    }
+  if (!reader) {
+    throw new Error("No response body");
+  }
 
-    let buffer = '';
+  let buffer = "";
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
 
-        for (const line of lines) {
-            if (line.startsWith('data: ')) {
-                const data = line.slice(6);
-                if (data === '[DONE]') continue;
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") continue;
 
-                try {
-                    const parsed = JSON.parse(data);
-                    const content = parsed.choices?.[0]?.delta?.content;
-                    if (content) {
-                        yield content;
-                    }
-                } catch {
-                    // Ignore parse errors
-                }
-            }
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            yield content;
+          }
+        } catch {
+          // Ignore parse errors
         }
+      }
     }
+  }
 }
 
 /**
  * 构建系统提示
  */
 function buildSystemPrompt(stockData?: string): string {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        weekday: 'long',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
-    return `你是"小A"，一个A股短线操盘手AI助手。性格特点：果断、直接、不废话。
+  return `你是"小A"，一个A股短线操盘手AI助手。性格特点：果断、直接、不废话。
 
 【当前时间】${dateStr}
 
@@ -168,7 +168,7 @@ function buildSystemPrompt(stockData?: string): string {
 - 如果风险大，直接说"别碰"
 - 说话简洁有力，像老练的操盘手
 
-${stockData ? `【股票分析数据】\n${stockData}` : ''}
+${stockData ? `【股票分析数据】\n${stockData}` : ""}
 
 【回答格式】
 1. **结论**（一句话判断）
@@ -180,27 +180,27 @@ ${stockData ? `【股票分析数据】\n${stockData}` : ''}
  * 测试 Grok 连接
  */
 export async function testGrokConnection(): Promise<{
-    success: boolean;
-    model: string;
-    message: string;
+  success: boolean;
+  model: string;
+  message: string;
 }> {
-    try {
-        const response = await chatWithGrok([
-            { role: 'user', content: 'Hi, 简单回复' }
-        ]);
+  try {
+    const response = await chatWithGrok([
+      { role: "user", content: "Hi, 简单回复" },
+    ]);
 
-        return {
-            success: true,
-            model: ENV.grokModel,
-            message: response.slice(0, 100),
-        };
-    } catch (error: any) {
-        return {
-            success: false,
-            model: ENV.grokModel,
-            message: error.message,
-        };
-    }
+    return {
+      success: true,
+      model: ENV.grokModel,
+      message: response.slice(0, 100),
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      model: ENV.grokModel,
+      message: error.message,
+    };
+  }
 }
 
 // ==================== Qwen 预处理（便宜的工具调用） ====================
@@ -209,41 +209,42 @@ export async function testGrokConnection(): Promise<{
  * 使用 Qwen 调用工具预处理数据
  */
 export async function preprocessWithQwen(
-    stockCode: string,
-    analysisType: 'full' | 'quick' = 'quick'
+  stockCode: string,
+  analysisType: "full" | "quick" = "quick"
 ): Promise<string> {
-    try {
-        const prompt = analysisType === 'full'
-            ? `请全面分析股票 ${stockCode}，包括技术面、资金面、大盘环境和股吧人气。`
-            : `请快速分析股票 ${stockCode} 的当前状态。`;
+  try {
+    const prompt =
+      analysisType === "full"
+        ? `请全面分析股票 ${stockCode}，包括技术面、资金面、大盘环境和股吧人气。`
+        : `请快速分析股票 ${stockCode} 的当前状态。`;
 
-        const response = await fetch(`${ENV.forgeApiUrl}/v1/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-                'Authorization': `Bearer ${ENV.forgeApiKey}`,
-            },
-            body: JSON.stringify({
-                model: 'Qwen/Qwen3-235B-A22B',
-                messages: [
-                    {
-                        role: 'system',
-                        content: '你是数据预处理助手，请返回结构化的分析数据。'
-                    },
-                    { role: 'user', content: prompt }
-                ],
-                max_tokens: 2000,
-            }),
-        });
+    const response = await fetch(`${ENV.forgeApiUrl}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        Authorization: `Bearer ${ENV.forgeApiKey}`,
+      },
+      body: JSON.stringify({
+        model: "Qwen/Qwen3-235B-A22B",
+        messages: [
+          {
+            role: "system",
+            content: "你是数据预处理助手，请返回结构化的分析数据。",
+          },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 2000,
+      }),
+    });
 
-        if (!response.ok) {
-            throw new Error(`Qwen API Error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.choices?.[0]?.message?.content || '';
-    } catch (error: any) {
-        console.error('[Qwen Preprocess] Error:', error.message);
-        return '';
+    if (!response.ok) {
+      throw new Error(`Qwen API Error: ${response.status}`);
     }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "";
+  } catch (error: any) {
+    console.error("[Qwen Preprocess] Error:", error.message);
+    return "";
+  }
 }
