@@ -152,6 +152,10 @@ export const stocksRouter = router({
         let klines;
         try {
           klines = await ifind.getKlineData(input.code, period, limit);
+          // 如果 iFind 返回空数组，也要回退到东方财富
+          if (!klines || klines.length === 0) {
+            throw new Error("iFind returned empty data");
+          }
         } catch (ifindError) {
           console.warn(
             "[getKline] iFind failed, falling back to eastmoney:",
@@ -205,7 +209,7 @@ export const stocksRouter = router({
 
         // 转换格式
         const formattedKlines = recentKlines.map((item: any) => ({
-          time: item.date,
+          time: item.time || item.date,
           open: item.open,
           high: item.high,
           low: item.low,
@@ -257,7 +261,7 @@ export const stocksRouter = router({
 
               // 转换格式
               const formattedKlines = recentKlines.map((item: any) => ({
-                time: item.time,
+                time: item.time || item.date,
                 open: item.open,
                 high: item.high,
                 low: item.low,
