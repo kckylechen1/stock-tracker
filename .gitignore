@@ -131,15 +131,19 @@ aktools*.pid
 *_test_results*.md
 
 # ===========================================
-# AI 协作本地文档 (不需要版本控制)
+# AI 协作本地文档
 # ===========================================
 
-# 每日任务分配和进度追踪
-tasks/
+# 每日任务分配和进度追踪 (排除)
+tasks/archive/
 
-# 整个 docs 目录 (技术文档、协作手册、报告等)
-docs/
-!docs/.gitkeep
+# 排除文档中的日志和报告
+docs/logs/
+docs/reports/
+
+# 保留重要的协作文档
+# docs/ai-collab/AI-COLLAB-PLAYBOOK.md ✅ 需要版本控制
 
 # .agent 内的技术文档
 .agent/docs/
+
