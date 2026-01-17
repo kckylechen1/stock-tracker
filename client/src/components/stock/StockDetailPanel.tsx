@@ -353,7 +353,7 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
       // Perplexity 风格：根据涨跌动态设置颜色（A股红涨绿跌）
       const currentPrice =
         timelineData.timeline[timelineData.timeline.length - 1]?.price;
-      const isUp = currentPrice >= timelineData.preClose;
+      const isUp = currentPrice != null && timelineData.preClose != null && currentPrice >= timelineData.preClose;
 
       if (isUp) {
         // 涨：红色
@@ -839,6 +839,7 @@ function formatAmount(amount?: number): string {
 function formatFundFlow(amount?: number): string {
   if (amount == null || Number.isNaN(amount)) return "--";
   const value = amount / 100000000;
+  if (Number.isNaN(value)) return "--";
   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}亿`;
 }
 

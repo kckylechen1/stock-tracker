@@ -33,9 +33,17 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
   const createSessionMutation = trpc.ai.createSession.useMutation();
 
   // 获取当前股票信息用于显示
-  const { data: stockDetail } = trpc.stocks.getDetail.useQuery(
+  const { data: quote } = trpc.stocks.getQuote.useQuery(
     { code: selectedStock || "" },
     { enabled: !!selectedStock }
+  );
+  const { data: extras } = trpc.stocks.getExtras.useQuery(
+    { code: selectedStock || "" },
+    {
+      enabled: !!selectedStock,
+      staleTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
   );
 
   // 获取服务器端聊天历史
@@ -112,37 +120,34 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
 
     try {
       // 构建股票上下文数据 - 把前端已加载的数据传给 AI，避免重复查询
-      const stockContext = stockDetail
+      const stockContext = quote
         ? {
-            quote: stockDetail.quote
+            quote: {
+              name: quote.name,
+              code: selectedStock,
+              price: quote.price,
+              change: quote.change,
+              changePercent: quote.changePercent,
+              open: quote.open,
+              high: quote.high,
+              low: quote.low,
+              preClose: quote.preClose,
+              volume: quote.volume,
+              amount: quote.amount,
+              turnoverRate: quote.turnoverRate,
+              pe: quote.pe,
+              pb: quote.pb,
+              marketCap: quote.marketCap,
+              circulationMarketCap: quote.circulationMarketCap,
+              volumeRatio: quote?.volumeRatio,
+            },
+            capitalFlow: extras?.capitalFlow
               ? {
-                  name: stockDetail.quote.name,
-                  code: selectedStock,
-                  price: stockDetail.quote.price,
-                  change: stockDetail.quote.change,
-                  changePercent: stockDetail.quote.changePercent,
-                  open: stockDetail.quote.open,
-                  high: stockDetail.quote.high,
-                  low: stockDetail.quote.low,
-                  preClose: stockDetail.quote.preClose,
-                  volume: stockDetail.quote.volume,
-                  amount: stockDetail.quote.amount,
-                  turnoverRate: stockDetail.quote.turnoverRate,
-                  pe: stockDetail.quote.pe,
-                  pb: stockDetail.quote.pb,
-                  marketCap: stockDetail.quote.marketCap,
-                  circulationMarketCap: stockDetail.quote.circulationMarketCap,
-                  volumeRatio: stockDetail.basic?.volumeRatio,
-                }
-              : null,
-            capitalFlow: stockDetail.capitalFlow
-              ? {
-                  mainNetInflow: stockDetail.capitalFlow.mainNetInflow,
-                  superLargeNetInflow:
-                    stockDetail.capitalFlow.superLargeNetInflow,
-                  largeNetInflow: stockDetail.capitalFlow.largeNetInflow,
-                  mediumNetInflow: stockDetail.capitalFlow.mediumNetInflow,
-                  smallNetInflow: stockDetail.capitalFlow.smallNetInflow,
+                  mainNetInflow: extras.capitalFlow.mainNetInflow,
+                  superLargeNetInflow: extras.capitalFlow.superLargeNetInflow,
+                  largeNetInflow: extras.capitalFlow.largeNetInflow,
+                  mediumNetInflow: extras.capitalFlow.mediumNetInflow,
+                  smallNetInflow: extras.capitalFlow.smallNetInflow,
                 }
               : null,
           }
@@ -353,9 +358,9 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
           <span className="font-semibold text-foreground tracking-tight truncate">
             AI 助手
           </span>
-          {selectedStock && stockDetail?.quote?.name && (
+          {selectedStock && quote?.name && (
             <span className="text-xs text-primary/80 bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 font-medium truncate max-w-[100px]">
-              {stockDetail.quote.name}
+              {quote.name}
             </span>
           )}
         </div>
@@ -430,7 +435,7 @@ export function AIChatPanel({ selectedStock, onCollapse }: AIChatPanelProps) {
             isLoading={isLoading}
             placeholder={
               selectedStock
-                ? `问问关于 ${stockDetail?.quote?.name || selectedStock} 的问题...`
+                ? `问问关于 ${quote?.name || selectedStock} 的问题...`
                 : "输入问题..."
             }
             height="100%"

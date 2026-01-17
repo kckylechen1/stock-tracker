@@ -200,6 +200,10 @@ export async function getKlineData(
     // 处理JSONP响应
     let jsonpData = response.data;
     if (typeof jsonpData === "string") {
+      // 验证JSONP格式，防止XSS攻击
+      if (!jsonpData.match(/^jQuery\d+_\d+\(/)) {
+        throw new Error("Invalid JSONP format");
+      }
       // 移除JSONP包装
       jsonpData = jsonpData.replace(/^[^(]+\(/, "").replace(/\);?$/, "");
       jsonpData = JSON.parse(jsonpData);
@@ -268,6 +272,10 @@ export async function getTimelineData(code: string, days: number = 1) {
     // 处理JSONP响应
     let jsonpData = response.data;
     if (typeof jsonpData === "string") {
+      // 验证JSONP格式，防止XSS攻击
+      if (!jsonpData.match(/^jQuery\d+_\d+\(/)) {
+        throw new Error("Invalid JSONP format");
+      }
       jsonpData = jsonpData.replace(/^[^(]+\(/, "").replace(/\);?$/, "");
       jsonpData = JSON.parse(jsonpData);
     }
@@ -357,6 +365,10 @@ async function getTimelineDataInternal(code: string, days: number) {
 
     let jsonpData = response.data;
     if (typeof jsonpData === "string") {
+      // 验证JSONP格式，防止XSS攻击
+      if (!jsonpData.match(/^jQuery\d+_\d+\(/)) {
+        return null;
+      }
       jsonpData = jsonpData.replace(/^[^(]+\(/, "").replace(/\);?$/, "");
       jsonpData = JSON.parse(jsonpData);
     }

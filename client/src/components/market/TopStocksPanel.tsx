@@ -173,22 +173,22 @@ export function TopStocksPanel({ onSelectStock }: TopStocksPanelProps) {
                         </div>
                         <div
                           className={`text-[10px] flex items-center justify-end gap-0.5 ${
-                            stock.hotChange > 0
+                            (stock.hotChange ?? 0) > 0
                               ? "text-green-400"
-                              : stock.hotChange < 0
+                              : (stock.hotChange ?? 0) < 0
                                 ? "text-red-400"
                                 : "text-muted-foreground"
                           }`}
                         >
-                          {stock.hotChange > 0 ? (
+                          {(stock.hotChange ?? 0) > 0 ? (
                             <>
                               <TrendingUp className="h-2.5 w-2.5" />↑
                               {stock.hotChange}
                             </>
-                          ) : stock.hotChange < 0 ? (
+                          ) : (stock.hotChange ?? 0) < 0 ? (
                             <>
                               <TrendingDown className="h-2.5 w-2.5" />↓
-                              {Math.abs(stock.hotChange)}
+                              {Math.abs(stock.hotChange ?? 0)}
                             </>
                           ) : (
                             "→"

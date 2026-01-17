@@ -218,15 +218,45 @@ export async function getStockInfo(symbol: string): Promise<StockInfo | null> {
 
     const info: Record<string, any> = {};
     for (const item of data) {
+      // 验证每个数据项的结构
+      if (!item || typeof item.item !== "string") {
+        continue;
+      }
       info[item.item] = item.value;
+    }
+
+    // 验证必要字段是否存在
+    const name = info["股票简称"];
+    const priceRaw = info["最新"];
+    const sector = info["行业"];
+    const totalValueRaw = info["总市值"];
+
+    // 数据完整性验证：name 必须存在且为非空字符串
+    if (!name || typeof name !== "string" || name.trim() === "") {
+      console.warn(`[AKShare] getStockInfo(${symbol}): 股票简称缺失或无效`);
+      return null;
+    }
+
+    // 价格验证：必须是有效数字
+    const price = parseFloat(priceRaw);
+    if (isNaN(price) || price < 0) {
+      console.warn(`[AKShare] getStockInfo(${symbol}): 价格数据无效`);
+      return null;
+    }
+
+    // 总市值验证：必须是有效数字
+    const totalValue = parseFloat(totalValueRaw);
+    if (isNaN(totalValue) || totalValue < 0) {
+      console.warn(`[AKShare] getStockInfo(${symbol}): 总市值数据无效`);
+      return null;
     }
 
     return {
       symbol,
-      name: info["股票简称"] || "",
-      price: parseFloat(info["最新"] || 0),
-      sector: info["行业"] || "",
-      totalValue: parseFloat(info["总市值"] || 0),
+      name: name.trim(),
+      price,
+      sector: typeof sector === "string" ? sector : "",
+      totalValue,
     };
   } catch (error: any) {
     console.error(`[AKShare] getStockInfo(${symbol}) failed:`, error?.message);
