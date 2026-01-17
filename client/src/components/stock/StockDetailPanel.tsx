@@ -331,7 +331,9 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
           value: item.price,
         };
       })
-      .filter((item: LineData<Time> | null): item is LineData<Time> => item !== null);
+      .filter(
+        (item: LineData<Time> | null): item is LineData<Time> => item !== null
+      );
 
     if (priceData.length > 0) {
       // 获取日期
@@ -353,7 +355,10 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
       // Perplexity 风格：根据涨跌动态设置颜色（A股红涨绿跌）
       const currentPrice =
         timelineData.timeline[timelineData.timeline.length - 1]?.price;
-      const isUp = currentPrice != null && timelineData.preClose != null && currentPrice >= timelineData.preClose;
+      const isUp =
+        currentPrice != null &&
+        timelineData.preClose != null &&
+        currentPrice >= timelineData.preClose;
 
       if (isUp) {
         // 涨：红色
@@ -552,12 +557,13 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
             {/* 人气排名标签 */}
             {hotRank && (
               <span
-                className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${hotRank.rank <= 50
+                className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+                  hotRank.rank <= 50
                     ? "bg-red-500/15 text-red-500 border border-red-500/20"
                     : hotRank.rank <= 100
                       ? "bg-orange-500/15 text-orange-500 border border-orange-500/20"
                       : "bg-gray-500/15 text-gray-500 border border-gray-500/20"
-                  }`}
+                }`}
               >
                 🔥 人气#{hotRank.rank}
                 {hotRank.rankChange !== 0 && (
@@ -704,18 +710,19 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
             onClick={() =>
               setChartType(
                 item.key as
-                | "timeline"
-                | "timeline3d"
-                | "timeline5d"
-                | "day"
-                | "week"
-                | "month"
+                  | "timeline"
+                  | "timeline3d"
+                  | "timeline5d"
+                  | "day"
+                  | "week"
+                  | "month"
               )
             }
-            className={`px-4 py-1.5 text-sm font-medium transition-colors ${chartType === item.key
+            className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+              chartType === item.key
                 ? "text-foreground border-b-2 border-primary"
                 : "text-muted-foreground hover:text-foreground"
-              }`}
+            }`}
           >
             {item.label}
           </button>
@@ -855,7 +862,7 @@ function formatFundFlow(amount?: number): string {
 }
 
 // 格式化市值
-function formatMarketCap(cap?: number): string {
+function formatMarketCap(cap?: number | null): string {
   if (!cap) return "--";
   if (cap >= 100000000) {
     return `${(cap / 100000000).toFixed(2)}亿`;

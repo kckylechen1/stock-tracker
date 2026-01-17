@@ -171,14 +171,14 @@ export default function StockDetail() {
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">换手率</p>
                   <p className="text-lg font-semibold text-foreground">
-                    {basic?.turnoverRate?.toFixed(2) || "--"}%
+                    {quote?.turnoverRate?.toFixed(2) || "--"}%
                   </p>
                 </div>
 
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">市盈率</p>
                   <p className="text-lg font-semibold text-foreground">
-                    {basic?.pe?.toFixed(2) || "--"}
+                    {quote?.pe?.toFixed(2) || "--"}
                   </p>
                 </div>
               </div>
@@ -257,7 +257,7 @@ export default function StockDetail() {
                 <div className="p-4 rounded-lg bg-accent">
                   <p className="text-sm text-muted-foreground mb-2">换手率</p>
                   <p className="text-lg font-semibold text-foreground">
-                    {basic?.turnoverRate?.toFixed(2) || "--"}%
+                    {quote?.turnoverRate?.toFixed(2) || "--"}%
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     交易活跃度

@@ -14,9 +14,41 @@ const rankCache = new Map<
 const RANK_CACHE_TTL = 10 * 60 * 1000; // 10分钟缓存
 
 /**
+ * 股票行情数据类型
+ */
+interface StockQuoteData {
+  code: string;
+  name: string;
+  price: number;
+  preClose: number;
+  change: number;
+  changePercent: number;
+  open: number;
+  high: number;
+  low: number;
+  volume: number;
+  amount: number;
+  turnoverRate: number | null;
+  pe: number | null;
+  pb: number | null;
+  marketCap: number | null;
+  circulationMarketCap: number | null;
+  volumeRatio: number | null;
+  mainNetInflow?: number | null;
+  mainNetInflowRate?: number | null;
+  superLargeNetInflow?: number | null;
+  largeNetInflow?: number | null;
+  mediumNetInflow?: number | null;
+  smallNetInflow?: number | null;
+  source: "ifind" | "eastmoney";
+}
+
+/**
  * 获取行情数据，iFind 优先，东方财富 fallback
  */
-export async function getQuoteWithFallback(code: string) {
+export async function getQuoteWithFallback(
+  code: string
+): Promise<StockQuoteData | null> {
   try {
     const quote = await ifind.getStockQuote(code);
     if (quote) {
