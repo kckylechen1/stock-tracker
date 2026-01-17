@@ -31,4 +31,8 @@ export const ENV = {
   ifindAccessToken:
     process.env.IFIND_ACCESS_TOKEN ??
     "97f7b9a3e9b7acbb74306d049524a626b755013e.signs_MzcyNzQ1MjEy",
+  // Tavily API (网络搜索)
+  tavilyApiKey: process.env.TAVILY_API_KEY ?? "",
+  // E2B API (代码执行)
+  e2bApiKey: process.env.E2B_API_KEY ?? "",
 };

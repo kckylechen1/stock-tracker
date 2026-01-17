@@ -1,22 +1,22 @@
 /**
  * 方向2：ReAct Loop + 自建工具铣 + E2B 沙箱
- * 
+ *
  * 核心优势：
  * - 完全自主控制，成本可控
  * - 沙箱无限扩展（声学会＋quant重态分析等）
  * - 隐私安全完全控制（不供奖流给 xAI）
- * 
+ *
  * 成本贰估：
  * - Tavily API: $0.005-0.008 / 查询≈月$3-5
  * - E2B Sandbox: 免费始体 + 按秒计費≈月$10-20
  * - 汀 Chroma/Pinecone: 个人应用免费
  * - 总计：月费 < $50
- * 
+ *
  * 开发时间欰：1-2周
  * - ReAct Loop 改造：3天
  * - Web 工具集：1天
  * - E2B 沙箱集成：2天
- * 
+ *
  * VS 方向1：
  * 比 4h 底窗子、$5/1000调用多的不是一个数量级，
  * 但具有简单可预测的优化空间。
@@ -40,6 +40,7 @@ interface ReActThought {
   action: "search" | "execute" | "query" | "observe" | "conclude";
   toolName?: string;
   input?: Record<string, any>;
+  confidence?: number; // 0-1, ReAct 自评的信心度
 }
 
 interface ReActTrace {
@@ -52,10 +53,8 @@ interface ReActTrace {
 // ==================== 自建工具铣 ====================
 
 class ToolRegistry {
-  private tools: Map<
-    string,
-    (args: Record<string, any>) => Promise<string>
-  > = new Map();
+  private tools: Map<string, (args: Record<string, any>) => Promise<string>> =
+    new Map();
 
   /**
    * 注册 Web 搜索工具（Tavily）
@@ -128,26 +127,20 @@ class ToolRegistry {
    * 注册本地 AKShare 工具
    */
   registerAkshareTools() {
-    this.tools.set(
-      "akshare_fund_flow_ranking",
-      async (args: any) => {
-        const { period = "1d", count = 20 } = args;
-        console.log(`[Tool] akshare_fund_flow_ranking(${period}, ${count}...`);
-        // 实际应调用 AKShare API
-        // 引用 server/akshare.ts 中的 函数
-        return `推流排名 [${period}]: 推流数据...`;
-      }
-    );
+    this.tools.set("akshare_fund_flow_ranking", async (args: any) => {
+      const { period = "1d", count = 20 } = args;
+      console.log(`[Tool] akshare_fund_flow_ranking(${period}, ${count}...`);
+      // 实际应调用 AKShare API
+      // 引用 server/akshare.ts 中的 函数
+      return `推流排名 [${period}]: 推流数据...`;
+    });
 
-    this.tools.set(
-      "akshare_bull_signal_backtest",
-      async (args: any) => {
-        const { stockCode, startDate, endDate } = args;
-        console.log(`[Tool] akshare_bull_signal_backtest(${stockCode}...`);
-        // 实际应调用 backtest 函数
-        return `回测结果 [${stockCode}]: ...`;
-      }
-    );
+    this.tools.set("akshare_bull_signal_backtest", async (args: any) => {
+      const { stockCode, startDate, endDate } = args;
+      console.log(`[Tool] akshare_bull_signal_backtest(${stockCode}...`);
+      // 实际应调用 backtest 函数
+      return `回测结果 [${stockCode}]: ...`;
+    });
   }
 
   /**
@@ -227,9 +220,9 @@ export class ReActAgent {
       if (
         !nextThought.action ||
         nextThought.action === "conclude" ||
-        nextThought.confidence < 0.3
+        (nextThought.confidence ?? 1) < 0.3
       ) {
-        // 会聚到 conclude 
+        // 会聚到 conclude
         break;
       }
 
@@ -270,7 +263,7 @@ export class ReActAgent {
           result: observation,
           timestamp: Date.now(),
         },
-        confidence: nextThought.confidence,
+        confidence: nextThought.confidence ?? 0.5,
       });
 
       console.log(
@@ -297,7 +290,7 @@ export class ReActAgent {
   ): Promise<ReActThought> {
     const traceStr = trace
       .map(
-        (t) => `
+        t => `
 [Step ${t.step}]
 Thinking: ${t.thought.thinking}
 Action: ${t.thought.action}
@@ -390,12 +383,13 @@ ${traceStr}
   ): Promise<string> {
     const traceStr = trace
       .map(
-        (t) =>
+        t =>
           `[Step ${t.step}] ${t.thought.thinking}\n  ${t.observation ? `Result: ${t.observation.result.substring(0, 100)}` : ""}`
       )
       .join("\n\n");
 
-    const systemPrompt = "你是一个A股短线操盘手。基于ReAct处理过程，给出专业、直接的买壳瓶建议。";
+    const systemPrompt =
+      "你是一个A股短线操盘手。基于ReAct处理过程，给出专业、直接的买壳瓶建议。";
 
     const userPrompt = `重认问题: ${query}\n\nReAct 处理路径\uff1a\n${traceStr}\n\n请给出最终专业结论（买/卖/观望 + 具体点位）`;
 
@@ -431,15 +425,10 @@ ${traceStr}
    * 获取 trace 路径窗竖
    */
   getTraceVisualization(): string {
-    const lines = [
-      "ReAct Loop 执行步数\uff1a",
-      "=".repeat(60),
-    ];
+    const lines = ["ReAct Loop 执行步数\uff1a", "=".repeat(60)];
 
     for (const trace of this.trace) {
-      lines.push(
-        `\n[Step ${trace.step}] 🧪 ${trace.thought.thinking}`
-      );
+      lines.push(`\n[Step ${trace.step}] 🧪 ${trace.thought.thinking}`);
       lines.push(`  Action: ${trace.thought.action}`);
       if (trace.observation) {
         lines.push(
@@ -458,19 +447,19 @@ ${traceStr}
 
 /**
  * 方向2 后可以添加：
- * 
+ *
  * 1. **表现记忆优化**
  *    - 使用 Chroma/Pinecone 向量数据库
  *    - 保存历史交易记录 → 重复流量下幾天不用重新查询
- * 
+ *
  * 2. **沙箱扩展**
  *    - 第三方应用（上譽维宗提供的技术面数据、资金面数据等）
  *    - 声学 Antml 进行复杂计算
- * 
+ *
  * 3. **ReAct 反馬避刀、最大迭代次数控制**
  *    - 反馬避刀 (Anti-jailbreak)：如果 5 次轮子竞湿不决论，自动 abort
  *    - 需要算了最优化：核师前、下跌末方物理位置、债券成本等
- * 
+ *
  * 4. **回籔优化**
  *    - Markdown 表格不大背楼的技术面线索
  *    - MermaidJS 可视化 ReAct 执行路径
@@ -484,7 +473,8 @@ export async function testReActAgent() {
 
   const agent = new ReActAgent();
 
-  const testQuery = "中际断创(300308)今天跌了，我买入后亏了，应该止损还是持有？";
+  const testQuery =
+    "中际断创(300308)今天跌了，我买入后亏了，应该止损还是持有？";
 
   const { trace, finalAnswer } = await agent.thinkAndAct(testQuery, "300308");
 
