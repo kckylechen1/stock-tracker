@@ -22,6 +22,9 @@ let aktoolsStatus: { available: boolean; lastCheck: number; error?: string } = {
 };
 const STATUS_CHECK_INTERVAL = 60000; // 1分钟检查一次
 
+// Promise 锁：防止并发状态检查
+let statusCheckPromise: Promise<boolean> | null = null;
+
 /**
  * 检查 AKTools 服务是否可用
  */
@@ -33,26 +36,39 @@ export async function checkAKToolsStatus(): Promise<boolean> {
     return aktoolsStatus.available;
   }
 
-  try {
-    const response = await axios.get(`${AKTOOLS_BASE_URL}/version`, {
-      timeout: 3000,
-    });
-    aktoolsStatus = {
-      available: true,
-      lastCheck: now,
-    };
-    console.log(`✅ [AKTools] 服务可用: ${JSON.stringify(response.data)}`);
-    return true;
-  } catch (error: any) {
-    aktoolsStatus = {
-      available: false,
-      lastCheck: now,
-      error: error.message,
-    };
-    console.warn(`⚠️ [AKTools] 服务不可用: ${error.message}`);
-    console.warn('   提示: 运行 "pnpm start:aktools" 启动服务');
-    return false;
+  // 如果已有检查在进行中，复用该 Promise
+  if (statusCheckPromise) {
+    return statusCheckPromise;
   }
+
+  // 创建新的检查 Promise
+  statusCheckPromise = (async () => {
+    try {
+      const response = await axios.get(`${AKTOOLS_BASE_URL}/version`, {
+        timeout: 3000,
+      });
+      aktoolsStatus = {
+        available: true,
+        lastCheck: Date.now(),
+      };
+      console.log(`✅ [AKTools] 服务可用: ${JSON.stringify(response.data)}`);
+      return true;
+    } catch (error: any) {
+      aktoolsStatus = {
+        available: false,
+        lastCheck: Date.now(),
+        error: error.message,
+      };
+      console.warn(`⚠️ [AKTools] 服务不可用: ${error.message}`);
+      console.warn('   提示: 运行 "pnpm start:aktools" 启动服务');
+      return false;
+    } finally {
+      // 检查完成后清除 Promise 锁
+      statusCheckPromise = null;
+    }
+  })();
+
+  return statusCheckPromise;
 }
 
 /**

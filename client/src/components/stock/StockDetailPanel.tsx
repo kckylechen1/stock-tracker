@@ -43,15 +43,23 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
     changePercent: number;
   } | null>(null);
 
-  // 获取股票详情 - 每5秒刷新（不含人气排名）
-  const { data: detail } = trpc.stocks.getDetail.useQuery(
+  // 实时行情 - 高频刷新
+  const { data: quote } = trpc.stocks.getQuote.useQuery(
     { code: stockCode },
     { refetchInterval: 5000 }
   );
 
-  // 从详情中获取排名
-  const hotRank = detail?.hotRank;
-  const xueqiuRank = detail?.xueqiuRank;
+  // 扩展数据 - 低频刷新
+  const { data: extras } = trpc.stocks.getExtras.useQuery(
+    { code: stockCode },
+    {
+      staleTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const hotRank = extras?.hotRank;
+  const xueqiuRank = extras?.xueqiuRank;
 
   // 获取分时数据 - 每5秒刷新一次实现实时更新
   const isTimelineType =
@@ -305,10 +313,11 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
       return;
 
     // 分时线数据
-    const priceData: LineData<Time>[] = timelineData.timeline.map(
-      (item: any) => {
-        const timeParts = item.time.split(" ");
+    const priceData: LineData<Time>[] = timelineData.timeline
+      .map((item: any) => {
+        const timeParts = item.time?.split(" ") || [];
         const dateStr = timeParts[0];
+        if (!dateStr) return null; // 跳过无效数据
         const timeStr = timeParts[1] || "09:30";
         const [year, month, day] = dateStr.split("-").map(Number);
         const [hour, minute] = timeStr.split(":").map(Number);
@@ -321,8 +330,8 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
           time: timestamp as Time,
           value: item.price,
         };
-      }
-    );
+      })
+      .filter((item: LineData<Time> | null): item is LineData<Time> => item !== null);
 
     if (priceData.length > 0) {
       // 获取日期
@@ -472,10 +481,10 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
     };
   }, [klineData, chartType]);
 
-  const quote = detail?.quote;
   const changePercent = quote?.changePercent || 0;
   const isPositive = changePercent > 0;
   const isNegative = changePercent < 0;
+  const displayName = quote?.name || extras?.stock?.name || "加载中...";
   const priceColor = isPositive
     ? "text-[#e74c3c]"
     : isNegative
@@ -521,7 +530,7 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
         <div className="flex items-center gap-3">
           <div className="flex items-baseline gap-2">
             <span className="text-foreground text-xl font-bold tracking-wide">
-              {quote?.name || "加载中..."}
+              {displayName}
             </span>
             <span className="text-muted-foreground text-lg font-mono">
               {stockCode}
@@ -570,57 +579,55 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
           <DataCellInline
             label="💰 主力净流入"
             value={
-              detail?.capitalFlow?.mainNetInflow != null
-                ? formatFundFlow(detail.capitalFlow.mainNetInflow)
+              extras?.capitalFlow?.mainNetInflow != null
+                ? formatFundFlow(extras.capitalFlow.mainNetInflow)
                 : "--"
             }
             isUp={
-              detail?.capitalFlow?.mainNetInflow != null
-                ? detail.capitalFlow.mainNetInflow > 0
+              extras?.capitalFlow?.mainNetInflow != null
+                ? extras.capitalFlow.mainNetInflow > 0
                 : undefined
             }
           />
           <DataCellInline
             label="🏦 超大单"
             value={
-              detail?.capitalFlow?.superLargeNetInflow != null
-                ? formatFundFlow(detail.capitalFlow.superLargeNetInflow)
+              extras?.capitalFlow?.superLargeNetInflow != null
+                ? formatFundFlow(extras.capitalFlow.superLargeNetInflow)
                 : "--"
             }
             isUp={
-              detail?.capitalFlow?.superLargeNetInflow != null
-                ? detail.capitalFlow.superLargeNetInflow > 0
+              extras?.capitalFlow?.superLargeNetInflow != null
+                ? extras.capitalFlow.superLargeNetInflow > 0
                 : undefined
             }
           />
           <DataCellInline
             label="📈 大单"
             value={
-              detail?.capitalFlow?.largeNetInflow != null
-                ? formatFundFlow(detail.capitalFlow.largeNetInflow)
+              extras?.capitalFlow?.largeNetInflow != null
+                ? formatFundFlow(extras.capitalFlow.largeNetInflow)
                 : "--"
             }
             isUp={
-              detail?.capitalFlow?.largeNetInflow != null
-                ? detail.capitalFlow.largeNetInflow > 0
+              extras?.capitalFlow?.largeNetInflow != null
+                ? extras.capitalFlow.largeNetInflow > 0
                 : undefined
             }
           />
           <DataCellInline
             label="🔄 换手率"
             value={
-              quote?.turnoverRate ? `${quote.turnoverRate.toFixed(2)}%` : "--"
+              quote?.turnoverRate != null
+                ? `${quote.turnoverRate.toFixed(2)}%`
+                : "--"
             }
           />
           <DataCellInline
             label="📊 量比"
-            // @ts-ignore - basic might be null but we handle it safely
-            value={(detail?.basic as any)?.volumeRatio?.toFixed(2) || "--"}
+            value={quote?.volumeRatio?.toFixed(2)}
             isUp={
-              // @ts-ignore
-              (detail?.basic as any)?.volumeRatio != null
-                ? (detail?.basic as any).volumeRatio > 1
-                : undefined
+              quote?.volumeRatio != null ? quote.volumeRatio > 1 : undefined
             }
           />
         </div>
@@ -654,7 +661,9 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
           <DataCellInline
             label="换手率"
             value={
-              quote?.turnoverRate ? `${quote.turnoverRate.toFixed(2)}%` : "--"
+              quote?.turnoverRate != null
+                ? `${quote.turnoverRate.toFixed(2)}%`
+                : "--"
             }
           />
           <DataCellInline label="市盈率" value={quote?.pe?.toFixed(2)} />
