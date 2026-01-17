@@ -168,8 +168,9 @@ export const stocksRouter = router({
         const limitedKlines = klines.slice(-limit);
 
         // 转换为前端需要的格式
+        // 兼容 iFind (返回 time) 和 eastmoney (返回 date) 两种数据源
         return limitedKlines.map((item: any) => ({
-          time: item.date,
+          time: item.time || item.date,
           open: item.open,
           high: item.high,
           low: item.low,

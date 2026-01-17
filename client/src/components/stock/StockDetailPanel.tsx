@@ -508,19 +508,30 @@ export function StockDetailPanel({ stockCode }: StockDetailPanelProps) {
           <span
             className={`text-5xl font-bold font-mono tracking-tight ${getChangeColor(quote?.change)}`}
           >
-            {quote?.price?.toFixed(2) || "---"}
+            {quote?.price ? (
+              <ScrollNumber value={quote.price} decimals={2} />
+            ) : (
+              "---"
+            )}
           </span>
           {quote?.change !== undefined && (
             <div
               className={`flex items-baseline gap-2 text-xl font-medium ${getChangeColor(quote.change)}`}
             >
               <span>
-                {quote.change > 0 ? "+" : ""}
-                {quote.change.toFixed(2)}
+                <ScrollNumber
+                  value={quote.change}
+                  decimals={2}
+                  prefix={quote.change > 0 ? "+" : ""}
+                />
               </span>
               <span>
-                {quote.changePercent > 0 ? "+" : ""}
-                {quote.changePercent.toFixed(2)}%
+                <ScrollNumber
+                  value={quote.changePercent}
+                  decimals={2}
+                  prefix={quote.changePercent > 0 ? "+" : ""}
+                  suffix="%"
+                />
               </span>
             </div>
           )}
