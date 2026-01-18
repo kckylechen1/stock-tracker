@@ -4,3 +4,5 @@ export {
   useIsMediumScreen,
   useIsMobileScreen,
 } from "./useMediaQuery";
+
+export { useWatchlist } from "./useWatchlist";

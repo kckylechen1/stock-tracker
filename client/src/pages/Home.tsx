@@ -1,78 +1,36 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { trpc } from "@/lib/trpc";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
+  Activity,
+  Lightbulb,
+  MessageCircle,
+  PanelRightClose,
+  PanelRightOpen,
+  Trash2,
+  TrendingUp,
+} from "lucide-react";
+
+import { AIChatPanel } from "@/components/ai";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { MarketSentimentPanel, TopStocksPanel } from "@/components/market";
+import {
+  SearchSection,
+  StockDetailPanel,
+  StockListItem,
+  StockTabBar,
+} from "@/components/stock";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Search,
-  Plus,
-  Trash2,
-  X,
-  PanelRightOpen,
-  PanelRightClose,
-  MessageCircle,
-  ChevronLeft,
-  TrendingUp,
-  Activity,
-  Lightbulb,
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useIsLargeScreen, useWatchlist } from "@/hooks";
+import { trpc } from "@/lib/trpc";
+
 import type { ImperativePanelHandle } from "react-resizable-panels";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { useIsLargeScreen, useIsMobileScreen } from "@/hooks";
-
-// 导入模块化组件
-import { StockListItem, StockDetailPanel } from "@/components/stock";
-import { AIChatPanel } from "@/components/ai";
-import { MarketSentimentPanel, TopStocksPanel } from "@/components/market";
-
-// 单个股票标签组件 - 动态获取股票名称
-function StockTab({
-  code,
-  isSelected,
-  onSelect,
-  onClose,
-}: {
-  code: string;
-  isSelected: boolean;
-  onSelect: () => void;
-  onClose: (e: React.MouseEvent) => void;
-}) {
-  const { data: detail } = trpc.stocks.getDetail.useQuery(
-    { code },
-    { staleTime: 60000 } // 缓存1分钟
-  );
-
-  const name = detail?.quote?.name || detail?.stock?.name || code;
-
-  return (
-    <div
-      onClick={onSelect}
-      className={`group relative flex items-center justify-center min-w-[120px] px-6 h-full border-r border-border cursor-pointer transition-colors shrink-0 ${
-        isSelected
-          ? "bg-background text-foreground border-b-2 border-b-primary"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground"
-      }`}
-    >
-      <span className="text-sm truncate max-w-[100px] text-center">{name}</span>
-      <button
-        onClick={onClose}
-        className="absolute right-1.5 p-0.5 rounded hover:bg-destructive/20 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <X className="h-3 w-3" />
-      </button>
-    </div>
-  );
-}
+import type { SearchResultItem } from "@/components/stock";
 
 export default function Home() {
   const [searchKeyword, setSearchKeyword] = useState("");
