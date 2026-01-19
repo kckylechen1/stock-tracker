@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
 import { MessageCircle } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 import { AIChatPanel } from "@/components/ai";
 import { MainLayout } from "@/components/layout/MainLayout";

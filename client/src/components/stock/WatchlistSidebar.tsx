@@ -1,11 +1,11 @@
-import { useState } from "react";
 import { Trash2 } from "lucide-react";
+import { useState } from "react";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { SearchSection } from "./SearchSection";
-import { StockListItem } from "./StockListItem";
+import { SearchSection } from "@/components/stock/SearchSection";
+import { StockListItem } from "@/components/stock/StockListItem";
 
-import type { SearchResultItem } from "./SearchSection";
+import type { SearchResultItem } from "@/components/stock/SearchSection";
 
 interface DraggingStock {
   code: string;
