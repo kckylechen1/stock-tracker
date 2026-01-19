@@ -10,7 +10,7 @@ import type { ImperativePanelHandle } from "react-resizable-panels";
 export interface MainLayoutProps {
   leftPanel: ReactNode;
   rightPanel: ReactNode;
-  rightPanelRef: RefObject<ImperativePanelHandle>;
+  rightPanelRef: RefObject<ImperativePanelHandle | null>;
   isRightPanelCollapsed: boolean;
   onRightPanelCollapsed: () => void;
   onRightPanelExpanded: () => void;
