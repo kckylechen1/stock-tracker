@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs (we build inside Docker)
+dist/
+
+# Development files
+*.log
+*.pid
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+vitest.config.ts
+coverage/
+
+# Agent/AI config
+.agent/
+.claude/
+.gemini/
+
+# Archives and temp
+archives/
+tmp/
+*.tar.gz

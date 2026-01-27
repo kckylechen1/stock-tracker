@@ -5,6 +5,7 @@ import {
   PanelRightOpen,
   TrendingUp,
 } from "lucide-react";
+import { useState } from "react";
 
 import { MarketSentimentPanel, TopStocksPanel } from "@/components/market";
 import {
@@ -29,6 +30,8 @@ export function StockMainPanel({
   onToggleSidePanels,
   onSelectTopStock,
 }: StockMainPanelProps) {
+  const [openAccordions, setOpenAccordions] = useState<string[]>([]);
+
   return (
     <div className="flex-[65] min-h-0 flex">
       <div
@@ -67,7 +70,8 @@ export function StockMainPanel({
       >
         <Accordion
           type="multiple"
-          defaultValue={[]}
+          value={openAccordions}
+          onValueChange={setOpenAccordions}
           className="flex-1 overflow-auto"
         >
           <AccordionItem
@@ -125,14 +129,7 @@ export function StockMainPanel({
             variant="ghost"
             size="sm"
             className="w-full text-xs opacity-60 hover:opacity-100"
-            onClick={() => {
-              const accordionItems = document.querySelectorAll(
-                '[data-state="open"]'
-              );
-              accordionItems.forEach(item => {
-                (item as HTMLElement).click?.();
-              });
-            }}
+            onClick={() => setOpenAccordions([])}
           >
             全部收起
           </Button>

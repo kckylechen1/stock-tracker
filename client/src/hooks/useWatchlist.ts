@@ -13,13 +13,13 @@ export function useWatchlist({
   onAddSuccess,
   onAddError,
 }: UseWatchlistOptions) {
-  const { data: watchlist, isLoading, refetch } =
-    trpc.watchlist.list.useQuery();
+  const utils = trpc.useUtils();
+  const { data: watchlist, isLoading } = trpc.watchlist.list.useQuery();
 
   const addMutation = trpc.watchlist.add.useMutation({
-    onSuccess: data => {
+    onSuccess: async data => {
       if (data.success) {
-        refetch();
+        await utils.watchlist.list.invalidate();
         onAddSuccess?.();
       } else {
         onAddError?.(data.error);
@@ -28,10 +28,11 @@ export function useWatchlist({
   });
 
   const deleteMutation = trpc.watchlist.remove.useMutation({
-    onSuccess: () => {
-      refetch();
+    onSuccess: async () => {
+      await utils.watchlist.list.invalidate();
       if (selectedStock) {
-        const stillExists = watchlist?.some(
+        const freshList = utils.watchlist.list.getData();
+        const stillExists = freshList?.some(
           item => item.stockCode === selectedStock
         );
         if (!stillExists) {

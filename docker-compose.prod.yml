@@ -1,0 +1,76 @@
+# ============================================================
+# DragonFly Stock Tracker - 生产环境 Docker Compose
+# 适用于软路由 (iStoreOS / OpenWrt) 部署
+# ============================================================
+# 使用方法:
+#   1. 复制 .env.example 为 .env 并配置
+#   2. docker-compose -f docker-compose.prod.yml up -d
+# ============================================================
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8
+    container_name: dragonfly-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-stockpass}
+      MYSQL_DATABASE: stock_tracker
+    ports:
+      - "3306:3306"
+    volumes:
+      - dragonfly_mysql_data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # AKTools - 财经数据服务 (AKShare HTTP API)
+  aktools:
+    image: ghcr.io/akfamily/aktools:latest
+    container_name: dragonfly-aktools
+    restart: unless-stopped
+    ports:
+      - "8098:80"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:80/api/public/stock_zh_a_spot_em" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # DragonFly 主应用
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dragonfly:latest
+    container_name: dragonfly-app
+    restart: unless-stopped
+    ports:
+      - "6888:6888"
+    environment:
+      - NODE_ENV=production
+      - PORT=6888
+      - DATABASE_URL=mysql://root:${MYSQL_PASSWORD:-stockpass}@mysql:3306/stock_tracker
+      - AKTOOLS_URL=http://aktools:80
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      aktools:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:6888" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  dragonfly_mysql_data:
+    driver: local

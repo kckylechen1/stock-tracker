@@ -2,10 +2,9 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { SearchSection } from "@/components/stock/SearchSection";
-import { StockListItem } from "@/components/stock/StockListItem";
+import { SearchSection, StockListItem } from "@/components/stock";
 
-import type { SearchResultItem } from "@/components/stock/SearchSection";
+import type { SearchResultItem } from "@/components/stock";
 
 interface DraggingStock {
   code: string;
@@ -84,9 +83,6 @@ export function WatchlistSidebar({
                 setDraggingStock({ code: item.stockCode, id: item.id })
               }
               onDragEnd={() => {
-                if (isOverTrash && draggingStock) {
-                  onDeleteFromWatchlist(draggingStock.id);
-                }
                 setDraggingStock(null);
                 setIsOverTrash(false);
               }}

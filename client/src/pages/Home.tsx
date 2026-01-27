@@ -55,7 +55,6 @@ export default function Home() {
   }, [isRightPanelCollapsed]);
 
   // 搜索股票 - 使用query
-  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
 
   // 获取观察池列表
@@ -63,7 +62,6 @@ export default function Home() {
     selectedStock,
     onSelectedStockCleared: () => setSelectedStock(null),
     onAddSuccess: () => {
-      setSearchResults([]);
       setSearchKeyword("");
       setDebouncedKeyword("");
     },
@@ -79,7 +77,6 @@ export default function Home() {
         setDebouncedKeyword(searchKeyword.trim());
       } else {
         setDebouncedKeyword("");
-        setSearchResults([]);
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -94,12 +91,8 @@ export default function Home() {
     }
   );
 
-  // 当搜索数据变化时更新结果
-  useEffect(() => {
-    if (searchData) {
-      setSearchResults(searchData);
-    }
-  }, [searchData]);
+  // 派生搜索结果（避免多余状态同步）
+  const searchResults = searchData ?? [];
 
   const handleAddToWatchlist = (code: string) => {
     addMutation.mutate({
@@ -124,17 +117,10 @@ export default function Home() {
   };
 
   // 选择股票并添加到标签页
-  const handleSelectStock = useCallback(
-    (code: string) => {
-      setSelectedStock(code);
-
-      // 检查是否已经在标签页中
-      if (!openedTabs.includes(code)) {
-        setOpenedTabs(prev => [...prev, code]);
-      }
-    },
-    [openedTabs]
-  );
+  const handleSelectStock = useCallback((code: string) => {
+    setSelectedStock(code);
+    setOpenedTabs(prev => (prev.includes(code) ? prev : [...prev, code]));
+  }, []);
 
   // 关闭标签页
   const handleCloseTab = useCallback(
